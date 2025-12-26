@@ -1,0 +1,10 @@
+name: pca_selection
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.3
+  - r-tidyverse
+  - r-rcppnpy
+  - r-r.utils

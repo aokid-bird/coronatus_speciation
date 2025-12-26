@@ -1,0 +1,8 @@
+# envs/intersect_sites.yaml
+name: intersect_sites
+channels:
+    - conda-forge
+    - defaults
+dependencies:
+    - python=3.10
+    - pandas>=1.3

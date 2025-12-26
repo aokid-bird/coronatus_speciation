@@ -1,0 +1,19 @@
+ngsrelate:
+    name: ngsrelate_20220925
+    source: docker://ghcr.io/zjnolen/ngsrelate:20220925-ec95c8f
+    built_on: 2025-07-23
+    path: /home/user/envs/singularity/ngsrelate_20220925.sif
+    checksum: abc1234567890deadbeef...cafe
+    build_script: containers/ngsrelate/build.sh
+    used_by_rules:
+        - ngs_relate_all
+
+ngsld:
+    name: ngsld_1.2.0
+    source: docker://ghcr.io/zjnolen/ngsld:1.2.0
+    build_on: 2025-07-25
+    path: /home/user/envs/singularity/ngsld_1.2.0.sif
+    checksum:
+    build_script: containers/ngsld/build.sh
+    used_by_rules:
+        -

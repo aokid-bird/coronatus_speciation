@@ -1,0 +1,14 @@
+name: vcfR_env
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - r-base=4.2
+    - r-dplyr
+    - r-stringr
+    - r-tibble
+    - r-tidyr
+    - r-readr
+    - r-vcfr
+    - r-data.table
+    - r-future.apply

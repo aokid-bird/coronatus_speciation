@@ -1,0 +1,11 @@
+# envs/core.yaml
+# run the following to create an environment called bioinfo_pipeline
+# conda env create -f envs/snakemake.yaml
+# conda activate bioinfo_pipeline
+name: bioinfo_pipeline
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - python=3.10
+    - snakemake=7.32.4

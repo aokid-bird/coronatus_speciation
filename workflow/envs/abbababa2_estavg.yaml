@@ -1,0 +1,7 @@
+name: abbababa2-estavg
+channels:
+  - conda-forge
+dependencies:
+  - r-base>=4.1
+  - r-data.table
+  - r-pracma

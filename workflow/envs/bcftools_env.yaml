@@ -1,0 +1,12 @@
+name: bcftools_env
+channels:
+    - bioconda
+    - conda-forge
+dependencies:
+    - bcftools>=1.16 # manipulating vcfs
+    - htslib # backend for vcf/bam
+    - samtools # manipulating BAMs
+    - tabix # index/compressing vcfs
+    - py-bgzip # bgzip vcfs
+    - vcftools # preliminary calculations of genetic indices
+    - gsl # for some statsitical analyses

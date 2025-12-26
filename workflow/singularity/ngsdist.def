@@ -1,0 +1,37 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Author DaisukeAoki
+    Description "Container with ngsDist built from source"
+
+%post
+    set -eux
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+        pkg-config \
+        zlib1g-dev \
+        libgsl-dev \
+        ca-certificates \
+        wget \
+        unzip
+    rm -rf /var/lib/apt/lists/*
+
+    # Build ngsDist (part of ngsTools)
+    mkdir -p /opt/src && cd /opt/src
+    git clone https://github.com/fgvieira/ngsDist.git
+    cd ngsDist
+    make
+
+    # Symlink into PATH
+    mkdir -p /opt/bin
+    ln -s /opt/src/ngsDist/ngsDist /opt/bin/ngsDist
+
+%environment
+    export PATH=/opt/bin:$PATH
+
+%runscript
+    exec ngsDist "$@"

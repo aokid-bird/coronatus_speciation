@@ -1,0 +1,158 @@
+次のコードはANGSDの結果を用いてPCAngsdおよびNGSAdmixを実施するためのRコードです。以下について考慮した上で、これをSnakemake用のWorkflowに変更してください。
+1. 下記ではsubdir分だけpca.plot等のベクターを用意して繰り返し計算させることとしていますが、これについては無視し、PCA、NGSAdmixを一通り実施するのみのWorkflowにしてください。
+2. tmp.bamlistとして読み込んでいるbamlistはrules.make_bamlist_unrelated.output.bamlistを利用する(PCAngsdおよびNGSAdmix共通)。
+3. PCangsdおよびNGSadmixそれぞれのパラメータはconfigで設定する。下記コードではkは1:6としているが、最大値はconfigで設定するようにする。また各Kでの試行回数もconfigで設定するようにする（現状は10にfix）
+4. PCAに関する結果の出力先はresults/pca/{output_prefix}とする（output_prefixはすでに定義済み）
+5. 下記のunlinkedbeagle（PCA）もしくはbeagle（NGSAdmix）はいずれもrules.angsd_global_unrelated_unlinked.output.beagleを利用する
+6. logoutはlog:に記載。logs/{output_prefix}/pcangsd.log
+7. pcangsdはsingularity（docker://ghcr.io/zjnolen/pcangsd:1.35）->　containers/pcangsd/build.shを作成。
+8. build.shは以下の#build.shの例を参照
+9. selection detectionは以下の要領でRで実施。必要な環境はcondaで設定する。
+10. NGSadmixの環境は、../envs/angsd.yamlを利用すること。これによってpathが通るので、NGSadmixのみで利用可能に成るため、適宜変更。
+11. NGSAdmixのK間および各Kでのループは、適切な言語で書き直す。
+12. 他に必要な変数やディレクトリ名がある場合で、私が使っていない変数・ディレクトリ名がある場合は、それらのリストを作り、私にチェックを行わせてください。チェック後に変更すべき名前・変数がある場合は、それを統合して再度必要なコードを書き直してください。
+13. R scriptを送りますが、上記で指定がないものについてはpythonやbashなど、解析目的に適当な言語を使ってください
+
+# Rscript
+#==================#
+#### 5) PCAngsd ####
+#==================#
+#==================#
+##### 5-1) PCA #####
+# store vector
+pca.plot <- pc <-e <- vector("list", length(subdir))
+
+for(i in 1:length(subdir)){
+  
+  # parameters
+  tmp.subdir <- subdir[i]
+  # bamlist
+  tmp.bamlist <- 
+    read_lines(str_interp("${resdir_angsd_global.local}/bamlist_${tmp.subdir}")) %>% 
+    tibble %>% 
+    set_colnames("bamlist.fullpath") 
+  
+  iter <- 1000
+  minmaf <- 0.05
+  
+  # outname
+  resdir_pca.local <- str_interp("${resdir_angsd_global.local}/${tmp.subdir}/pca")
+  unlinkedbeagle <- str_interp("${resdir_angsd_global.local}/${tmp.subdir}/gl_global_unlinked.beagle.gz")
+  pcaout <- str_interp("${resdir_pca.local}/pcangsd")
+  logout <- str_interp("${resdir_pca.local}/pcangsd.oe")
+  
+  # create a directory
+  if(!dir.exists(resdir_pca.local)){dir.create(resdir_pca.local)}
+  
+  # scripts
+  call.pca <- str_c("pcangsd --beagle ", unlinkedbeagle, 
+                    " -o ", pcaout,
+                    " --iter ", iter,
+                    " --minMaf ", minmaf,
+                    " --admix --tree --selection --snp_weights --sites_save 2> ", logout)
+  
+  system(call.pca)
+  
+}
+
+#=================================#
+##### 5-2) selection detection ####
+
+for(i in 1:length(subdir)){
+  # subdirectory
+  tmp.subdir <- subdir[i]
+  
+  # nsite
+  site <- 
+    read_lines(str_interp("${resdir_angsd_global.local}/${tmp.subdir}/pca/pcangsd.sites")) 
+  
+  D <- npyLoad(str_interp("${resdir_angsd_global.local}/${tmp.subdir}/pca/pcangsd.selection.npy")) 
+  p <- pchisq(D, 1, lower.tail=FALSE)
+  
+  # QQ plot to QC the test statistics
+  # no significant deviation from qq
+  png(filename = str_interp("${resdir_angsd_global.local}/${tmp.subdir}/pca/pca_${tmp.subdir}_qq.png"),
+      width = 1500, height = 1500)
+  qqchi(D)
+  dev.off()
+  
+  selection <- 
+    tibble(site = as.integer(site), p = p[,1]) %>% 
+    mutate(selection = if_else(p < (0.05/length(p)), 1, 0))
+  # alpha value 0.05 was corrected to produce p under multiple comparison by Bonferroni correction
+  # 0.05 divided by the number of snps
+  
+  write_csv(selection, 
+            str_interp("${resdir_angsd_global.local}/${tmp.subdir}/pca/selection.csv"))
+}
+
+#===================#
+#### 6) NGSAdmix ####
+#===================#
+# store vector
+log <- df.admix <- vector("list", length(subdir))
+
+for(i in 1:length(subdir)){
+  #=========================#
+  ##### 6-1) Parameters #####
+  tmp.subdir <- subdir[i]
+  nthreads = 18
+  maxiter = 5000
+  minmaf = 0.05
+  
+  # bamlist
+  tmp.bamlist <- 
+    read_lines(str_interp("${resdir_angsd_global.local}/bamlist_${tmp.subdir}")) %>% 
+    tibble %>% 
+    set_colnames("bamlist.fullpath")
+  
+  #========================#
+  #### 6-2) Directories ####
+  beagle <- str_interp("${resdir_angsd_global.local}/${tmp.subdir}/gl_global_unlinked.beagle.gz")
+  resdir_admix <- str_interp("${resdir_angsd_global.local}/${tmp.subdir}/admixture")
+  
+  mkdir(resdir_admix)
+  
+  #==============#
+  ## 6-3) Run ####
+  for(l in 1:6){
+    for(k in 1:10){
+      admix <- str_c("~/ngsadmix/NGSadmix -likes ", beagle,
+                     " -K ", l,
+                     " -outfiles ./", resdir_admix, "/K", l, "_", k,
+                     " -P ", nthreads,
+                     " -maxiter ", maxiter,
+                     " -minMaf ", minmaf,
+                     " -printInfo 1")
+      cat(sprintf('\r K %d rep %d',
+                  l, k))
+      system(admix)
+    }
+  }
+  
+}
+
+#build.shの例
+#!/bin/bash
+# Build script for ngsRelate container
+set -euo pipefail
+
+# make dir if needed
+TARGET_DIR="$HOME/envs/singularity"
+IMAGE_NAME="ngsld_1.2.0.sif"
+DOCKER_SRC="docker://ghcr.io/zjnolen/ngsld:1.2.0"
+
+mkdir -p "$TARGET_DIR"
+cd "$TARGET_DIR"
+
+# build singularity image
+echo "Building Singularity image..."
+singularity build "$IMAGE_NAME" "$DOCKER_SRC"
+
+# generate checksum
+echo "Generating checksum..."
+sha256sum "$IMAGE_NAME" > "${IMAGE_NAME}.sha256"
+
+echo "Done."
+echo "Image stored at: $TARGET_DIR/$IMAGE_NAME"
+echo "Checksum stored at: $TARGET_DIR/${IMAGE_NAME}.sha256"

@@ -1,0 +1,34 @@
+Bootstrap: docker
+From: continuumio/miniconda3:24.11.1-0
+
+%labels
+    Author DaisukeAoki
+    Description "Beast2 + SNAPP plugin for SNAPP analyses"
+
+%help
+    This container provides Beast2 with the SNAPP add-on installed via packagemanager.
+    Build with:
+        singularity build beast_snapp.sif workflow/singularity/beast_snapp.def
+
+%post
+    set -euo
+    export LANG=C.UTF-8
+    . /opt/conda/etc/profile.d/conda.sh
+    conda create -y -n beast-snapp -c conda-forge -c bioconda beast2
+    export BEAST_USER_DIR=/opt/beast-user
+    mkdir -p "${BEAST_USER_DIR}"
+    HOME="${BEAST_USER_DIR}" conda run -n beast-snapp /opt/conda/envs/beast-snapp/bin/packagemanager -add SNAPP -n
+    chmod -R a+rX "${BEAST_USER_DIR}"
+    ln -sf /opt/conda/envs/beast-snapp/bin/beast /usr/local/bin/beast
+    ln -sf /opt/conda/envs/beast-snapp/bin/packagemanager /usr/local/bin/packagemanager
+    ln -sf /opt/conda/envs/beast-snapp/bin/java /usr/local/bin/java
+    conda clean -afy
+
+%environment
+    export PATH=/opt/conda/envs/beast-snapp/bin:$PATH
+    export BEAST_USER_DIR=/opt/beast-user
+    export JAVA_TOOL_OPTIONS=\"${JAVA_TOOL_OPTIONS:-} -Dbeast.user.dir=/opt/beast-user\"
+    export LANG=C.UTF-8
+
+%runscript
+    exec /opt/conda/envs/beast-snapp/bin/beast "$@"

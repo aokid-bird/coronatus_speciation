@@ -1,0 +1,10 @@
+# envs/angsd.yaml
+name: angsd
+channels:
+    - bioconda
+    - conda-forge
+dependencies:
+    - angsd =0.940
+    - samtools >=1.9
+    - zlib
+    - gzip

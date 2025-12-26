@@ -1,0 +1,11 @@
+name: snakemake_mapper
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - bwa=0.7.*
+  - bwa-mem2=2.2.*
+  - minimap2=2.28
+  - filtlong=0.2.1
+  - samtools=1.19.*

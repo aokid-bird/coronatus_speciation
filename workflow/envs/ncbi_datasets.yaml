@@ -1,0 +1,11 @@
+name: ncbi_datasets
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - ncbi-datasets-cli >=16
+  - unzip
+  - wget
+  - pigz
+

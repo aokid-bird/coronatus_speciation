@@ -1,0 +1,6 @@
+name: beast_snapp
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - beast2

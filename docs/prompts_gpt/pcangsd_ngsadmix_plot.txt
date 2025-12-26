@@ -1,0 +1,400 @@
+次のコードはPCAngsdおよび、NGSAdmixの結果をPlotするためのRコードです。次に留意した上で、Snakemake用のWorkflowに変換してください。
+1. 下記ではsubdir分だけpc等のベクターを用意して繰り返し計算させることとしていますが、これについては無視し、PCA、NGSAdmixを一通り描画するのみのWorkflowにしてください（条件分岐はSnakemakeのConfigで実施する）。
+2. 下記のR script独自のディレクトリや変数定義のルールがなされています。以下に従ってこれらを適切なものに変えてください。私が変更を定義していない変数・ディレクトリ名や、Workflow上新たに作成する必要がある場合は、それらのリストを作り、私にチェックを行わせてください。チェック後に変更すべき名前・変数がある場合は、それを統合して再度必要なコードを書き直してください
+3. levels.pop、level.poplabel、levels.reg、conditionはどれもspecific caseを示しています。そのため、現在のWorkflowの構成に合うように次のように変換してください
+3-1) levels.popはconfig["populations"]から取得する
+3-2) levels.poplabelはlevels.pop (=config["populations])の順番を利用する（i.e., 自動的にalphabetical orderにしない）
+3-3) levels.regはOutgroupを含めた特別な条件で、今回は検討しない(今後の拡張時には、configのpopulationsなどで判断できるようにする)。
+3-4) conditionは今回は定義しない
+3. 描画は全てRで行う。そのためR scriptをPCAとADMIXTUREそれぞれで作成すること
+4. khromaはmanual installationのため、
+.libPaths(c("/home/aokid/R/x86_64-redhat-linux-gnu-library/4.1", .libPaths()))
+を冒頭に追加してください。
+5. 必要なlibraryは、完成したコードに基づいて適宜追加・削除してください。それに応じて、../envs/plot.yamlとしてください（これは今後のPlot汎用的にすることが想定され、拡張される可能性がある）
+6. 図のoutputのディレクトリはpca, admixtureそれぞれの結果が格納されているディレクトリと同じにしてください
+7. R scriptを送りますが、上記で指定がないものについてはpythonやbashなど、解析目的に最も適切な言語を使ってください
+
+# PCA
+1. PCAに関する結果の出力先はresults/pca/{output_prefix}としてある（output_prefixはすでに定義済み）ため、これうち、.covをpcaout.covとして表記されているinputに用いる。また、これはrules.run_pcangsd.output.pcaで引用できる
+## base.dfの作成について
+2. read_delim(str_interp("${resdir_angsd_global.local}/${name.bamlist}"), delim = " ", col_names = FALSE)で読み込まれているBamlistは本Workflowではrules.make_bamlist_unrelated.output.bamlistとして引用する
+3. left_joinしていますが、ここは、config["samples"] (common.smkでsamplesとして定義)から読み込んだ、tsvを連結させてください。
+4.以下については、ref.dfを結合しない。また、それによって、species.yも発生しない。group_plotはconfig["group_col"](common.smkでgroup_colとして定義)を利用する
+left_join(., ref.df, by = c("sample" = "sraid")) %>% 
+    mutate(group_plot = case_when(
+      is.na(group_reg) ~ species.y,
+      TRUE ~ as.character(group_reg)
+    )) %>% 
+    mutate(group_plot = factor(group_plot, levels = levels.reg))
+## PCA plotについて
+5. color("bright") (khroma package)を使い、その（）の数はpop_colの数で指定してください。Orderは2,4,1,3,5としなくて良いです。また、Greyもひとまず使わなくて良いです
+6. プロットに用いるPC軸はconfigで定義できるようにしてください。また、configでは、２つ以上の軸が指定された場合、各組み合わせで複数のプロットができるようにしてください。
+7. plot.pcは以下に定義されています。Workflowに合わせて必要な変更は指示してください。もしくは、今回作成するRスクリプトと組み合わせる必要がある場合は、module構造を意識して、統合・分割を検討し、その結果を教えてください
+8. plotについては、configで指定された各軸の組み合わせを並べて１つのPDFに保存する
+
+# admixture
+1. admixtureの結果は、rules.run_ngsadmix.outputに次のように表記されています。適宜こちら、もしくは関連するDir名に置き換えてください
+expand(f"results/admixture/{output_prefix}/K{{k}}_{{r}}.qopt", 
+               k=range(1, config["ngsadmix"]["maxK"] + 1), 
+               r=range(1, config["ngsadmix"]["n_replicates"] + 1))
+2. 解析には.logファイルも用います。こちらは、run_ngsadmixのoutputとしては指定されていません。outputにどのような変更をするべきか教えてください。例えば以下のような感じですか？（ただし{}の表記に自信がないので、こちらも適宜修正してください）
+expand(f"results/admixture/{output_prefix}/K{{k}}_{{r}}.{suffix}", 
+               k=range(1, config["ngsadmix"]["maxK"] + 1), 
+               r=range(1, config["ngsadmix"]["n_replicates"] + 1),
+               suffix= {"log", "qopt"})
+3. reordercol = factor...の部分におけるlevels=はpop_colの順番を利用する
+4. Kは2:5を対象にPlotしていますが、このうち、最大値は、configで指定するようにしてください
+5. admix.colpalはpca同様にpop_colの数だけcolor("muted")から色を選んでください。orderは得られたorderそのままで良いです。
+6. 以下の部分は、単純にpop_colに基づいてgroup化してください。Populationはgroup_plotと同じで大丈夫です。
+mutate(group_plot = if_else(group_plot %in% c("Laterallus jamaicensis", "Atlantisia rogersi"), "Outgroup", group_plot)) %>% 
+    mutate(Population = if_else(group_plot == "Kanto", "Kanto (wintering)", group_plot) %>% factor(., levels = levels.pop)) 
+7. deltaKについてのPlotおよび、ADMIXTUREのメインの結果についてのPlotを保存する。後者については、configで指定されたK ＝　2:Nを縦に並べてPDFで保存する
+
+# 対象となるRスクリプト
+#==================================================#
+#### Figure 1 and related supplementary figures ####
+#==================================================#
+# This script intends to plot figures related to PCA and Admixture analyses
+# These analyses were conducted with different subsets of samples, specifically, those retaining or
+# excluding Kanto wintering samples and those retaining or excluding outgroup samples.
+# Figure 1 will present only the representative ones, while the others were saved as supplementary
+# figures.
+# For the Figure 1, the empty space will be used for geographic map that is manually added to the 
+# figure with reorganizing the sublabels.
+
+#===========================#
+#### Libraries & Sources ####
+#===========================#
+library(tidyverse)
+library(magrittr)
+library(patchwork)
+library(khroma)
+library(colorblindr)
+source("code/dataprep.R")
+source("../functions/ngs_functions.R")
+source("../functions/cluster_functions.R")
+source("../functions/general_functions.R")
+#==============================#
+#### Directories & base dfs ####
+#==============================#
+subdir <- 
+  expand.grid(category = c("all", "breed"),
+              outgrp   = c("", "_wout")) %>% 
+  mutate(subdir = str_c(category, outgrp)) %>% 
+  pull(subdir)
+
+resdir_angsd_global.local <- "res/angsd_global_rlrmv_mindepthind2"
+figdir <- "figures/revise"
+#============================#
+#### 1) PCA and ADMIXTURE ####
+#============================#
+# prepare a list of vectors
+pc <- e <- plot.pc <- log <- df.admix <- plot.deltak <- plot.admix <- vector("list", length(subdir))
+
+levels.pop <- c("Tomakomai", "Kushiro", "Russia", "Aomori", "Kanto (wintering)","Outgroup")
+levels.poplabel <- c("Tomakomai", "Kushiro", "Russia", "Aomori", "Kanto (wintering)",
+                     expression(italic("Laterallus jamaicensis")), 
+                     expression(italic("Atlantisia rogersi")))
+levels.reg <- c("tomakomai_b", "kushiro_b", 
+                "russia_b", "aomori_b", "kanto_w",
+                "Laterallus jamaicensis", "Atlantisia rogersi")
+
+condition <- function(x)case_when(
+  x == "all" ~ "Both breeding and wintering",
+  x == "breed" ~ "Only breeding",
+  x == "all_wout" ~ "Breeding and wintering with outgroups",
+  x == "breed_wout" ~ "Breeding with outgroups"
+)
+
+for(i in 1:length(subdir)){
+  ##### 1-1) variable preps #####
+  # for this loop set
+  tmp.subdir <- subdir[i]
+  
+  # directories
+  resdir_pca <- str_interp("${resdir_angsd_global.local}/${tmp.subdir}/pca")
+  pcaout <- str_interp("${resdir_pca}/pcangsd")
+  logout <- str_interp("${resdir_pca}/pcangsd.oe")
+  name.bamlist <- str_interp("bamlist_${tmp.subdir}")
+  resdir_admix <- str_interp("${resdir_angsd_global.local}/${tmp.subdir}/admixture")
+  
+  # base df for population info
+  # CAUTION: minind differs between different bamlist sets
+  base.df <- 
+    read_delim(str_interp("${resdir_angsd_global.local}/${name.bamlist}"), delim = " ", col_names = FALSE) %>% 
+    set_colnames("bamlist.fullpath") %>% 
+    mutate(sample = str_extract(bamlist.fullpath, "(?<=/)[^/]+(?=\\.bam)")) %>% 
+    left_join(., data.df, by = "sample") %>% 
+    left_join(., ref.df, by = c("sample" = "sraid")) %>% 
+    mutate(group_plot = case_when(
+      is.na(group_reg) ~ species.y,
+      TRUE ~ as.character(group_reg)
+    )) %>% 
+    mutate(group_plot = factor(group_plot, levels = levels.reg))
+  #### 1-2) PCA data load ####
+  pc[[i]] <- 
+    read.table(str_interp("${pcaout}.cov")) %>% 
+    as.matrix %>% 
+    eigen %>% 
+    .$vectors %>% 
+    as_tibble %>% 
+    set_colnames(str_c("pc",1:ncol(.)))
+  # eigen values to percentage explanation
+  e[[i]] <- 
+    read.table(str_interp("${resdir_pca}/pcangsd.tree.cov")) %>% 
+    as.matrix %>% 
+    eigen %>% 
+    .$values %>% 
+    tibble(pc = str_c("pc",1:length(.)), values = .) %>% 
+    mutate(pct = round(values/sum(values)*100, digits = 2))
+  
+  # color palette for pca
+  base.colpal <- c(as.character(color("bright")(6))[c(2,4,1,3,5)], "grey60", "grey80")
+  sub.colpal <- base.colpal[levels(base.df$group_plot) %in% unique(base.df$group_plot)]
+  
+  #### 1-3) PCA plot ####
+  plot.pc[[i]] <- 
+    pcaplot(xaxis = "pc1", yaxis = "pc2", 
+            .group = base.df$group_plot, .pc = pc[[i]], .e = e[[i]],
+            .colpal = sub.colpal, .labels = levels.poplabel)
+  
+  #### 1-4) Admixture data load ####
+  # log files
+  log[[i]] <- 
+    list.files(resdir_admix, pattern = ".log", full.names = TRUE) %>% 
+    lapply(readLines) %>% 
+    sapply(function(x){x[which(str_sub(x, 1, 1) == 'b')]}) %>% 
+    as.data.frame() %>% 
+    rename(like = ".") %>% 
+    mutate(K = list.files(resdir_admix, pattern = ".log")) %>% 
+    mutate(like = str_extract(like, "(?<=like=)[0-9.-]+") %>% as.numeric) %>%
+    mutate(K = str_extract(K, "(?<=K)[:digit:]")) %>% 
+    mutate(runnum =  list.files(resdir_admix, pattern = ".log") %>% str_remove(".log"))
+  
+  cond <- condition(tmp.subdir)
+  
+  # plot deltaK changes
+  plot.deltak[[i]] <- 
+    log[[i]] %>% 
+    group_by(K) %>% 
+    summarise(deltaK = mean(abs(like))/sd(abs(like))) %>%
+    dplyr::slice(-1) %>% 
+    ggplot(data = ., aes(x = as.numeric(K), y = deltaK))+
+    geom_line() + 
+    xlab("K") +
+    ylab("delta K") +
+    ggtitle(str_interp("${cond}")) +
+    theme_bw()
+  
+  # select the best run for each K to plot
+  like <- log[[i]] %>% group_by(K) %>% filter(like == max(like)) %>% slice(1)
+  
+  for(K in 2:5){
+    tmp.admix <- 
+      read.table(str_c(resdir_admix, "/", like$runnum[K], ".qopt")) %>% 
+      bind_cols(base.df, .) %>% 
+      arrange(group_plot) %>% 
+      select(sample, group_plot, contains("V", ignore.case = FALSE))
+    
+    # reorder genetic groups based on population
+    order <-
+      tmp.admix %>% 
+      group_by(group_plot) %>% 
+      select(starts_with("V")) %>% 
+      summarize_all(mean) %>% 
+      ungroup %>% 
+      # identify the V cluster scoring the max proportion values for each population
+      gather(clust, cnt, starts_with("V")) %>% 
+      group_by(group_plot) %>% 
+      slice(which.max(cnt)) %>% 
+      # arrange the df according to the group order to order the V clusters
+      mutate(reordercol = factor(group_plot, levels = c("tomakomai_b", "Laterallus jamaicensis", "Atlantisia rogersi", "russia_b", "kushiro_b", "aomori_b"))) %>% 
+      arrange(reordercol) %>% 
+      select(!reordercol) %>% 
+      pull(clust) %>% 
+      unique
+    
+    order <- c(order, str_c("V", 1:K)[!(str_c("V", 1:K) %in% order)])
+    
+    tmp.admix %<>% 
+      select(all_of(c("sample", "group_plot", order))) %>% 
+      set_colnames(c("sample", "group_plot", str_c("V", 1:length(order)))) %>% 
+      pivot_longer(cols = starts_with("V"),
+                   names_to = "popGroup",
+                   names_prefix = "Group.",
+                   values_to = "prob",
+                   values_drop_na = FALSE) %>% 
+      mutate(.K = K)
+    
+    df.admix[[i]] <- bind_rows(df.admix[[i]], tmp.admix)
+  }
+  
+  ####  1-5) Admixture plot ####
+  if(str_detect(tmp.subdir, "wout")){
+    admix.colpal <- c(as.character(color("muted")(9)[c(1)]),
+                      "#4D4D4D",
+                      as.character(color("muted")(9)[c(2,3,4,6,5)]))
+  }else{
+    admix.colpal <- as.character(color("muted")(9)[c(1,2,3,4,6,5)])
+  }
+  
+  
+  plot.admix[[i]] <- 
+    df.admix[[i]] %>% 
+    mutate(group_plot = str_remove(group_plot, "_.$") %>% str_to_sentence) %>% 
+    mutate(group_plot = if_else(group_plot %in% c("Laterallus jamaicensis", "Atlantisia rogersi"), "Outgroup", group_plot)) %>% 
+    mutate(Population = if_else(group_plot == "Kanto", "Kanto (wintering)", group_plot) %>% factor(., levels = levels.pop)) %>% 
+    mutate(.K = str_c("K = ", .K)) %>% 
+    ggplot(., aes(factor(sample), prob, fill = factor(popGroup))) + 
+    geom_col(color = "grey", size = 0.1) + 
+    labs(x = "Individuals", y = "Ancestry") +
+    facet_grid(cols = vars(Population),rows = vars(.K), switch = "x", scales = "free", space = "free") + 
+    scale_y_continuous(expand = c(0,0)) +
+    scale_x_discrete(expand = expansion(add = 0.6)) +
+    scale_fill_manual(values = admix.colpal) +
+    theme_minimal() +
+    theme(
+      panel.spacing.y = unit(0.5, "lines"),
+      axis.text.x = element_blank(),
+      strip.text.x = element_text(size = 15),
+      strip.text.y = element_text(size = 15),
+      axis.title.x = element_blank(),
+      axis.title.y = element_text(size = 15),
+      legend.position = "none"
+    )
+}
+
+#===============#
+#### 2) Save ####
+#===============#
+#======================#
+##### 2-1) Figure 1 ####
+plot.pc[[1]] <- 
+  plot.pc[[1]] + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12))
+
+plot.admix[[1]] <-
+  plot.admix[[1]] +
+  theme(axis.text.y = element_text(size = 12))
+
+fig1 <- 
+  (plot_spacer() + plot.pc[[1]]) / plot.admix[[1]] +
+  plot_layout(heights = c(3,2))+
+  plot_annotation(tag_levels = "a", tag_suffix = ")")
+
+fig1
+
+figdir_fig1 <- str_interp("${figdir}/Fig1")
+mkdir(figdir_fig1)
+ggsave(str_interp("${figdir_fig1}/Fig1.eps"), device = "eps")
+ggsave(str_interp("${figdir_fig1}/Fig1.png"), device = "png")
+
+#========================#
+##### 2-2) Suppl PCA #####
+#========================#
+plot.pc[[2]] <- plot.pc[[2]] + theme(legend.position = "none", 
+                                     axis.title.x = element_text(size = 12),
+                                     axis.title.y = element_text(size = 12),
+                                     axis.text.x = element_text(size = 10),
+                                     axis.text.y = element_text(size = 10))
+
+plot.pc[[4]] <- plot.pc[[4]] + theme(legend.position = "none", 
+                                     axis.title.x = element_text(size = 12),
+                                     axis.title.y = element_text(size = 12),
+                                     axis.text.x = element_text(size = 10),
+                                     axis.text.y = element_text(size = 10))
+
+plot.pc[[3]] <- 
+  plot.pc[[3]] + 
+  theme(axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.text.y = element_text(size = 10),
+        legend.position = c(0.8,1),
+        legend.title = element_blank(),
+        legend.justification = c(1,1),
+        legend.background = element_blank())
+
+(plot.pc[[2]]+plot.pc[[4]])/(plot.pc[[3]]) + 
+  plot_annotation(tag_levels = "a", tag_suffix = ")")
+
+figdir_pcasup <- str_interp("${figdir}/pca_sup")
+mkdir(figdir_pcasup)
+ggsave(str_interp("${figdir_pcasup}/Fig_pcasup.png"), device = "png",
+       width = 20, height = 20, units = "cm", dpi = 500)
+ggsave(str_interp("${figdir_pcasup}/Fig_pcasup.eps"), device = "eps",
+       width = 20, height = 20, units = "cm")
+
+#=====================#
+##### 2-3) DeltaK #####
+#=====================#
+
+for(i in 1:length(plot.deltak)){
+  plot.deltak[[i]] <- plot.deltak[[i]] + theme(axis.title.x = element_text(size = 12),
+                                               axis.title.y = element_text(size = 12),
+                                               axis.text.x = element_text(size = 10),
+                                               axis.text.y = element_text(size = 10))
+}
+
+(plot.deltak[[1]] + plot.deltak[[2]])/(plot.deltak[[3]] + plot.deltak[[4]]) +
+  plot_annotation(tag_levels = "a", tag_suffix = ")")
+
+figdir_admixsup <- str_interp("${figdir}/admix_sup")
+mkdir(figdir_admixsup)
+ggsave(str_interp("${figdir_admixsup}/Fig_deltaK.eps"), device = "eps")
+ggsave(str_interp("${figdir_admixsup}/Fig_deltaK.png"), device = "png")
+
+# pcaplot
+pcaplot <- function(xaxis, yaxis, .group, .pc, .e, .colpal, .labels, .title = NULL){
+  
+  # combine into one dataframe
+  plot.pc <- 
+    .pc %>% 
+    dplyr::select(all_of(c(xaxis, yaxis))) %>% 
+    mutate(group = .group) %>% 
+    set_colnames(c("xaxis","yaxis","group"))
+  
+  # fix the xaxis range always to have positives as larger absolute values
+  xaxis.range <- range(plot.pc$xaxis)
+  
+  if(abs(xaxis.range[1]) > abs(xaxis.range[2])){
+    plot.pc$xaxis <- -plot.pc$xaxis
+  }
+  
+  # fix the yaxis range always to have positives as larger absolute values
+  yaxis.range <- range(plot.pc$yaxis)
+  
+  if(abs(yaxis.range[1]) > abs(yaxis.range[2])){
+    plot.pc$yaxis <- -plot.pc$yaxis
+  }
+  
+  # percentage of the total variance
+  plot.pct <-
+    .e %>% 
+    filter(pc %in% c(xaxis, yaxis)) %>% 
+    pull(pct)
+  
+  # plot label
+  plot.axis <- str_to_upper(c(xaxis, yaxis))
+  
+  # plot
+  p <-
+    ggplot(data = plot.pc, aes(x = xaxis, y = yaxis, color = group))+
+      geom_hline(aes(yintercept = 0.00)) + 
+      geom_vline(aes(xintercept = 0.00)) + 
+      geom_point() + 
+      # ggrepel::geom_label_repel(aes(label = sample, color = group_reg), max.overlaps = 15) +
+      xlab(str_interp("${plot.axis[1]} (${plot.pct[1]}%)")) + 
+      ylab(str_interp("${plot.axis[2]} (${plot.pct[2]}%)")) + 
+      stat_ellipse(level=0.5) + 
+      scale_color_manual(values = .colpal, labels = .labels) +
+      theme_bw() 
+  
+  if(!is.null(.title)){
+    p <- p + ggtitle(.title)
+  }
+  
+  p
+} 

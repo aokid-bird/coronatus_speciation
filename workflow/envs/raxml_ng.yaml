@@ -1,0 +1,6 @@
+name: raxml_ng
+channels:
+    - bioconda
+    - conda-forge
+dependencies:
+    - raxml-ng

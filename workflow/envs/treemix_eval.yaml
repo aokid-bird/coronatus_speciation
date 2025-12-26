@@ -1,0 +1,15 @@
+name: treemix-eval
+channels:
+    - conda-forge
+dependencies:
+    - r-base>=4.1
+    - r-ggplot2>=3.5.0
+    - r-tidyverse
+    - r-optm
+    - r-magrittr
+    - r-readr
+    - r-stringr
+    - r-ggnewscale
+    - r-patchwork
+    - r-cairo
+    - r-ape

@@ -1,0 +1,5 @@
+name: snapp_prep
+channels:
+  - conda-forge
+dependencies:
+  - ruby
