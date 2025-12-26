@@ -13,8 +13,8 @@ git pull origin main
 ```
 Because this pipeline will be used in many situations and these runs will require furhter updates, this repository should be used as "submodule" of each project.
 ### NOTE
-[!CAUTION]
-project *gallinag_phylogeography* and *coronatus_speciation* are not updated as submodules yet (2025/12/26). When rerunning the analyses in these projects, please update your directories by making new directories and downloading this pipeline as submodules, and transfer some input/config files already generated in the older project directories. 
+> [!CAUTION]
+> project *gallinag_phylogeography* and *coronatus_speciation* are not updated as submodules yet (2025/12/26). When rerunning the analyses in these projects, please update your directories by making new directories and downloading this pipeline as submodules, and transfer some input/config files already generated in the older project directories. 
 
 ## Step 2: Set up Snakemake environment
 In the current snakemake.yaml, the snakemake environment (bioinfo_pipeline) will be created with python 3.10 and Snakemake 7.32.4. This will allow you to use f-string in the Snakemake rules.
