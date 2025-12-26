@@ -15,4 +15,5 @@ workflow/bin/
 .fna.gz
 .zip
 data/raw/
+data/adapters/
 data/reference*
