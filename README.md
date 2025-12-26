@@ -11,6 +11,10 @@ git clone https://github.com/aokid-bird/gbs_pipeline.git
 # to pull the latest version (main)
 git pull origin main
 ```
+Because this pipeline will be used in many situations and these runs will require furhter updates, this repository should be used as "submodule" of each project.
+### NOTE
+[!CAUTION]
+project *gallinag_phylogeography* and *coronatus_speciation* are not updated as submodules yet (2025/12/26). When rerunning the analyses in these projects, please update your directories by making new directories and downloading this pipeline as submodules, and transfer some input/config files already generated in the older project directories. 
 
 ## Step 2: Set up Snakemake environment
 In the current snakemake.yaml, the snakemake environment (bioinfo_pipeline) will be created with python 3.10 and Snakemake 7.32.4. This will allow you to use f-string in the Snakemake rules.
@@ -28,7 +32,8 @@ Please refer to any default files or `templates/data` to prepare your own input 
 5. Put your adapter sequence fasta in `data/adapters`. Please refer to `templates/data/adapters` for an example.
 
 ## Step 4: Set up your own config files
-The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your config files in config/XXX.yaml. Please refer to templates/config for an example. The `config/defaults_cluster.yaml` or `config/defaults_local.yaml` will guide you to make your own. 
+The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your config files in config/XXX.yaml. Please refer to templates/config for an example. The `templates/config/defaults_cluster.yaml` or `templates/config/defaults_local.yaml` will guide you to make your own. 
+- Once you make your own config, put them under `config/`. 
 - Create your own config file for each specific tasks and runs. Please make separate config files when you want to change parameters, change population definitions, etc. Then, set different names to `config.output_prefix` whose unique directory will be created under `results/ANALYSISNAME/OUTPUT_PREFIX`.
 - The pipeline is still under development, and therefore, flexibility is still low. In the future, you may choose which analyses you want to do by turning "enabled: true" on. In the present version, however, you may need to go through all or most of the analyses.
 
