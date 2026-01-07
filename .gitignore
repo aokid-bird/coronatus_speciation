@@ -16,4 +16,3 @@ workflow/bin/
 .zip
 data/raw/
 data/adapters/
-data/reference*
