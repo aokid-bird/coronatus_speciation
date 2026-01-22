@@ -37,7 +37,8 @@ git remote add origin git@github.com:YOUR_GITHUB_USERNAME/proj_name.git
 # -u option is to declare that upstream is added 
 git push -u origin main
 ```
-This will create a repo for your own project, while this is based on the template gbs_pipeline
+This will create a repo for your own project, while this is based on the template gbs_pipeline.
+The following results of `git remote -v` is correct to push updates to your project repo (not the template)
 ```bash
 git remote -v
 > origin  git@github.com:YOUR_GITHUB_USERNAME/proj_name.git (fetch)
@@ -62,7 +63,7 @@ conda env create -f snakemake.yaml
 conda activate bioinfo_pipeline
 ```
 
-## Step 4: Prepare your dataset
+## Step 5: Prepare your dataset
 Please refer to any default files or `templates/data` to prepare your own input metadata.
 1. Find a suitable reference genome from NCBI.Genome. Prepare your reference list `data/reference.tsv`. Look up Genome of NCBI (https://www.ncbi.nlm.nih.gov/datasets/genome/) and use closely related species. `accession` column is something with "GCA", and `name` should include something ending with "genomic.fna.gz" which you can usually find in the ftp tab of the genome. If you intend to use `config.reference_download_method = wget` option, then create a column called `url` to retrieve the data. Delete the `url` column if you use the `dataset` method. This file should be referred to at `config.references_tsv`.
 2. Prepare your sample lists `data/sample.tsv`. If there are more than one population definition, then create new columns like `pop2`, `pop3`..., which will be referred to in the `config/config.yaml`. Note that the sample name will be used to identify the fastq files, bam files, etc, so unify the names between fastq files and this lists. This file should be referred to at the config.samples.
@@ -71,7 +72,7 @@ Please refer to any default files or `templates/data` to prepare your own input 
 5. Put your adapter sequence fasta in `data/adapters`. Please refer to `templates/data/adapters` for an example.
 
 ## Step 5: Set up your own config files
-The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your config files in config/XXX.yaml. Please refer to templates/config for an example. The `templates/config/defaults_cluster.yaml` or `templates/config/defaults_local.yaml` will guide you to make your own. 
+The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your config files in `config/XXX.yaml`. Please refer to templates/config for an example. The `templates/config/defaults_cluster.yaml` or `templates/config/defaults_local.yaml` will guide you to make your own. 
 - Once you make your own config, put them under `config/`. 
 - Create your own config file for each specific tasks and runs. Please make separate config files when you want to change parameters, change population definitions, etc. Then, set different names to `config.output_prefix` whose unique directory will be created under `results/ANALYSISNAME/OUTPUT_PREFIX`.
 - The pipeline is still under development, and therefore, flexibility is still low. In the future, you may choose which analyses you want to do by turning "enabled: true" on. In the present version, however, you may need to go through all or most of the analyses.
