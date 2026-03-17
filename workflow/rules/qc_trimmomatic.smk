@@ -101,6 +101,9 @@ rule trimmomatic_outgroup_pe:
         extra=TRIM_EXTRA,
         outdir=TRIM_DIR
     threads: config.get("threads", 4)
+    resources:
+        mem_mb=200000,
+        runtime="24:00:00"
     conda:
         "../envs/trimmomatic.yaml"
     message:

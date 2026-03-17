@@ -41,6 +41,9 @@ rule angsd_intersect_group:
         )),
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["intersect"].strip()
     threads: config["threads"]
+    resources:
+        mem_mb=16000,
+        runtime="24:00:00"
     conda:
         "../envs/angsd.yaml"
     shell:

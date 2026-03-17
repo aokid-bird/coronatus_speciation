@@ -11,6 +11,7 @@ rule run_pcangsd:
         outprefix = f"results/pca/{output_prefix}/pcangsd",
         iter = config["pcangsd"]["iter"],
         minmaf = config["pcangsd"]["minmaf"]
+    threads: config["pcangsd"]["threads"]
     singularity:
         f"{config_singularity_dir}/pcangsd_1.35.sif"
     shell:
@@ -18,6 +19,7 @@ rule run_pcangsd:
         pcangsd --beagle {input.beagle} \
                 -o {params.outprefix} \
                 --iter {params.iter} \
+                --threads {threads} \
                 --maf {params.minmaf} \
                 --admix --tree --selection --snp_weights --sites_save 2> {log}
         """
@@ -32,7 +34,7 @@ rule pca_selection:
     log:
         f"logs/{output_prefix}/pca_selection.log"
     conda:
-        "../envs/pca_selection.yamlß"
+        "../envs/pca_selection.yaml"
     shell:
         """
         Rscript workflow/scripts/run_selection.R \

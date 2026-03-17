@@ -49,10 +49,13 @@ rule ngsdist_run:
         log     = f"logs/{output_prefix}/ngsdist_{{model}}.log"
     singularity:
         NGSDIST_SIF
+    threads: NGSDIST_CFG.get("threads", 1)
     wildcard_constraints:
         model="|".join(_MODELS)
     shell:
         r"""
+        export OMP_NUM_THREADS={threads}
+
         # Map model name to ngsDist evol_model code
         EVOL=0
         if [ "{wildcards.model}" = "jc69" ]; then EVOL=1; fi

@@ -63,6 +63,9 @@ rule angsd_global:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["global"].strip(),
         minInd_ratio=get_minInd_ratio("global", None)
     threads: config["threads"]
+    resources:
+        mem_mb=16000,
+        runtime="24:00:00"
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -117,6 +120,7 @@ rule ngsrelate_global:
         result = f"results/ngsrelate_global/{output_prefix}/ngsrelate_res"
     log:
         f"logs/{output_prefix}/ngsrelate_global.log"
+    threads: config["ngsrelate"]["threads"]
     singularity:
         f"{config_singularity_dir}/ngsrelate_20220925.sif"
     shell:
@@ -126,6 +130,7 @@ rule ngsrelate_global:
             -n $(wc -l < {input.bamlist}) \
             -f {input.freq} \
             -z {input.id} \
+            -p {threads} \
             -O {output.result} > {log} 2>&1
         """
 

@@ -133,6 +133,9 @@ rule angsd_sfs_group:
         minInd_ratio=get_minInd_ratio("sfs", None),
     threads:
         config["threads"]
+    resources:
+        mem_mb=16000,
+        runtime="24:00:00"
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -174,6 +177,9 @@ rule realsfs_1d:
         f"logs/{output_prefix}/realsfs_1d_{{site_filter}}_{{fold}}_{{group}}.log",
     threads:
         REAL_SFS_THREADS
+    resources:
+        mem_mb=16000,
+        runtime="08:00:00"
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -210,6 +216,9 @@ rule realsfs_2d:
         f"logs/{output_prefix}/realsfs_2d_{{site_filter}}_{{fold}}_{{pair}}.log",
     threads:
         REAL_SFS_THREADS
+    resources:
+        mem_mb=16000,
+        runtime="08:00:00"
     conda:
         "../envs/angsd.yaml"
     shell:

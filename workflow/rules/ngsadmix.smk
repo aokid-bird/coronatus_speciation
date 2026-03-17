@@ -12,11 +12,11 @@ rule run_ngsadmix:
                r=range(1, config["ngsadmix"]["n_replicates"] + 1))
     params:
         outdir = f"results/admixture/{output_prefix}",
-        threads = config["ngsadmix"]["threads"],
         maxiter = config["ngsadmix"]["maxiter"],
         minmaf = config["ngsadmix"]["minmaf"],
         maxK = config["ngsadmix"]["maxK"],
         reps = config["ngsadmix"]["n_replicates"]
+    threads: config["ngsadmix"]["threads"]
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -26,7 +26,7 @@ rule run_ngsadmix:
             NGSadmix -likes {input.beagle} \
                      -K $K \
                      -outfiles {params.outdir}/K${{K}}_${{REP}} \
-                     -P {params.threads} \
+                     -P {threads} \
                      -maxiter {params.maxiter} \
                      -minMaf {params.minmaf} \
                      -printInfo 1

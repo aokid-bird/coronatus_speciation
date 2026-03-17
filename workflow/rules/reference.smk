@@ -164,6 +164,9 @@ rule index_bwa:
     conda:
         "../envs/mapper.yaml"
     threads: 2
+    resources:
+        mem_mb=64000,
+        runtime="08:00:00"
     shell:
         r"""
         mkdir -p logs/reference $(dirname {output})
@@ -181,6 +184,9 @@ rule index_bwa_mem2:
     conda:
         "../envs/mapper.yaml"
     threads: 2
+    resources:
+        mem_mb=64000,
+        runtime="08:00:00"
     shell:
         r"""
         mkdir -p logs/reference $(dirname {output})

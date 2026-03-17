@@ -213,6 +213,9 @@ rule catg_format:
     params:
         maxSize = 4 * 1024**3 # max size for future.apply
     threads:config['raxml']['threads_catg']
+    resources:
+        mem_mb=200000,
+        runtime="48:00:00"
     conda:
         "../envs/vcfR.yaml"
     script:
@@ -230,6 +233,9 @@ rule raxml_ng:
         raxout=f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.bootstraps",
         raxsup=f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.support"
     threads:config['raxml']['threads_run']
+    resources:
+        mem_mb=200000,
+        runtime="72:00:00"
     params:
         model=config['raxml']['model'],
         bs=config['raxml']['bs'],

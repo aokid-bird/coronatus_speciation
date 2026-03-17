@@ -2,6 +2,14 @@
 environment: "cluster"
 threads: 30
 
+slurm:
+    partition: "default"
+    account: null
+    qos: null
+    reservation: null
+    mail_type: null # e.g., END,FAIL
+    mail_user: null
+
 # scneario_config
 output_prefix: "defaults"
 
@@ -161,6 +169,7 @@ minIndRatio:
 # ngsRelate
 ngsrelate:
     kinship_threshold: 0.0884
+    threads: 4
 
 # ngsLD
 ngsld:
@@ -173,6 +182,7 @@ ngsld:
 pcangsd:
     iter: 1000
     minmaf: 0.05
+    threads: 8
     axes_plot: [] # e.g., [pc1, pc2, pc3]
 
 ngsadmix:
@@ -181,6 +191,10 @@ ngsadmix:
     threads: 18
     maxiter: 5000
     minmaf: 0.05
+
+ngsdist:
+    models: [p, jc69]
+    threads: 8
 
 # raxml-ng
 raxml:

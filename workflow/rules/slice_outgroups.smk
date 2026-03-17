@@ -33,6 +33,9 @@ rule slice_outgroup_bam:
         bam = f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam",
         bai = f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam.bai"
     threads: config.get("threads", 6)
+    resources:
+        mem_mb=200000,
+        runtime="24:00:00"
     conda:
         "../envs/samtools.yaml"
     shell:

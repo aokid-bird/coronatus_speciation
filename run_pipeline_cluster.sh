@@ -12,9 +12,49 @@ conda activate bioinfo_pipeline
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
 SINGULARITY_PREFIX_SNAKEMAKE="$HOME/envs/singularity"
 CONFIG=config/config.yaml
+PROFILE=profile/default
 LOGDIR=$(python workflow/scripts/export_paths.py $CONFIG)
 echo "Your LOGDIR is \"$LOGDIR\""
 mkdir -p $LOGDIR
+
+# export Slurm profile settings from config
+eval "$(
+python - "$CONFIG" "$LOGDIR" <<'PY'
+import shlex
+import sys
+import yaml
+
+config_path, logdir = sys.argv[1], sys.argv[2]
+with open(config_path) as fh:
+    config = yaml.safe_load(fh) or {}
+
+slurm = config.get("slurm", {}) or {}
+slurm_logdir = f"{logdir}/slurm"
+
+extra_args = []
+for cli_opt, key in (
+    ("--account", "account"),
+    ("--qos", "qos"),
+    ("--reservation", "reservation"),
+    ("--mail-type", "mail_type"),
+    ("--mail-user", "mail_user"),
+):
+    value = slurm.get(key)
+    if value:
+        extra_args.append(f"{cli_opt}={value}")
+
+env = {
+    "SNAKEMAKE_SLURM_PARTITION": str(slurm.get("partition", "default")),
+    "SNAKEMAKE_SLURM_LOGDIR": slurm_logdir,
+    "SNAKEMAKE_SLURM_EXTRA_ARGS": " ".join(extra_args),
+}
+
+for key, value in env.items():
+    print(f"export {key}={shlex.quote(value)}")
+PY
+)"
+mkdir -p "$SNAKEMAKE_SLURM_LOGDIR"
+echo "Using Slurm partition \"$SNAKEMAKE_SLURM_PARTITION\""
 
 # create conda environment
 echo "Creating conda environments..."
@@ -72,21 +112,12 @@ snakemake \
 snakemake \
     --snakefile workflow/Snakefile \
     --configfile config/config.yaml \
-    --cluster-config config/cluster.json \
-    --cluster "/opt/nec/nqsv/bin/qsub -q {cluster.queue} \
-      -l cpunum_job={cluster.ppn} \
-      -l memsz_job={cluster.mem} \
-      -N {cluster.jobname} \
-      -o ${LOGDIR}/{rule}.o \
-      -e ${LOGDIR}/{rule}.e" \
-    --jobs 20 \
+    --profile "$PROFILE" \
     --use-conda \
     --conda-frontend conda \
     --conda-prefix "$CONDA_PREFIX_SNAKEMAKE" \
     --use-singularity \
-    --latency-wait 30 \
     --rerun-incomplete \
-    --cluster-cancel "qdel" \
     "${TARGETS[@]}" # optional targets for partial runs
 
 # For partial debug
@@ -94,14 +125,7 @@ snakemake \
 #     --snakefile workflow/Snakefile \
 #     --configfile config/config.yaml \
 #     -R intersect_sites_group \
-#     --cluster-config config/cluster.json \
-#     --cluster "/opt/nec/nqsv/bin/qsub -q {cluster.queue} \
-#       -l cpunum_job={cluster.ppn} \
-#       -l memsz_job={cluster.mem} \
-#       -N {cluster.jobname} \
-#       -o {cluster.logdir}/{rule}.o \
-#       -e {cluster.logdir}/{rule}.e" \
-#     --jobs 6 \
+#     --profile "$PROFILE" \
 #     --use-conda \
 #     --conda-frontend conda \
 #     --use-singularity
