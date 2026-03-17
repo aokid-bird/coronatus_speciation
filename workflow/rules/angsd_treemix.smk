@@ -112,7 +112,7 @@ rule angsd_treemix:
         outprefix=f"results/angsd_treemix/{output_prefix}/gl",
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["treemix"].strip(),
         minInd_ratio=get_minInd_ratio("treemix", get_minInd_ratio("global", None))
-    threads: config["threads"]
+    threads: TREEMIX_THREADS
     conda:
         "../envs/angsd.yaml"
     shell:

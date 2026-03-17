@@ -31,7 +31,6 @@ SFS_FOLD_STATES_ACTIVE = [fl for fl in SFS_FOLD_STATES if fl in SUPPORTED_FOLD_K
 if not SFS_FOLD_STATES_ACTIVE:
     SFS_FOLD_STATES_ACTIVE = ["fold"]
 
-REAL_SFS_THREADS = 10
 PAIR_DELIM = "__"
 
 
@@ -132,7 +131,7 @@ rule angsd_sfs_group:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["sfs"].strip(),
         minInd_ratio=get_minInd_ratio("sfs", None),
     threads:
-        config["threads"]
+        ANGSD_SFS_THREADS
     resources:
         mem_mb=16000,
         runtime=1440
@@ -176,7 +175,7 @@ rule realsfs_1d:
     log:
         f"logs/{output_prefix}/realsfs_1d_{{site_filter}}_{{fold}}_{{group}}.log",
     threads:
-        REAL_SFS_THREADS
+        REALSFS_THREADS
     resources:
         mem_mb=16000,
         runtime=480
@@ -215,7 +214,7 @@ rule realsfs_2d:
     log:
         f"logs/{output_prefix}/realsfs_2d_{{site_filter}}_{{fold}}_{{pair}}.log",
     threads:
-        REAL_SFS_THREADS
+        REALSFS_THREADS
     resources:
         mem_mb=16000,
         runtime=480

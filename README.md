@@ -79,6 +79,7 @@ The config file is the most important part of the analysis where you define spec
 
 ## Step 6: Adjust run_pipeline_cluster.sh/run_pipeline_local.sh
 These two bash scripts are prepared to run Snakemake entirely either in a cluster or a local environment. While they make it easy to run from the beginning to the end of this pipeline, you may want to change some details sometimes. Please adjust the contents, especially options of `snakemake` to your own purposes.
+For cluster execution, the current Slurm setup uses `profile/default/config.yaml` together with rule-level `threads` and `resources`. `templates/config/cluster.json` is kept only as a legacy PBS reference and is not used by `run_pipeline_cluster.sh`.
 
 ## Step 7: Analysis environment
 Once creating your snakemake environment `bioinfo_pipeline`, other analyses environment will be created inside the pipeline (for cases of conda) or before the pipeline initiates (for cases of singularity using the run_pipeline.sh). Therefore, you do not have to create your own analysis environment. 
@@ -93,6 +94,11 @@ Once your bash scripts are prepared, inside the pipeline root directory, simply 
 bash run_pipeline_local.sh
 # inside your cluster environment (for the main run)
 bash run_pipeline_cluster.sh
+```
+
+To test the Slurm path directly without the wrapper:
+```bash
+snakemake --profile profile/default --snakefile workflow/Snakefile --configfile config/config.yaml --dryrun
 ```
 
 # Tips

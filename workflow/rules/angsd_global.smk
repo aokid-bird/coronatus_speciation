@@ -62,7 +62,7 @@ rule angsd_global:
         outprefix=f"results/angsd_global/{output_prefix}/gl",
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["global"].strip(),
         minInd_ratio=get_minInd_ratio("global", None)
-    threads: config["threads"]
+    threads: ANGSD_GLOBAL_THREADS
     resources:
         mem_mb=16000,
         runtime=1440
@@ -223,7 +223,7 @@ rule ngsld_global:
     log:
         f"logs/{output_prefix}/ngsLD.log"
     threads:
-        config["threads"]
+        NGSLD_THREADS
     singularity:
         f"{config_singularity_dir}/ngsld_1.2.0.sif"
     shell:
@@ -253,7 +253,7 @@ rule ld_pruning:
     log:
         f"logs/{output_prefix}/pruneld.log"
     threads:
-        config["threads"]
+        NGSLD_THREADS
     singularity:
         f"{config_singularity_dir}/ngsld_1.2.0.sif"
     shell:
@@ -365,7 +365,7 @@ rule angsd_global_unrelated_unlinked:
         outprefix=f"results/angsd_global_unrelated_unlinked/{output_prefix}/gl",
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["global_unrelated_unlinked"].strip(),
         minInd_ratio=get_minInd_ratio("global", None)
-    threads: config["threads"]
+    threads: ANGSD_GLOBAL_UNRELATED_THREADS
     conda:
         "../envs/angsd.yaml"
     shell:

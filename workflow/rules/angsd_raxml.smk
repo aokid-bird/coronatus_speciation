@@ -178,7 +178,7 @@ rule angsd_raxml:
         outprefix=f"results/angsd_raxml/{output_prefix}/gl",
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["raxml"].strip(),
         minInd_ratio=get_minInd_ratio("raxml", get_minInd_ratio("global", None))
-    threads: config["threads"]
+    threads: ANGSD_RAXML_THREADS
     conda:
         "../envs/angsd.yaml"
     shell:

@@ -87,7 +87,7 @@ rule angsd_snapp:
         outprefix=f"results/angsd_snapp/{output_prefix}/gl",
         extra=(config["angsd_common_args"].strip() + " " + (config.get("angsd_args", {}).get("snapp", "").strip())),
         minInd_ratio=get_minInd_ratio("snapp", get_minInd_ratio("global", None))
-    threads: config["threads"]
+    threads: ANGSD_SNAPP_THREADS
     conda:
         "../envs/angsd.yaml"
     shell:

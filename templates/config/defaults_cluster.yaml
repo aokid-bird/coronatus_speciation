@@ -1,6 +1,6 @@
 # Basic settings
 environment: "cluster"
-threads: 30
+threads: 30 # legacy fallback for older configs; prefer per-analysis thread settings below
 
 slurm:
     partition: "default"
@@ -30,10 +30,12 @@ reference_download_method: "datasets" # datasets or wget
 mapping:
     ingroup:
         mapper: bwa-mem2 # options: bwa, bwa-mem2
+        threads: 30
         map_unpaired: true
         extra: "" # extra args for mapper (e.g., -M)
     outgroup:
         mapper: bwa-mem2 # options: bwa, bwa-mem2
+        threads: 30
         map_unpaired: true
         extra: "" # extra args for mapper (e.g., -M)
 
@@ -76,6 +78,7 @@ qc:
         fastqc:
             contaminants: null # e.g., data/adapters/adapter-primer.fa
         trimmomatic:
+            threads: 8
             adapters_fa: null # e.g., data/adapters/TruSeq3-PE.fa
             clip: "2:30:7"
             slidingwindow: "4:15"
@@ -87,6 +90,7 @@ qc:
         fastqc:
             contaminants: null # e.g., data/adapters/adapter-primer.fa
         trimmomatic:
+            threads: 30
             adapters_fa: null # e.g., data/adapters/TruSeq3-PE.fa
             clip: "2:30:7"
             slidingwindow: "4:15"
@@ -148,14 +152,21 @@ angsd_args:
         -doGeno 4
         -dosaf 1
 
+angsd_intersect:
+    threads: 8
+
 # Site frequency spectrum analysis
 sfs_analysis:
     site_filters: [linked]   # options: linked, unlinked
     fold_states: [fold]      # options: fold, unfold
     include_monomorphic: true
     realSFS:
+        threads: 10
         maxiter: 50000
         tole: 1e-6
+
+angsd_sfs:
+    threads: 8
 
 # ANGSD minInd option
 minIndRatio:
@@ -173,6 +184,7 @@ ngsrelate:
 
 # ngsLD
 ngsld:
+    threads: 8
     minmaf: 0.05
     max_kb_dist: 50
     min_weight: 0.5
@@ -196,6 +208,9 @@ ngsdist:
     models: [p, jc69]
     threads: 8
 
+slice_outgroups:
+    threads: 30
+
 # raxml-ng
 raxml:
     na_fill: 0.01
@@ -211,6 +226,7 @@ raxml:
 
 # TreeMix settings
 treemix:
+    threads: 8
     include_outgroups: true # include outgroup BAMs into treemix analysis
     mode: pop # pop or indiv
     glactools_bin: workflow/bin/glactools # path to glactools binary copied to cluster
@@ -248,8 +264,12 @@ abbababa2:
 
 # Per-analysis outgroup inclusion
 angsd_global:
+    threads: 8
     include_outgroups: true
+angsd_global_unrelated_unlinked:
+    threads: 8
 angsd_raxml:
+    threads: 8
     include_outgroups: true
     downsampling:
         max_per_population:
@@ -258,13 +278,10 @@ angsd_raxml:
         use_all_samples: false
         seed: 20240526
 
-# ngsDist settings
-ngsdist:
-    models: ["p", "jc69"]  # available: p, jc69
-
 # SNAPP analysis
 snapp:
     enabled: true
+    threads: 8
     max_per_population: 4
     min_samples_locus: 4
     missingness_threshold: 0.2

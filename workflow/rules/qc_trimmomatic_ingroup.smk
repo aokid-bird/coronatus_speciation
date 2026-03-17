@@ -111,7 +111,7 @@ rule trimmomatic_ingroup_pe:
         minlen=TRIM_MINLEN,
         extra=TRIM_EXTRA,
         outdir=TRIM_DIR
-    threads: config.get("threads", 4)
+    threads: QC_INGROUP_THREADS
     conda:
         "../envs/trimmomatic.yaml"
     message:
@@ -185,4 +185,3 @@ rule ingroup_qc_trim_all:
         expand(pjoin(TRIM_DIR, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
         # post-QC multiqc
         pjoin(POST_QC_DIR, "multiqc_report.html")
-

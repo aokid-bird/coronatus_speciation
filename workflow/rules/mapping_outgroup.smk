@@ -59,7 +59,7 @@ rule map_outgroup_paired:
         fq2=lambda wc: pjoin(OUTGROUP_TRIM_DIR, f"{wc.sample_id}_pair_R2.fastq.gz")
     output:
         bam=temp(pjoin(OUTGROUP_MAP_TMP, "{sample_id}.paired.bam"))
-    threads: config.get("threads", 6)
+    threads: MAPPING_OUTGROUP_THREADS
     resources:
         mem_mb=64000,
         runtime=1440
@@ -84,7 +84,7 @@ rule map_outgroup_unpaired:
         fq=lambda wc: pjoin(OUTGROUP_TRIM_DIR, f"{wc.sample_id}_unpair_R{wc.read}.fastq.gz")
     output:
         bam=temp(pjoin(OUTGROUP_MAP_TMP, "{sample_id}.unpaired_R{read}.bam"))
-    threads: config.get("threads", 6)
+    threads: MAPPING_OUTGROUP_THREADS
     resources:
         mem_mb=64000,
         runtime=1440
@@ -117,7 +117,7 @@ rule outgroup_final_bam:
     output:
         bam=pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam"),
         bai=pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam.bai")
-    threads: config.get("threads", 6)
+    threads: MAPPING_OUTGROUP_THREADS
     resources:
         mem_mb=200000,
         runtime=1440
@@ -187,7 +187,7 @@ rule map_outgroup_long_minimap2:
     params:
         preset=lambda wc: OUTGROUP_MINIMAP2_PRESET.get(wc.sample_id, "map-pb"),
         extra=lambda wc: LR_CFG.get("mapping", {}).get("extra", "")
-    threads: config.get("threads", 6)
+    threads: MAPPING_OUTGROUP_THREADS
     resources:
         mem_mb=200000,
         runtime=1440

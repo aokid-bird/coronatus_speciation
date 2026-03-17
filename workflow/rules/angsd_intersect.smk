@@ -40,7 +40,7 @@ rule angsd_intersect_group:
             sum(1 for _ in open(f"results/bamlists/{output_prefix}/{wc.group}/bamlist.txt")) * config['minIndRatio']['intersect']
         )),
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["intersect"].strip()
-    threads: config["threads"]
+    threads: ANGSD_INTERSECT_THREADS
     resources:
         mem_mb=16000,
         runtime=1440

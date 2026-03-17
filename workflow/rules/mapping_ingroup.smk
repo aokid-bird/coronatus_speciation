@@ -33,7 +33,7 @@ rule map_ingroup_paired:
         fq2=lambda wc: pjoin(TRIM_DIR, f"{wc.sample_id}_pair_R2.fastq.gz")
     output:
         bam=temp(pjoin(MAP_TMP, "{sample_id}.paired.bam"))
-    threads: config.get("threads", 6)
+    threads: MAPPING_INGROUP_THREADS
     conda:
         "../envs/mapper.yaml"
     message:
@@ -56,7 +56,7 @@ rule map_ingroup_unpaired:
         fq=lambda wc: pjoin(TRIM_DIR, f"{wc.sample_id}_unpair_R{wc.read}.fastq.gz")
     output:
         bam=temp(pjoin(MAP_TMP, "{sample_id}.unpaired_R{read}.bam"))
-    threads: config.get("threads", 6)
+    threads: MAPPING_INGROUP_THREADS
     conda:
         "../envs/mapper.yaml"
     message:
@@ -88,7 +88,7 @@ rule ingroup_final_bam:
     output:
         bam=pjoin(FINAL_DIR, "{sample_id}.bam"),
         bai=pjoin(FINAL_DIR, "{sample_id}.bam.bai")
-    threads: config.get("threads", 6)
+    threads: MAPPING_INGROUP_THREADS
     conda:
         "../envs/samtools.yaml"
     message:

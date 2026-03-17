@@ -8,6 +8,25 @@ import os
 output_prefix = config["output_prefix"] # scenario symbols
 groups = config["populations"]
 group_col = config["group_col"]
+LEGACY_GLOBAL_THREADS = int(config.get("threads", 1))
+
+
+def _config_section(*keys):
+    value = config
+    for key in keys:
+        if not isinstance(value, dict):
+            return {}
+        value = value.get(key, {})
+    return value if isinstance(value, dict) else {}
+
+
+def _resolve_threads(section, default, legacy_fallback=True):
+    value = section.get("threads")
+    if value is None and legacy_fallback:
+        value = config.get("threads", default)
+    if value is None:
+        value = default
+    return int(value)
 
 _POP_LABEL_CFG = config.get("population_labels") or {}
 if isinstance(_POP_LABEL_CFG, dict):
@@ -120,6 +139,8 @@ def _merge_mapping_scope(scope: str):
 
 MAPPING_INGROUP_CFG = _merge_mapping_scope("ingroup")
 MAPPING_OUTGROUP_CFG = _merge_mapping_scope("outgroup")
+MAPPING_INGROUP_THREADS = _resolve_threads(MAPPING_INGROUP_CFG, 6)
+MAPPING_OUTGROUP_THREADS = _resolve_threads(MAPPING_OUTGROUP_CFG, 6)
 
 # Choose mapping backend per scope: bwa or bwa-mem2
 MAPPER_INGROUP = MAPPING_INGROUP_CFG.get("mapper", config.get("mapper", "bwa"))
@@ -177,6 +198,7 @@ TREEMIX_INCLUDE_OUTGROUPS = bool(TREEMIX_CFG.get("include_outgroups", True))
 TREEMIX_ROOT_LABEL = TREEMIX_CFG.get("root_label")
 TREEMIX_MAX_M = int(TREEMIX_CFG.get("max_m", 6))
 TREEMIX_REPS = int(TREEMIX_CFG.get("reps", 10))
+TREEMIX_THREADS = _resolve_threads(TREEMIX_CFG, LEGACY_GLOBAL_THREADS)
 # Optional list of sample IDs to exclude from TreeMix analysis
 _treemix_exclude_cfg = TREEMIX_CFG.get("exclude_samples") or []
 if isinstance(_treemix_exclude_cfg, str):
@@ -198,8 +220,25 @@ TREEMIX_PLOTTING_FUNCS = str(_PLOTFUNC_DEFAULT) if _PLOTFUNC_DEFAULT.exists() el
 # Per-analysis toggles to include outgroups (sliced BAMs)
 ANGSD_GLOBAL_CFG = (config.get("angsd_global", {}) or {})
 ANGSD_RAXML_CFG  = (config.get("angsd_raxml", {}) or {})
+ANGSD_INTERSECT_CFG = (config.get("angsd_intersect", {}) or {})
+ANGSD_SFS_CFG = (config.get("angsd_sfs", {}) or {})
+ANGSD_SNAPP_CFG = (config.get("snapp", {}) or {})
 ANGSD_GLOBAL_INCLUDE_OUTGROUPS = bool(ANGSD_GLOBAL_CFG.get("include_outgroups", False))
 ANGSD_RAXML_INCLUDE_OUTGROUPS  = bool(ANGSD_RAXML_CFG.get("include_outgroups", False))
+ANGSD_INTERSECT_THREADS = _resolve_threads(ANGSD_INTERSECT_CFG, LEGACY_GLOBAL_THREADS)
+ANGSD_GLOBAL_THREADS = _resolve_threads(ANGSD_GLOBAL_CFG, LEGACY_GLOBAL_THREADS)
+ANGSD_GLOBAL_UNRELATED_THREADS = _resolve_threads(
+    _config_section("angsd_global_unrelated_unlinked"),
+    ANGSD_GLOBAL_THREADS,
+)
+ANGSD_SFS_THREADS = _resolve_threads(ANGSD_SFS_CFG, LEGACY_GLOBAL_THREADS)
+ANGSD_RAXML_THREADS = _resolve_threads(ANGSD_RAXML_CFG, LEGACY_GLOBAL_THREADS)
+ANGSD_SNAPP_THREADS = _resolve_threads(ANGSD_SNAPP_CFG, ANGSD_GLOBAL_THREADS)
+SLICE_OUTGROUPS_THREADS = _resolve_threads(_config_section("slice_outgroups"), 6)
+NGSLD_THREADS = _resolve_threads(_config_section("ngsld"), LEGACY_GLOBAL_THREADS)
+REALSFS_THREADS = _resolve_threads(_config_section("sfs_analysis", "realSFS"), 10, legacy_fallback=False)
+QC_INGROUP_THREADS = _resolve_threads(_config_section("qc", "ingroup", "trimmomatic"), 4)
+QC_OUTGROUP_THREADS = _resolve_threads(_config_section("qc", "outgroup", "trimmomatic"), 4)
 
 ANGSD_RAXML_DOWNSAMPLE_CFG = (ANGSD_RAXML_CFG.get("downsampling") or {})
 
@@ -327,7 +366,7 @@ else:
 
 ABBABABA2_CFG = (config.get("abbababa2", {}) or {})
 ABBABABA2_ENABLED = bool(ABBABABA2_CFG.get("enabled", False))
-ABBABABA2_THREADS = int(ABBABABA2_CFG.get("threads", config.get("threads", 1)))
+ABBABABA2_THREADS = int(ABBABABA2_CFG.get("threads", LEGACY_GLOBAL_THREADS))
 _abb_args = str(ABBABABA2_CFG.get("angsd_args", "")).strip()
 if not _abb_args:
     _abb_args = "-doAbbababa2 1 -doCounts 1 -minMapQ 30 -minQ 20 -baq 2 -useLast 1"

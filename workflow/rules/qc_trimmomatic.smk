@@ -100,7 +100,7 @@ rule trimmomatic_outgroup_pe:
         minlen=TRIM_MINLEN,
         extra=TRIM_EXTRA,
         outdir=TRIM_DIR
-    threads: config.get("threads", 4)
+    threads: QC_OUTGROUP_THREADS
     resources:
         mem_mb=200000,
         runtime=1440
