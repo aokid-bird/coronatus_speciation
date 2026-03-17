@@ -215,7 +215,7 @@ rule catg_format:
     threads:config['raxml']['threads_catg']
     resources:
         mem_mb=200000,
-        runtime="48:00:00"
+        runtime=2880
     conda:
         "../envs/vcfR.yaml"
     script:
@@ -235,7 +235,7 @@ rule raxml_ng:
     threads:config['raxml']['threads_run']
     resources:
         mem_mb=200000,
-        runtime="72:00:00"
+        runtime=4320
     params:
         model=config['raxml']['model'],
         bs=config['raxml']['bs'],

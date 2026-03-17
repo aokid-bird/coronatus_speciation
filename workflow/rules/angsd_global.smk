@@ -65,7 +65,7 @@ rule angsd_global:
     threads: config["threads"]
     resources:
         mem_mb=16000,
-        runtime="24:00:00"
+        runtime=1440
     conda:
         "../envs/angsd.yaml"
     shell:

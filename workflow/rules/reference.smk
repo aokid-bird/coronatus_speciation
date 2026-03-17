@@ -166,7 +166,7 @@ rule index_bwa:
     threads: 2
     resources:
         mem_mb=64000,
-        runtime="08:00:00"
+        runtime=480
     shell:
         r"""
         mkdir -p logs/reference $(dirname {output})
@@ -186,7 +186,7 @@ rule index_bwa_mem2:
     threads: 2
     resources:
         mem_mb=64000,
-        runtime="08:00:00"
+        runtime=480
     shell:
         r"""
         mkdir -p logs/reference $(dirname {output})

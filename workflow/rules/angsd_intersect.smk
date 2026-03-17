@@ -43,7 +43,7 @@ rule angsd_intersect_group:
     threads: config["threads"]
     resources:
         mem_mb=16000,
-        runtime="24:00:00"
+        runtime=1440
     conda:
         "../envs/angsd.yaml"
     shell:

@@ -35,7 +35,7 @@ rule slice_outgroup_bam:
     threads: config.get("threads", 6)
     resources:
         mem_mb=200000,
-        runtime="24:00:00"
+        runtime=1440
     conda:
         "../envs/samtools.yaml"
     shell:

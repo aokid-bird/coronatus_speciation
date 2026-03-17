@@ -135,7 +135,7 @@ rule angsd_sfs_group:
         config["threads"]
     resources:
         mem_mb=16000,
-        runtime="24:00:00"
+        runtime=1440
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -179,7 +179,7 @@ rule realsfs_1d:
         REAL_SFS_THREADS
     resources:
         mem_mb=16000,
-        runtime="08:00:00"
+        runtime=480
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -218,7 +218,7 @@ rule realsfs_2d:
         REAL_SFS_THREADS
     resources:
         mem_mb=16000,
-        runtime="08:00:00"
+        runtime=480
     conda:
         "../envs/angsd.yaml"
     shell:
