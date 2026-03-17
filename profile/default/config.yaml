@@ -6,17 +6,17 @@ restart-times: 0
 max-jobs-per-second: 2
 max-status-checks-per-second: 10
 cluster: >-
-  mkdir -p ${SNAKEMAKE_SLURM_LOGDIR} &&
+  mkdir -p ${{SNAKEMAKE_SLURM_LOGDIR}} &&
   sbatch --parsable
   --job-name=smk_{rule}
-  --partition=${SNAKEMAKE_SLURM_PARTITION}
+  --partition=${{SNAKEMAKE_SLURM_PARTITION}}
   --nodes={resources.nodes}
   --ntasks-per-node={threads}
   --mem={resources.mem_mb}
   --time={resources.runtime}
-  --output=${SNAKEMAKE_SLURM_LOGDIR}/{rule}-%j.out
-  --error=${SNAKEMAKE_SLURM_LOGDIR}/{rule}-%j.err
-  ${SNAKEMAKE_SLURM_EXTRA_ARGS}
+  --output=${{SNAKEMAKE_SLURM_LOGDIR}}/{rule}-%j.out
+  --error=${{SNAKEMAKE_SLURM_LOGDIR}}/{rule}-%j.err
+  ${{SNAKEMAKE_SLURM_EXTRA_ARGS}}
 cluster-status: "profile/default/slurm-status.py"
 cluster-cancel: "scancel"
 default-resources:
