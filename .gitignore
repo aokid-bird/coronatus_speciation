@@ -16,3 +16,8 @@ workflow/bin/
 .zip
 data/raw/
 data/adapters/
+
+# Python cache/artifacts
+__pycache__/
+*.py[cod]
+*$py.class
