@@ -154,8 +154,6 @@ rule plot_abbababa2:
         summary=rules.summarize_abbababa2.output.summary
     output:
         pdf=f"{ABBABABA2_FIG_DIR}/abbababa2.pdf"
-    params:
-        khroma_lib=ABBABABA2_KHROMA_LIB
     conda:
         "../envs/plot.yaml"
     script:

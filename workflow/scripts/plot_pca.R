@@ -1,8 +1,17 @@
-.libPaths(c("/home/aokid/R/x86_64-redhat-linux-gnu-library/4.1", .libPaths()))
+Sys.unsetenv("R_LIBS_USER")
+Sys.unsetenv("R_PROFILE_USER")
+Sys.unsetenv("R_ENVIRON_USER")
 
 library(tidyverse)
 library(magrittr)
-library(khroma)
+
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+palette_n <- function(n) {
+  rep_len(safe_colorblind_palette, n)
+}
 
 # pcaplot function (from original script)
 pcaplot <- function(xaxis, yaxis, .group, .pc, .e, .colpal, .labels) {
@@ -60,7 +69,7 @@ df <- bamlist %>%
   mutate(group_plot = factor(.data[[group_col]], levels = populations))
 
 # Color palette
-colpal <- as.character(color('bright')(length(populations)))
+colpal <- as.character(palette_n(length(populations)))
 
 # Generate plots for each PC combination
 plots <- list(); idx <- 1

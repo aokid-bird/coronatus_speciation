@@ -396,8 +396,6 @@ else:
         if _lbl:
             ABBABABA2_OUTGROUP_LABEL_DEFAULT = _lbl
 
-ABBABABA2_KHROMA_LIB = str(ABBABABA2_CFG.get("khroma_lib", "") or "")
-
 _abb_exclude = ABBABABA2_CFG.get("exclude_samples") or []
 if isinstance(_abb_exclude, str):
     ABBABABA2_EXCLUDE_SAMPLES = [s.strip() for s in _abb_exclude.split(",") if s.strip()]

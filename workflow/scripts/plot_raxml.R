@@ -1,12 +1,21 @@
-.libPaths(c("/home/aokid/R/x86_64-redhat-linux-gnu-library/4.1", .libPaths()))
+Sys.unsetenv("R_LIBS_USER")
+Sys.unsetenv("R_PROFILE_USER")
+Sys.unsetenv("R_ENVIRON_USER")
 
 library(tidyverse)
 library(magrittr)
 library(patchwork)
-library(khroma)
 library(ggnewscale)
 library(treeio)
 library(ggtree)
+
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+palette_n <- function(n) {
+  rep_len(safe_colorblind_palette, n)
+}
 
 tmp.bamlist <- read_delim(snakemake@input[['bamlist']], delim = " ", col_names = FALSE)
 data.df <- read_tsv(snakemake@input[["samples"]])
@@ -50,7 +59,7 @@ df.info <-
 # color palette
 color.palette <- 
     tibble(pop = levels,
-            group_color = c(as.character(color("bright")(length(populations))))) %>% 
+            group_color = c(as.character(palette_n(length(populations))))) %>% 
     filter(pop %in% unique(df.info$pop))
 
 #### 4-2) Tree plotting ####

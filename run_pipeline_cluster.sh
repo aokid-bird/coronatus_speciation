@@ -1,12 +1,12 @@
 #!/bin/bash
 # run_pipeline.sh
 
-# stop when error comes out
-set -euo pipefail
-
 # activate environment
 source /app/miniconda/22.11.1-1/python_3.10/etc/profile.d/conda.sh
 conda activate bioinfo_pipeline
+
+# stop when error comes out
+set -euo pipefail
 
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
@@ -56,6 +56,9 @@ PY
 mkdir -p "$SNAKEMAKE_SLURM_LOGDIR"
 echo "Using Slurm partition \"$SNAKEMAKE_SLURM_PARTITION\""
 
+# Keep R package resolution inside each conda environment.
+unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
+
 # create conda environment
 echo "Creating conda environments..."
 snakemake \
@@ -104,14 +107,14 @@ snakemake \
     --cores 6 \
     --snakefile workflow/Snakefile \
     --rerun-incomplete \
-    --configfile config/config.yaml \
+    --configfile "$CONFIG" \
     --unlock \
     "${TARGETS[@]}" > ${LOGDIR}/dryrun.log 2>&1
 
 # Snakemake run
 snakemake \
     --snakefile workflow/Snakefile \
-    --configfile config/config.yaml \
+    --configfile "$CONFIG" \
     --profile "$PROFILE" \
     --use-conda \
     --conda-frontend conda \

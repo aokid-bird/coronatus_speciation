@@ -15,6 +15,9 @@ LOGDIR=$(python workflow/scripts/export_paths.py $CONFIG)
 mkdir -p $LOGDIR
 echo "Your LOGDIR is \"$LOGDIR\""
 
+# Keep R package resolution inside each conda environment.
+unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
+
 # create conda environment
 echo "Creating conda environments..."
 snakemake \

@@ -324,13 +324,12 @@ rule treemix_plots:
         plot_funcs=TREEMIX_PLOTTING_FUNCS,
         ggplot_treemix="workflow/scripts/ggplot_treemix.R",
         max_m=TREEMIX_MAX_M,
-        reps=TREEMIX_REPS,
-        khroma_lib=(lambda wc: TREEMIX_CFG.get("khroma_lib", ""))
+        reps=TREEMIX_REPS
     conda:
         "../envs/treemix_eval.yaml"
     shell:
         r"""
-        KHROMA_LIB="{params.khroma_lib}" \
+        unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
         Rscript workflow/scripts/treemix_make_plots.R \
             --runs_dir {params.runs_dir} \
             --mode {params.mode} \

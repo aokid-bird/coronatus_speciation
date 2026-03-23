@@ -1,8 +1,17 @@
-.libPaths(c("/home/aokid/R/x86_64-redhat-linux-gnu-library/4.1", .libPaths()))
+Sys.unsetenv("R_LIBS_USER")
+Sys.unsetenv("R_PROFILE_USER")
+Sys.unsetenv("R_ENVIRON_USER")
 
 library(tidyverse)
 library(magrittr)
-library(khroma)
+
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+palette_n <- function(n) {
+  rep_len(safe_colorblind_palette, n)
+}
 
 # Inputs
 qopt_files <- snakemake@input[['qopt']]
@@ -106,7 +115,7 @@ long <- df_admix %>%
   ) %>%
   filter(K != "1")
 
-pal <- as.character(color('muted')(maxK))
+pal <- as.character(palette_n(maxK))
 
 # Use bamlist-derived sample labels while preserving Beagle order
 p2 <- ggplot(long, aes(x = factor(sample, levels = plot_sample_levels), y = prob, fill = popGroup)) +

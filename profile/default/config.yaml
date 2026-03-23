@@ -20,6 +20,6 @@ cluster: >-
 cluster-status: "profile/default/slurm-status.py"
 cluster-cancel: "scancel"
 default-resources:
-  - mem_mb=8000
-  - runtime=120
+  - mem_mb=20000
+  - runtime=420
   - nodes=1

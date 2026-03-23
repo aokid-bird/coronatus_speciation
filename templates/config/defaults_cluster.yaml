@@ -235,7 +235,6 @@ treemix:
     reps: 10 # replicates per edge count
     use_optm: true # run OptM if available in env
     merge_outgroups: false # if true, merge multiple outgroup taxa into a single root
-    khroma_lib: /home/aokid/R/x86_64-redhat-linux-gnu-library/4.1
     exclude_samples: []
     exclude_outgroups: []
     # Optional: choose specific outgroup species (full names matching outgroups.tsv 'taxon').
@@ -258,8 +257,6 @@ abbababa2:
         -useLast 1
     outgroup_samples: [] # ["SAMN15573534"]
     outgroup_label: null
-    khroma_lib: /home/aokid/R/x86_64-redhat-linux-gnu-library/4.1
-    # you need your default installation
     exclude_samples: []
 
 # Per-analysis outgroup inclusion

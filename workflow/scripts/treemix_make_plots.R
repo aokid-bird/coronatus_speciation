@@ -1,11 +1,22 @@
 #!/usr/bin/env Rscript
 
 suppressPackageStartupMessages({
+  Sys.unsetenv("R_LIBS_USER")
+  Sys.unsetenv("R_PROFILE_USER")
+  Sys.unsetenv("R_ENVIRON_USER")
   library(tidyverse)
   library(magrittr)
   library(ggnewscale)
   library(patchwork)
 })
+
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+palette_n <- function(n) {
+  rep_len(safe_colorblind_palette, n)
+}
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
@@ -33,28 +44,6 @@ ggplot_treemix_path <- get_arg("--ggplot_treemix")
 
 if (!dir.exists(runs_dir)) stop("runs_dir not found: ", runs_dir)
 dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
-
-# Load khroma only from a specific lib if needed, without altering global .libPaths
-khroma_loaded <- FALSE
-try({
-  suppressPackageStartupMessages(library(khroma, quietly = TRUE, warn.conflicts = FALSE))
-  khroma_loaded <- TRUE
-}, silent = TRUE)
-if (!khroma_loaded) {
-  khroma_lib <- Sys.getenv("KHROMA_LIB")
-  if (nzchar(khroma_lib)) {
-    try({
-      suppressPackageStartupMessages(library(khroma, lib.loc = khroma_lib, quietly = TRUE, warn.conflicts = FALSE))
-      khroma_loaded <- TRUE
-    }, silent = TRUE)
-  }
-}
-if (!requireNamespace("khroma", quietly = TRUE)) {
-  stop("Package 'khroma' not found. Install it in the conda env or set KHROMA_LIB to its library path.")
-}
-khroma_colour <- function(name) {
-  get("colour", asNamespace("khroma"))(name)
-}
 
 # Source helper scripts
 if (!is.null(plotting_funcs) && nzchar(plotting_funcs) && file.exists(plotting_funcs)) {
@@ -99,8 +88,8 @@ save_plot_pdf <- function(filename, width = 10, height = 8) {
 # 1) Validation plots: lnL and Var. explained
 llk_p <- ggplot() +
   geom_point(data = llk_trmx, aes(x = edge, y = V2)) +
-  geom_point(data = summary_trmx, aes(x = edge, y = mean), color = as.character(khroma_colour("high contrast")(3)[3])) +
-  geom_line(data = summary_trmx, aes(x = edge, y = mean), color = as.character(khroma_colour("high contrast")(3)[3])) +
+  geom_point(data = summary_trmx, aes(x = edge, y = mean), color = palette_n(5)[5]) +
+  geom_line(data = summary_trmx, aes(x = edge, y = mean), color = palette_n(5)[5]) +
   xlab("Number of migration edge") +
   ylab("Log likelihood") +
   ggtitle("a) Mean Log-likelihood") +
@@ -109,8 +98,8 @@ llk_p <- ggplot() +
 
 var_p <- ggplot() +
   geom_point(data = llk_trmx, aes(x = edge, y = VarExplain)) +
-  geom_point(data = summary_trmx, aes(x = edge, y = mean.var), color = as.character(khroma_colour("high contrast")(3)[3])) +
-  geom_line(data = summary_trmx, aes(x = edge, y = mean.var), color = as.character(khroma_colour("high contrast")(3)[3])) +
+  geom_point(data = summary_trmx, aes(x = edge, y = mean.var), color = palette_n(5)[5]) +
+  geom_line(data = summary_trmx, aes(x = edge, y = mean.var), color = palette_n(5)[5]) +
   geom_hline(yintercept = 0.998, lty = 2) +
   xlab("Number of migration edge") +
   ylab("Variance explained") +
@@ -153,9 +142,8 @@ if (mode == "pop") {
   pop_df <- pop_df %>% mutate(group.label = if_else(is.na(group.label), sample, group.label))
 }
 
-# khroma 'bright' palette in original order
 uniq_groups <- unique(pop_df$group.label)
-pal <- khroma_colour("bright")(max(3, length(uniq_groups)))
+pal <- palette_n(max(3, length(uniq_groups)))
 group_colors <- setNames(pal[seq_along(uniq_groups)], uniq_groups)
 
 # Write popordcol file used by treemix_plotting_funcs.R

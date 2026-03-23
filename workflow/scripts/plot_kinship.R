@@ -1,10 +1,19 @@
 #!/usr/bin/env Rscript
-.libPaths(c("/home/aokid/R/x86_64-redhat-linux-gnu-library/4.1", .libPaths()))
+Sys.unsetenv("R_LIBS_USER")
+Sys.unsetenv("R_PROFILE_USER")
+Sys.unsetenv("R_ENVIRON_USER")
 library(tidyverse)
 library(igraph)
 library(glue)
 library(readr)
-library(khroma) #installed manually to the local
+
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+palette_n <- function(n) {
+  rep_len(safe_colorblind_palette, n)
+}
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 4) {
@@ -77,11 +86,11 @@ pdf(file = glue("{resdir}/kinnet_KING_thr{threshold}.pdf"),
     width = 15, height = 15, units = "cm", res = 300)
 
 group_list <- sort(unique(V(g))$group)
-group_colors <- setNames(khroma::color("bright")(length(group_list)), group_list)
+group_colors <- setNames(palette_n(length(group_list)), group_list)
 vertex_colors <- group_colors[V(g)$group]
 
 plot(g,
-     vertex.color = vertex.colors,
+     vertex.color = vertex_colors,
      edge.width = E(g)$KING * 20,
      edge.label = round(E(g)$KING, digits = 4),
      edge.label.color = "black",

@@ -1,22 +1,17 @@
 suppressPackageStartupMessages({
+  Sys.unsetenv("R_LIBS_USER")
+  Sys.unsetenv("R_PROFILE_USER")
+  Sys.unsetenv("R_ENVIRON_USER")
   library(tidyverse)
   library(magrittr)
 })
 
-khroma_loaded <- requireNamespace("khroma", quietly = TRUE)
-if (!khroma_loaded) {
-  khroma_lib <- snakemake@params[["khroma_lib"]]
-  if (!is.null(khroma_lib) && nzchar(khroma_lib)) {
-    .libPaths(c(khroma_lib, .libPaths()))
-    khroma_loaded <- requireNamespace("khroma", quietly = TRUE)
-  }
-}
-if (!khroma_loaded) {
-  stop("Package 'khroma' not available. Install it or set abbababa2.khroma_lib in config.")
-}
-
-khroma_colour <- function(name) {
-  get("colour", asNamespace("khroma"))(name)
+safe_colorblind_palette <- c(
+  "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
+  "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888"
+)
+palette_n <- function(n) {
+  rep_len(safe_colorblind_palette, n)
 }
 
 df <- readr::read_csv(snakemake@input[["summary"]], show_col_types = FALSE)
@@ -45,7 +40,7 @@ plot_df <- df %>%
   arrange(H1, H2, H3) %>%
   mutate(signif = label)
 
-pal <- as.character(khroma_colour("bright")(2))
+pal <- as.character(palette_n(2))
 
 p <- ggplot(plot_df, aes(x = pair, y = D)) +
   geom_hline(yintercept = 0, linetype = 2) +
