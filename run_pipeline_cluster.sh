@@ -2,7 +2,7 @@
 # run_pipeline.sh
 
 # activate environment
-source /app/miniconda/22.11.1-1/python_3.10/etc/profile.d/conda.sh
+module load miniconda/25.9.1-3/python_3.13
 conda activate bioinfo_pipeline
 
 # stop when error comes out
