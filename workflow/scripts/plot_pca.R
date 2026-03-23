@@ -27,13 +27,24 @@ pcaplot <- function(xaxis, yaxis, .group, .pc, .e, .colpal, .labels) {
   pct <- .e %>% filter(pc %in% c(xaxis, yaxis)) %>% pull(pct)
   labels <- str_to_upper(c(xaxis, yaxis))
 
+  ellipse_df <- plot_pc %>%
+    filter(!is.na(group)) %>%
+    group_by(group) %>%
+    filter(n() >= 3) %>%
+    ungroup()
+
   ggplot(plot_pc, aes(x = xaxis, y = yaxis, color = group)) +
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
     geom_point() +
     xlab(str_interp("${labels[1]} (${pct[1]}%)")) +
     ylab(str_interp("${labels[2]} (${pct[2]}%)")) +
-    stat_ellipse(level = 0.5) +
+    stat_ellipse(
+      data = ellipse_df,
+      level = 0.5,
+      type = "norm",
+      na.rm = TRUE
+    ) +
     scale_color_manual(values = .colpal, labels = .labels) +
     theme_bw()
 }
@@ -43,18 +54,26 @@ cov_mat <- as.matrix(read.table(snakemake@input[['cov']]))
 eig_vals <- as.matrix(read.table(snakemake@input[['eig']]))
 
 # Read bamlist (1-col TXT, no header)
-bamlist <- read_delim(snakemake@input[['bamlist']], delim = "\t", col_names = FALSE) %>%
+bamlist <- read_delim(
+  snakemake@input[['bamlist']],
+  delim = "\t",
+  col_names = FALSE,
+  show_col_types = FALSE
+) %>%
   rename(path = 1) %>%
   mutate(sample = str_extract(path, "(?<=/)[^/]+(?=\\.bam)"))
 
 # Samples metadata
-samples <- read_tsv(snakemake@input[['samples']])
+samples <- read_tsv(snakemake@input[['samples']], show_col_types = FALSE)
 populations <- snakemake@config[['populations']]
 group_col <- snakemake@config[['group_col']]
 axes <- snakemake@config[['pcangsd']][['axes_plot']]
 
 # PCA data
-pc <- eigen(cov_mat)$vectors %>% as_tibble() %>% set_colnames(paste0('pc', seq_len(ncol(.))))
+pc <- eigen(cov_mat)$vectors %>%
+  as.data.frame() %>%
+  as_tibble() %>%
+  set_colnames(paste0('pc', seq_len(ncol(.))))
 e_df <- 
   eig_vals %>%
   as.matrix %>% 
