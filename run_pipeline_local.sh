@@ -1,12 +1,12 @@
 #!/bin/bash
 # run_pipeline.sh
 
+# activate environment
+module load miniconda/25.9.1-3/python_3.13
+conda activate bioinfo_pipeline
+
 # stop when error comes out
 set -euo pipefail
-
-# activate environment
-source /Users/daisukeaoki/miniconda3/etc/profile.d/conda.sh
-conda activate bioinfo_pipeline
 
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
