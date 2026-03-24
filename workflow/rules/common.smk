@@ -68,6 +68,9 @@ config_bam_base = config["bam_dir"]
 config_bam_dir = _storage_path("bam", "ingroup_dir", default=f"{config_bam_base}/{output_prefix}")
 OUTGROUP_BAM_DIR = _storage_path("bam", "outgroup_dir", default=f"{config_bam_dir}/outgroups")
 OUTGROUP_SLICED_DIR = f"results/outgroups_sliced/{output_prefix}"
+TRANSFER_CFG = config.get("transfer", {}) or {}
+CLUSTER_STORAGE_ROOT_DEFAULT = str(TRANSFER_CFG.get("cluster_storage_root", "/lfs/aokid"))
+PROJECT_ROOT = Path.cwd().resolve()
 config_singularity_dir = os.path.expandvars(config["singularity_dir"])
 # other parameters
 kin_thr = config["ngsrelate"]["kinship_threshold"]
@@ -273,6 +276,48 @@ def ingroup_fastq_path(sample_id: str, read: str) -> str:
     suffix = record["r1_suffix"] if str(read) == "1" else record["r2_suffix"]
     filename = f"{record['prefix']}{sid}{suffix}{record['extension']}"
     return str(Path(record["dir"]) / filename)
+
+def _path_is_within(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+def is_external_storage_path(path: str) -> bool:
+    candidate = Path(str(path)).expanduser()
+    if not candidate.is_absolute():
+        return False
+    return not _path_is_within(candidate, PROJECT_ROOT)
+
+def remote_mirror_path(path: str, cluster_root: str = None) -> str:
+    root = Path(cluster_root or CLUSTER_STORAGE_ROOT_DEFAULT)
+    candidate = Path(str(path)).expanduser()
+    return str(root / str(candidate).lstrip("/"))
+
+def external_ingroup_fastq_files():
+    files = []
+    for sample_id in INGROUP_SAMPLE_IDS:
+        for read in ("1", "2"):
+            fq = ingroup_fastq_path(sample_id, read)
+            if is_external_storage_path(fq):
+                files.append(fq)
+    return sorted(set(files))
+
+def external_transfer_directories():
+    candidates = [
+        REFERENCE_DIR,
+        OUTGROUP_RAW_DIR,
+        OUTGROUP_MERGED_DIR,
+        INGROUP_TRIM_DIR,
+        OUTGROUP_TRIM_DIR,
+        INGROUP_QC_BASE_DIR,
+        OUTGROUP_QC_BASE_DIR,
+        OUTGROUP_LR_FILTER_DIR,
+        config_bam_dir,
+        OUTGROUP_BAM_DIR,
+    ]
+    return sorted(set(path for path in candidates if is_external_storage_path(path)))
 
 def _merge_mapping_scope(scope: str):
     base = {k: v for k, v in (config.get("mapping", {}) or {}).items() if k not in {"ingroup", "outgroup"}}

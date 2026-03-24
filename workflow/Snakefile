@@ -10,6 +10,7 @@ if config["environment"] == "local":
     include: "rules/outgroup.smk"
     include: "rules/qc_trimmomatic_ingroup.smk"
     include: "rules/mapping_ingroup.smk"
+    include: "rules/transfer.smk"
 else:
     include: "rules/common.smk"
     # Include reference rules also on cluster so mapper indices can be built
@@ -30,6 +31,7 @@ else:
     include: "rules/ngsdist.smk"
     include: "rules/angsd_abbababa2.smk"
     include: "rules/snapp.smk"
+    include: "rules/transfer.smk"
 
 # Build ngsDist target list based on configured models
 if config["environment"] == "cluster":
@@ -84,7 +86,8 @@ if config["environment"] == "local":
             expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
             expand("logs/fetch_sra/{srr}.log", srr=OUTGROUP_SRR_IDS),
             rules.manifest_outgroup_raw_storage.output,
-            rules.manifest_outgroup_merged_storage.output
+            rules.manifest_outgroup_merged_storage.output,
+            rules.generate_external_transfer_scripts.output
 else:
     rule all:
         input:
@@ -101,6 +104,7 @@ else:
             rules.manifest_ingroup_bam_storage.output,
             rules.manifest_outgroup_bam_storage.output,
             rules.manifest_outgroup_longread_filter_storage.output,
+            rules.generate_external_transfer_scripts.output,
             
             # 1. intersect outputs
             # bamlists

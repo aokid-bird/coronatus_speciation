@@ -85,6 +85,7 @@ The config file is the most important part of the analysis where you define spec
 - Create your own config file for each specific tasks and runs. Please make separate config files when you want to change parameters, change population definitions, etc. Then, set different names to `config.output_prefix` whose unique directory will be created under `results/ANALYSISNAME/OUTPUT_PREFIX`.
 - The new `storage` section uses explicit keys. Leave them at their defaults to keep files inside the repository, or point them to absolute directories like `/Data/WGS/...` for reusable storage across analyses. If `storage.bam.ingroup_dir` or `storage.bam.outgroup_dir` is set, those BAMs are treated as reusable preprocessing outputs rather than scenario-specific files.
 - The `reads.ingroup_metadata` section defines which `samples.tsv` columns should be used for ingroup FASTQ directory and naming resolution. The defaults expect columns named `fastq_dir`, `fastq_prefix`, `fastq_r1_suffix`, `fastq_r2_suffix`, and `fastq_extension`, with fallback to `reads.ingroup_dir` plus `_1`/`_2` and `.fastq.gz` when those per-sample columns are absent.
+- The `transfer.cluster_storage_root` setting defines where external absolute paths are mirrored on the cluster. For example, a local external path `/Data/WGS/project_a/reference` is transferred to `/lfs/aokid/Data/WGS/project_a/reference` when `transfer.cluster_storage_root` is `/lfs/aokid`.
 - The pipeline is still under development, and therefore, flexibility is still low. In the future, you may choose which analyses you want to do by turning "enabled: true" on. In the present version, however, you may need to go through all or most of the analyses.
 
 ## Step 6: Adjust run_pipeline_cluster.sh/run_pipeline_local.sh
@@ -117,6 +118,22 @@ To test the Slurm path directly without the wrapper:
 ```bash
 snakemake --profile profile/default --snakefile workflow/Snakefile --configfile config/config.yaml --dryrun
 ```
+
+## Transfer helper scripts
+The workflow generates transfer helpers under `results/transfer/<output_prefix>/`:
+- `external_paths.tsv`: manifest of external files/directories and their mirrored cluster paths
+- `sync_local_external_to_cluster.sh`: upload local external files to the cluster mirror root
+- `sync_cluster_external_to_local.sh`: copy mirrored cluster files back to the original local external paths
+
+Typical use:
+```bash
+bash results/transfer/defaults/sync_local_external_to_cluster.sh username@cluster.example.org
+bash results/transfer/defaults/sync_cluster_external_to_local.sh username@cluster.example.org
+```
+
+Optional environment variables:
+- `CLUSTER_PORT`: SSH port for `rsync`/`ssh`
+- `CLUSTER_STORAGE_ROOT`: override the mirror root without editing config
 
 # Tips
 ## Dag and dryrun with "mock" option
