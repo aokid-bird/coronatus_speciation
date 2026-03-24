@@ -61,6 +61,8 @@ In the current snakemake.yaml, the snakemake environment (bioinfo_pipeline) will
 ```bash
 conda env create -f snakemake.yaml
 conda activate bioinfo_pipeline
+# install graphviz for dot used for drawing DAG
+brew install graphviz
 ```
 
 ## Step 5: Prepare your dataset
