@@ -40,8 +40,6 @@ rule prepare_abbababa2_inputs:
         for sid in ABBABABA2_OUTGROUP_IDS:
             label = resolve_abbababa2_outgroup_label(sid)
             records.append((label, f"{OUTGROUP_SLICED_DIR}/{sid}.bam"))
-
-        os.makedirs(os.path.dirname(output.bamlist), exist_ok=True)
         os.makedirs(os.path.dirname(output.sizefile), exist_ok=True)
 
         pop_order = []
@@ -57,8 +55,7 @@ rule prepare_abbababa2_inputs:
         if len(pop_order) != len(set(pop_order)):
             raise ValueError("population_labels produce duplicate names for ABBABABA2. Ensure each population has a unique label.")
 
-        with open(output.bamlist, "w") as handle:
-            handle.write("\n".join(bam_paths) + "\n")
+        write_bamlist(output.bamlist, bam_paths)
 
         with open(output.sizefile, "w") as handle:
             handle.write("\n".join(str(counts[label]) for label in pop_order) + "\n")

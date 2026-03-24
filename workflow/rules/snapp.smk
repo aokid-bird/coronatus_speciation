@@ -51,7 +51,7 @@ rule snapp_make_bamlist:
     """Generate bamlist for SNAPP run including optional outgroups."""
     input:
         selected=rules.snapp_select_samples.output.selected,
-        outgroups=(lambda wc: [] if not SNAPP_OUTGROUP_IDS else expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=SNAPP_OUTGROUP_IDS))
+        outgroups=(lambda wc: sliced_outgroup_inputs(SNAPP_OUTGROUP_IDS))
     output:
         bamlist=f"results/bamlists/{output_prefix}/snapp/bamlist.txt"
     params:
@@ -60,12 +60,8 @@ rule snapp_make_bamlist:
         from pathlib import Path
         sel = Path(input.selected)
         samples = [line.strip() for line in sel.read_text().splitlines() if line.strip()]
-        bam_paths = [f"{params.bam_dir}/{s}.bam" for s in samples]
-        if SNAPP_OUTGROUP_IDS:
-            bam_paths.extend([f"{OUTGROUP_SLICED_DIR}/{sid}.bam" for sid in SNAPP_OUTGROUP_IDS])
-        Path(output.bamlist).parent.mkdir(parents=True, exist_ok=True)
-        with open(output.bamlist, "w") as handle:
-            handle.write("\n".join(bam_paths) + "\n")
+        bam_paths = ingroup_bam_paths(sample_ids=samples, bam_dir=params.bam_dir)
+        write_bamlist(output.bamlist, bam_paths + outgroup_bam_paths(SNAPP_OUTGROUP_IDS))
 
 
 rule angsd_snapp:

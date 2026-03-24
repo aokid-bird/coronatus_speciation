@@ -2,7 +2,7 @@
 
 _INGROUP_BAMS = [
     f"{config_bam_dir}/{s}.bam"
-    for s in _SAMPLES_DF[_SAMPLES_DF[group_col].isin(groups)]["sample"].astype(str)
+    for s in ingroup_sample_ids(populations=groups)
 ]
 
 # Rules related to angsd_global
@@ -16,10 +16,7 @@ rule make_bamlist_all:
     output:
         bamlist=f"results/bamlists/{output_prefix}/global/bamlist.txt"
     run:
-        df = _SAMPLES_DF
-        df_filtered = df[df[group_col].isin(groups)]
-        bams = df_filtered["sample"].apply(lambda s: f"{config_bam_dir}/{s}.bam")
-        bams.to_csv(output.bamlist, index=False, header=False)
+        write_bamlist(output.bamlist, ingroup_bam_paths(populations=groups))
 
 
 rule make_bamlist_global_analysis:
@@ -29,18 +26,13 @@ rule make_bamlist_global_analysis:
     input:
         ingroup = rules.make_bamlist_all.output.bamlist,
         # Ensure sliced outgroup BAMs exist when including outgroups
-        sliced=(lambda wc: [] if not ANGSD_GLOBAL_INCLUDE_OUTGROUPS else expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=OUTGROUP_SAMPLE_IDS))
+        sliced=(lambda wc: sliced_outgroup_inputs(ANGSD_GLOBAL_OUTGROUP_IDS))
     output:
         bamlist = f"results/bamlists/{output_prefix}/global_analysis/bamlist.txt"
-    params:
-        include_out = ANGSD_GLOBAL_INCLUDE_OUTGROUPS
     run:
         import pandas as pd
         ing = pd.read_csv(input.ingroup, header=None)[0].tolist()
-        bams = list(ing)
-        if params.include_out:
-            bams += [f"{OUTGROUP_SLICED_DIR}/{sid}.bam" for sid in OUTGROUP_SAMPLE_IDS]
-        pd.Series(bams).to_csv(output.bamlist, index=False, header=False)
+        write_bamlist(output.bamlist, list(ing) + outgroup_bam_paths(ANGSD_GLOBAL_OUTGROUP_IDS))
 
 rule angsd_global:
     """
@@ -189,8 +181,7 @@ rule make_bamlist_unrelated:
         bamlist_filtered = bamlist[~bamlist.apply(
             lambda path: os.path.splitext(os.path.basename(path))[0] in remove_ids
         )]
-        # output
-        bamlist_filtered.to_csv(output.bamlist, index=False, header=False)
+        write_bamlist(output.bamlist, bamlist_filtered.tolist())
 
 # Rules related to ngsLD
 rule make_ngsld_inputs:
@@ -331,18 +322,13 @@ rule make_bamlist_unrelated_analysis:
     input:
         ingroup_unrel = rules.make_bamlist_unrelated.output.bamlist,
         # Ensure sliced outgroup BAMs exist when including outgroups
-        sliced=(lambda wc: [] if not ANGSD_GLOBAL_INCLUDE_OUTGROUPS else expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=OUTGROUP_SAMPLE_IDS))
+        sliced=(lambda wc: sliced_outgroup_inputs(ANGSD_GLOBAL_OUTGROUP_IDS))
     output:
         bamlist = f"results/bamlists/{output_prefix}/global_unrelated_analysis/bamlist.txt"
-    params:
-        include_out = ANGSD_GLOBAL_INCLUDE_OUTGROUPS
     run:
         import pandas as pd
         ing = pd.read_csv(input.ingroup_unrel, header=None)[0].tolist()
-        bams = list(ing)
-        if params.include_out:
-            bams += [f"{OUTGROUP_SLICED_DIR}/{sid}.bam" for sid in OUTGROUP_SAMPLE_IDS]
-        pd.Series(bams).to_csv(output.bamlist, index=False, header=False)
+        write_bamlist(output.bamlist, list(ing) + outgroup_bam_paths(ANGSD_GLOBAL_OUTGROUP_IDS))
 
 
 rule angsd_global_unrelated_unlinked:

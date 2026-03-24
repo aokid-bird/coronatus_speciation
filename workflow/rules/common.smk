@@ -366,6 +366,51 @@ def ingroup_fastq_path(sample_id: str, read: str) -> str:
     filename = f"{record['prefix']}{sid}{suffix}{record['extension']}"
     return str(Path(record["dir"]) / filename)
 
+
+def bam_sample_id(path: str) -> str:
+    name = Path(str(path)).name
+    for suffix in (".bam", ".cram", ".sam"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    if "_slice" in name:
+        name = name.split("_slice", 1)[0]
+    return name
+
+
+def ingroup_sample_ids(populations=None, exclude_samples=None):
+    df = _SAMPLES_DF
+    if populations:
+        df = df[df[group_col].isin(populations)]
+    exclude = set(_parse_exclude_list(exclude_samples))
+    sample_ids = df["sample"].astype(str).tolist()
+    if exclude:
+        sample_ids = [sid for sid in sample_ids if sid not in exclude]
+    return sample_ids
+
+
+def ingroup_bam_paths(sample_ids=None, populations=None, exclude_samples=None, bam_dir=None):
+    selected = list(sample_ids) if sample_ids is not None else ingroup_sample_ids(
+        populations=populations,
+        exclude_samples=exclude_samples,
+    )
+    target_dir = bam_dir or config_bam_dir
+    return [f"{target_dir}/{sid}.bam" for sid in selected]
+
+
+def filter_bam_paths_by_sample_ids(bam_paths, exclude_samples=None, include_samples=None):
+    excluded = set(_parse_exclude_list(exclude_samples))
+    included = None if include_samples is None else set(str(s) for s in include_samples)
+    filtered = []
+    for path in bam_paths:
+        sample_id = bam_sample_id(path)
+        if included is not None and sample_id not in included:
+            continue
+        if sample_id in excluded:
+            continue
+        filtered.append(str(path))
+    return filtered
+
 def _path_is_within(path: Path, base: Path) -> bool:
     try:
         path.relative_to(base)
@@ -468,6 +513,18 @@ REF_MAP_ARG = REF_MAP_ARG_INGROUP
 REF_INDEX_PREFIX = REF_INDEX_PREFIX_BASE  # backwards compatibility
 MAPPER = MAPPER_INGROUP  # backwards compatibility
 
+
+def _parse_exclude_list(raw):
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        return [s.strip() for s in raw.split(",") if s.strip()]
+    return [str(s).strip() for s in raw if str(s).strip()]
+
+
+def _parse_species_list(raw):
+    return _parse_exclude_list(raw)
+
 #================#
 #### TREEMIX  ####
 #================#
@@ -492,6 +549,7 @@ if isinstance(_treemix_exclude_out_cfg, str):
     TREEMIX_EXCLUDE_OUTGROUPS = [s.strip() for s in _treemix_exclude_out_cfg.split(",") if s.strip()]
 else:
     TREEMIX_EXCLUDE_OUTGROUPS = [str(s).strip() for s in _treemix_exclude_out_cfg if str(s).strip()]
+TREEMIX_OUTGROUP_SPECIES = _parse_species_list(TREEMIX_CFG.get("outgroup_species"))
 # plotting_funcs: prefer fixed repo path if present; no config knob
 _PLOTFUNC_DEFAULT = Path("workflow/scripts/treemix_plotting_funcs.R")
 TREEMIX_PLOTTING_FUNCS = str(_PLOTFUNC_DEFAULT) if _PLOTFUNC_DEFAULT.exists() else None
@@ -507,6 +565,8 @@ ANGSD_SFS_CFG = (config.get("angsd_sfs", {}) or {})
 ANGSD_SNAPP_CFG = (config.get("snapp", {}) or {})
 ANGSD_GLOBAL_INCLUDE_OUTGROUPS = bool(ANGSD_GLOBAL_CFG.get("include_outgroups", False))
 ANGSD_RAXML_INCLUDE_OUTGROUPS  = bool(ANGSD_RAXML_CFG.get("include_outgroups", False))
+NGSDIST_CFG = _config_section("ngsdist")
+NGSDIST_INCLUDE_OUTGROUPS = bool(NGSDIST_CFG.get("include_outgroups", ANGSD_GLOBAL_INCLUDE_OUTGROUPS))
 ANGSD_INTERSECT_THREADS = _resolve_threads(ANGSD_INTERSECT_CFG, LEGACY_GLOBAL_THREADS)
 ANGSD_GLOBAL_THREADS = _resolve_threads(ANGSD_GLOBAL_CFG, LEGACY_GLOBAL_THREADS)
 ANGSD_GLOBAL_UNRELATED_THREADS = _resolve_threads(
@@ -537,12 +597,11 @@ def _parse_max_per_population(raw):
         return parsed
     return int(raw)
 
-def _parse_exclude_list(raw):
+def _parse_optional_list(raw):
     if raw is None:
-        return []
-    if isinstance(raw, str):
-        return [s.strip() for s in raw.split(",") if s.strip()]
-    return [str(s).strip() for s in raw if str(s).strip()]
+        return None
+    parsed = _parse_exclude_list(raw)
+    return parsed if parsed else []
 
 def _normalise_seed(value):
     if value is None or (isinstance(value, str) and value.strip().lower() in {"", "none"}):
@@ -609,6 +668,62 @@ else:
 OUTGROUP_SRR_IDS = [srr for srrs in OUTGROUP_SAMPLES.values() for srr in srrs]
 
 
+def outgroup_sample_ids(selected_ids=None, exclude_ids=None, species=None, include_all_when_unspecified=True):
+    if selected_ids is None:
+        sample_ids = list(OUTGROUP_SAMPLE_IDS) if include_all_when_unspecified else []
+    else:
+        sample_ids = [sid for sid in _parse_exclude_list(selected_ids) if sid in OUTGROUP_SAMPLE_IDS]
+
+    species_list = _parse_species_list(species)
+    if species_list:
+        if "taxon" not in outgroup_df.columns:
+            sample_ids = []
+        else:
+            allowed = set(
+                outgroup_df.loc[
+                    outgroup_df["taxon"].astype(str).isin(species_list),
+                    "sample_id",
+                ].astype(str)
+            )
+            sample_ids = [sid for sid in sample_ids if sid in allowed]
+
+    exclude = set(_parse_exclude_list(exclude_ids))
+    if exclude:
+        sample_ids = [sid for sid in sample_ids if sid not in exclude]
+    return sample_ids
+
+
+def analysis_outgroup_sample_ids(include_outgroups, selected_ids=None, exclude_ids=None, species=None):
+    if not include_outgroups:
+        return []
+    return outgroup_sample_ids(
+        selected_ids=selected_ids,
+        exclude_ids=exclude_ids,
+        species=species,
+        include_all_when_unspecified=True,
+    )
+
+
+def outgroup_bam_paths(sample_ids):
+    return [f"{OUTGROUP_SLICED_DIR}/{sid}.bam" for sid in sample_ids]
+
+
+def sliced_outgroup_inputs(sample_ids):
+    if not sample_ids:
+        return []
+    return expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=sample_ids)
+
+
+def write_bamlist(output_path: str, bam_paths):
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    lines = [str(path) for path in bam_paths]
+    output_file.write_text(
+        ("\n".join(lines) + "\n") if lines else "",
+        encoding="ascii",
+    )
+
+
 # Determine read type per outgroup sample (short vs long) from sequencer column
 OG_SEQ_COL = config.get("outgroups_seq_column", "sequencer")
 LONGREAD_KEYWORDS = set(config.get("longread_keywords", ["PacBio", "ONT", "Nanopore"]))
@@ -654,14 +769,10 @@ if not _abb_args:
     _abb_args = "-doAbbababa2 1 -doCounts 1 -minMapQ 30 -minQ 20 -baq 2 -useLast 1"
 ABBABABA2_ANGSD_ARGS = _abb_args
 
-_abb_sel = ABBABABA2_CFG.get("outgroup_samples")
-if _abb_sel is None:
-    ABBABABA2_OUTGROUP_IDS = list(OUTGROUP_SAMPLE_IDS)
-elif isinstance(_abb_sel, str):
-    ABBABABA2_OUTGROUP_IDS = [s.strip() for s in _abb_sel.split(",") if s.strip()]
-else:
-    ABBABABA2_OUTGROUP_IDS = [str(s).strip() for s in _abb_sel if str(s).strip()]
-ABBABABA2_OUTGROUP_IDS = [sid for sid in ABBABABA2_OUTGROUP_IDS if sid in OUTGROUP_SAMPLE_IDS]
+ABBABABA2_OUTGROUP_IDS = analysis_outgroup_sample_ids(
+    include_outgroups=True,
+    selected_ids=ABBABABA2_CFG.get("outgroup_samples"),
+)
 
 _abb_label_cfg = ABBABABA2_CFG.get("outgroup_label")
 ABBABABA2_OUTGROUP_LABEL_DEFAULT = None
@@ -737,17 +848,40 @@ SNAPP_OUTGROUP_ALIASES = {
     for k, v in (SNAPP_CFG.get("outgroup_aliases", {}) or {}).items()
 }
 SNAPP_INCLUDE_OUTGROUPS = bool(SNAPP_CFG.get("include_outgroups", True))
-_snapp_outgroup_sel = SNAPP_CFG.get("outgroup_samples")
-if SNAPP_INCLUDE_OUTGROUPS:
-    if isinstance(_snapp_outgroup_sel, str):
-        SNAPP_OUTGROUP_IDS = [s.strip() for s in _snapp_outgroup_sel.split(",") if s.strip()]
-    elif isinstance(_snapp_outgroup_sel, (list, tuple)):
-        SNAPP_OUTGROUP_IDS = [str(s) for s in _snapp_outgroup_sel]
-    else:
-        SNAPP_OUTGROUP_IDS = list(OUTGROUP_SAMPLE_IDS)
-    SNAPP_OUTGROUP_IDS = [sid for sid in SNAPP_OUTGROUP_IDS if sid in OUTGROUP_SAMPLE_IDS]
-else:
-    SNAPP_OUTGROUP_IDS = []
+SNAPP_OUTGROUP_IDS = analysis_outgroup_sample_ids(
+    include_outgroups=SNAPP_INCLUDE_OUTGROUPS,
+    selected_ids=SNAPP_CFG.get("outgroup_samples"),
+)
+
+RAXML_CFG = _config_section("raxml")
+RAXML_OUTGROUP_SPECIES = _parse_species_list(RAXML_CFG.get("outgroup_species"))
+
+ANGSD_GLOBAL_OUTGROUP_IDS = analysis_outgroup_sample_ids(
+    include_outgroups=ANGSD_GLOBAL_INCLUDE_OUTGROUPS,
+)
+ANGSD_RAXML_OUTGROUP_IDS = analysis_outgroup_sample_ids(
+    include_outgroups=ANGSD_RAXML_INCLUDE_OUTGROUPS,
+    species=RAXML_OUTGROUP_SPECIES,
+)
+TREEMIX_OUTGROUP_IDS = analysis_outgroup_sample_ids(
+    include_outgroups=TREEMIX_INCLUDE_OUTGROUPS,
+    exclude_ids=TREEMIX_EXCLUDE_OUTGROUPS,
+    species=TREEMIX_OUTGROUP_SPECIES,
+)
+NGSDIST_OUTGROUP_IDS = analysis_outgroup_sample_ids(
+    include_outgroups=NGSDIST_INCLUDE_OUTGROUPS,
+)
+
+ACTIVE_OUTGROUP_SAMPLE_IDS = sorted(
+    set(
+        ANGSD_GLOBAL_OUTGROUP_IDS
+        + ANGSD_RAXML_OUTGROUP_IDS
+        + TREEMIX_OUTGROUP_IDS
+        + NGSDIST_OUTGROUP_IDS
+        + ABBABABA2_OUTGROUP_IDS
+        + SNAPP_OUTGROUP_IDS
+    )
+)
 
 SNAPP_CONSTRAINTS_CFG = (SNAPP_CFG.get("constraints", {}) or {})
 SNAPP_CONSTRAINT_TYPE = SNAPP_CONSTRAINTS_CFG.get("type") or SNAPP_CONSTRAINTS_CFG.get("placement")
@@ -776,7 +910,7 @@ NGSRELATE_ENABLED = _is_enabled(_config_section("ngsrelate"), True)
 NGSLD_ENABLED = _is_enabled(_config_section("ngsld"), True)
 PCANGSD_ENABLED = _is_enabled(_config_section("pcangsd"), True)
 NGSADMIX_ENABLED = _is_enabled(_config_section("ngsadmix"), True)
-NGSDIST_ENABLED = _is_enabled(_config_section("ngsdist"), True)
+NGSDIST_ENABLED = _is_enabled(NGSDIST_CFG, True)
 RAXML_ENABLED = _is_enabled(_config_section("raxml"), True)
 TREEMIX_ENABLED = _is_enabled(TREEMIX_CFG, True)
 SLICE_OUTGROUPS_ENABLED = _is_enabled(_config_section("slice_outgroups"), True)
@@ -784,16 +918,17 @@ SLICE_OUTGROUPS_ENABLED = _is_enabled(_config_section("slice_outgroups"), True)
 STRUCTURE_ANALYSES_ENABLED = PCANGSD_ENABLED or NGSADMIX_ENABLED
 UNRELATED_ANALYSES_ENABLED = STRUCTURE_ANALYSES_ENABLED or RAXML_ENABLED or TREEMIX_ENABLED
 OUTGROUP_ANALYSES_ENABLED = (
-    (ANGSD_GLOBAL_INCLUDE_OUTGROUPS and ANGSD_GLOBAL_ENABLED)
-    or (ANGSD_RAXML_INCLUDE_OUTGROUPS and RAXML_ENABLED)
-    or (TREEMIX_ENABLED and TREEMIX_INCLUDE_OUTGROUPS)
-    or (SNAPP_ENABLED and SNAPP_INCLUDE_OUTGROUPS)
+    (ANGSD_GLOBAL_ENABLED and bool(ANGSD_GLOBAL_OUTGROUP_IDS))
+    or (RAXML_ENABLED and bool(ANGSD_RAXML_OUTGROUP_IDS))
+    or (TREEMIX_ENABLED and bool(TREEMIX_OUTGROUP_IDS))
+    or (NGSDIST_ENABLED and bool(NGSDIST_OUTGROUP_IDS))
+    or (SNAPP_ENABLED and bool(SNAPP_OUTGROUP_IDS))
     or (ABBABABA2_ENABLED and bool(ABBABABA2_OUTGROUP_IDS))
 )
 
-ANGSD_INTERSECT_ACTIVE = ANGSD_INTERSECT_ENABLED or ANGSD_GLOBAL_ENABLED or SFS_ENABLED or RAXML_ENABLED or TREEMIX_ENABLED or ABBABABA2_ENABLED or SNAPP_ENABLED
-ANGSD_GLOBAL_ACTIVE = ANGSD_GLOBAL_ENABLED or NGSRELATE_ENABLED or NGSLD_ENABLED or NGSDIST_ENABLED or STRUCTURE_ANALYSES_ENABLED or SNAPP_ENABLED
+ANGSD_INTERSECT_ACTIVE = ANGSD_INTERSECT_ENABLED or ANGSD_GLOBAL_ENABLED or SFS_ENABLED or RAXML_ENABLED or TREEMIX_ENABLED or ABBABABA2_ENABLED or SNAPP_ENABLED or NGSDIST_ENABLED
+ANGSD_GLOBAL_ACTIVE = ANGSD_GLOBAL_ENABLED or NGSRELATE_ENABLED or NGSLD_ENABLED or STRUCTURE_ANALYSES_ENABLED or SNAPP_ENABLED
 NGSRELATE_ACTIVE = NGSRELATE_ENABLED or UNRELATED_ANALYSES_ENABLED
 NGSLD_ACTIVE = NGSLD_ENABLED or TREEMIX_ENABLED or (SFS_ENABLED and SFS_NEEDS_UNLINKED_SITES)
 GLOBAL_UNRELATED_UNLINKED_ACTIVE = STRUCTURE_ANALYSES_ENABLED
-SLICE_OUTGROUPS_ACTIVE = SLICE_OUTGROUPS_ENABLED and OUTGROUP_ANALYSES_ENABLED
+SLICE_OUTGROUPS_ACTIVE = SLICE_OUTGROUPS_ENABLED and bool(ACTIVE_OUTGROUP_SAMPLE_IDS)

@@ -121,7 +121,7 @@ else:
         f"results/intersect_sites/{output_prefix}/intersect.chr" if ANGSD_INTERSECT_ACTIVE else [],
         f"results/union_sites/{output_prefix}/union.sites" if SLICE_OUTGROUPS_ACTIVE else [],
         f"results/union_sites/{output_prefix}/union.chr" if SLICE_OUTGROUPS_ACTIVE else [],
-        expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=OUTGROUP_SAMPLE_IDS) if SLICE_OUTGROUPS_ACTIVE else [],
+        expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS) if SLICE_OUTGROUPS_ACTIVE else [],
         f"results/angsd_global/{output_prefix}/gl.geno.gz" if ANGSD_GLOBAL_ACTIVE else [],
         f"results/ngsrelate_global/{output_prefix}/ngsrelate_res" if NGSRELATE_ACTIVE else [],
         f"results/ngsrelate_global/{output_prefix}/related_KING_thr{kin_thr}.csv" if NGSRELATE_ACTIVE else [],

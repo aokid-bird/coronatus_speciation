@@ -207,6 +207,7 @@ analyses:
     ngsdist:
         enabled: true
         models: ["p", "jc69"]
+        include_outgroups: true
     raxml:
         enabled: true
         na_fill: 0.01

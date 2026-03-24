@@ -16,9 +16,9 @@ def _outgroup_opt_from_species(bamlist_path, species_list):
     else:
         wanted = list(species_list or [])
 
-    # If user didn't specify, fall back to all outgroup sample IDs
+    # If user didn't specify, fall back to the outgroups selected for this analysis
     if not wanted:
-        candidates = set(OUTGROUP_SAMPLE_IDS)
+        candidates = set(ANGSD_RAXML_OUTGROUP_IDS)
     else:
         # Read outgroups TSV and select sample_ids whose taxon matches the wanted species
         try:
@@ -144,18 +144,13 @@ rule make_bamlist_raxml_analysis:
     input:
         ingroup_downsampled = rules.make_bamlist_raxml_downsampled.output.bamlist,
         # Ensure sliced outgroup BAMs exist when including outgroups
-        sliced=(lambda wc: [] if not ANGSD_RAXML_INCLUDE_OUTGROUPS else expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=OUTGROUP_SAMPLE_IDS))
+        sliced=(lambda wc: sliced_outgroup_inputs(ANGSD_RAXML_OUTGROUP_IDS))
     output:
         bamlist = f"results/bamlists/{output_prefix}/raxml_analysis/bamlist.txt"
-    params:
-        include_out = ANGSD_RAXML_INCLUDE_OUTGROUPS
     run:
         import pandas as pd
         ing = pd.read_csv(input.ingroup_downsampled, header=None)[0].tolist()
-        bams = list(ing)
-        if params.include_out:
-            bams += [f"{OUTGROUP_SLICED_DIR}/{sid}.bam" for sid in OUTGROUP_SAMPLE_IDS]
-        pd.Series(bams).to_csv(output.bamlist, index=False, header=False)
+        write_bamlist(output.bamlist, list(ing) + outgroup_bam_paths(ANGSD_RAXML_OUTGROUP_IDS))
 
 
 rule angsd_raxml:
@@ -244,7 +239,7 @@ rule raxml_ng:
             (lambda wildcards, input: _outgroup_opt_from_species(
                 input.bamlist,
                 (config.get('raxml', {}) or {}).get('outgroup_species', [])
-             )) if ANGSD_RAXML_INCLUDE_OUTGROUPS else ""
+             )) if ANGSD_RAXML_OUTGROUP_IDS else ""
         )
     conda:
         "../envs/raxml_ng.yaml"

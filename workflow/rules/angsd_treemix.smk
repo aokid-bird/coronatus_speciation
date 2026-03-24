@@ -22,14 +22,7 @@ def _treemix_root_opt(include_outgroups, mode, merge_outgroups, root_label):
         return ""
     import pandas as pd
     og = pd.read_csv(config["outgroups"], sep="\t")
-    # Optionally filter by species specified in config.treemix.outgroup_species
-    species_cfg = (config.get("treemix", {}) or {}).get("outgroup_species", [])
-    if isinstance(species_cfg, str):
-        species_sel = [x.strip() for x in species_cfg.split(",") if x.strip()]
-    else:
-        species_sel = list(species_cfg or [])
-    if species_sel and "taxon" in og.columns:
-        og = og[og["taxon"].astype(str).isin(species_sel)].copy()
+    og = og[og["sample_id"].astype(str).isin(TREEMIX_OUTGROUP_IDS)].copy()
 
     labels = []
     if merge_outgroups:
@@ -57,40 +50,15 @@ rule make_bamlist_treemix:
     input:
         ingroup=rules.make_bamlist_unrelated.output.bamlist,
         # Ensure sliced outgroup BAMs exist when including outgroups
-        sliced=(lambda wc: [] if not TREEMIX_INCLUDE_OUTGROUPS else expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=OUTGROUP_SAMPLE_IDS))
+        sliced=(lambda wc: sliced_outgroup_inputs(TREEMIX_OUTGROUP_IDS))
     output:
         bamlist=f"results/bamlists/{output_prefix}/treemix/bamlist.txt"
-    params:
-        bam_dir=config_bam_dir,
-        include_out=TREEMIX_INCLUDE_OUTGROUPS
     run:
-        import pandas as pd, os
-        def _sample_id(path: str) -> str:
-            name = os.path.basename(path)
-            for suffix in (".bam", ".cram", ".sam"):
-                if name.endswith(suffix):
-                    name = name[: -len(suffix)]
-            if "_slice" in name:
-                name = name.split("_slice", 1)[0]
-            return name
+        import pandas as pd
         # start with ingroup bamlist
         ing = pd.read_csv(input.ingroup, header=None)[0].tolist()
-        exclude = set(TREEMIX_EXCLUDE_SAMPLES)
-        if exclude:
-            ing = [path for path in ing if _sample_id(path) not in exclude]
-        bams = list(ing)
-        if params.include_out:
-            for sid in OUTGROUP_SAMPLE_IDS:
-                bams.append(f"{OUTGROUP_SLICED_DIR}/{sid}.bam")
-            out_exclude = set(TREEMIX_EXCLUDE_OUTGROUPS)
-            if out_exclude:
-                og_prefix = f"{OUTGROUP_SLICED_DIR}/"
-                bams = [
-                    path
-                    for path in bams
-                    if not (path.startswith(og_prefix) and _sample_id(path) in out_exclude)
-                ]
-        pd.Series(bams).to_csv(output.bamlist, index=False, header=False)
+        ing = filter_bam_paths_by_sample_ids(ing, exclude_samples=TREEMIX_EXCLUDE_SAMPLES)
+        write_bamlist(output.bamlist, ing + outgroup_bam_paths(TREEMIX_OUTGROUP_IDS))
 
 
 rule angsd_treemix:
@@ -179,7 +147,7 @@ rule glactools_prepare_treemix:
     params:
         group_col=group_col,
         glactools=GLACTOOLS_BIN,
-        out_opt=(lambda wc: f"--include-outgroups --outgroups-tsv {config['outgroups']}" if TREEMIX_INCLUDE_OUTGROUPS else ""),
+        out_opt=(lambda wc: f"--include-outgroups --outgroups-tsv {config['outgroups']}" if TREEMIX_OUTGROUP_IDS else ""),
         merge_flag=(lambda wc: "true" if (TREEMIX_CFG.get("merge_outgroups", False)) else "false"),
         root_opt=(lambda wc: f"--root-label {TREEMIX_ROOT_LABEL}" if TREEMIX_ROOT_LABEL else ""),
         mode=TREEMIX_MODE
@@ -242,7 +210,7 @@ rule treemix_run:
         # Build comma-delimited -root labels based on config/outgroups
         root_opt=(
             lambda wc: _treemix_root_opt(
-                TREEMIX_INCLUDE_OUTGROUPS,
+                bool(TREEMIX_OUTGROUP_IDS),
                 TREEMIX_MODE,
                 TREEMIX_CFG.get("merge_outgroups", False),
                 TREEMIX_ROOT_LABEL

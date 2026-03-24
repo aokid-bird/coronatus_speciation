@@ -53,4 +53,4 @@ rule outgroup_bams_sliced:
     Aggregate: ensure sliced BAMs are produced for all outgroup samples.
     """
     input:
-        expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=OUTGROUP_SAMPLE_IDS)
+        expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS)
