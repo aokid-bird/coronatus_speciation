@@ -13,6 +13,7 @@ CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
 SINGULARITY_PREFIX_SNAKEMAKE="$HOME/envs/singularity"
 CONFIG=config/config.yaml
 PROFILE=profile/default
+CONDARC_SNAKEMAKE="$(pwd)/conda/condarc_snakemake.yaml"
 LOGDIR=$(python workflow/scripts/export_paths.py $CONFIG)
 echo "Your LOGDIR is \"$LOGDIR\""
 mkdir -p $LOGDIR
@@ -58,6 +59,9 @@ echo "Using Slurm partition \"$SNAKEMAKE_SLURM_PARTITION\""
 
 # Keep R package resolution inside each conda environment.
 unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
+
+# Force Snakemake-created conda envs to ignore cluster-wide default channels.
+export CONDARC="$CONDARC_SNAKEMAKE"
 
 # create conda environment
 echo "Creating conda environments..."

@@ -11,12 +11,16 @@ set -euo pipefail
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
 CONFIG=config/config.yaml
+CONDARC_SNAKEMAKE="$(pwd)/conda/condarc_snakemake.yaml"
 LOGDIR=$(python workflow/scripts/export_paths.py $CONFIG)
 mkdir -p $LOGDIR
 echo "Your LOGDIR is \"$LOGDIR\""
 
 # Keep R package resolution inside each conda environment.
 unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
+
+# Force Snakemake-created conda envs to ignore user/system default channels.
+export CONDARC="$CONDARC_SNAKEMAKE"
 
 # create conda environment
 echo "Creating conda environments..."

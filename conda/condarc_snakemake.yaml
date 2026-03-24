@@ -1,0 +1,9 @@
+channels:
+  - conda-forge
+  - bioconda
+channel_priority: strict
+default_channels: []
+custom_channels: {}
+custom_multichannels: {}
+override_channels_enabled: true
+show_channel_urls: true
