@@ -2,12 +2,16 @@ Sys.unsetenv("R_LIBS_USER")
 Sys.unsetenv("R_PROFILE_USER")
 Sys.unsetenv("R_ENVIRON_USER")
 
-library(tidyverse)
-library(magrittr)
 library(patchwork)
 library(ggnewscale)
 library(treeio)
 library(ggtree)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tibble)
+library(tidyr)
+library(ape)
 
 safe_colorblind_palette <- c(
   "#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499",
@@ -17,8 +21,13 @@ palette_n <- function(n) {
   rep_len(safe_colorblind_palette, n)
 }
 
-tmp.bamlist <- read_delim(snakemake@input[['bamlist']], delim = " ", col_names = FALSE)
-data.df <- read_tsv(snakemake@input[["samples"]])
+tmp.bamlist <- read_delim(
+  snakemake@input[['bamlist']],
+  delim = " ",
+  col_names = FALSE,
+  show_col_types = FALSE
+)
+data.df <- read_tsv(snakemake@input[["samples"]], show_col_types = FALSE)
 geno <- snakemake@input[["geno"]]
 raxsup <- snakemake@input[["raxsup"]]
 group_col <- snakemake@params[["group_col"]]
@@ -27,21 +36,28 @@ populations <- snakemake@params[["populations"]]
 levels <- populations
 df.info <-
     tmp.bamlist %>% 
-    mutate(sample = str_remove(X1, ".*/") %>% str_remove(".bam") %>% str_remove("_slice.*")) %>% 
+    mutate(
+      sample = sub(
+        "_slice.*$",
+        "",
+        sub("\\.bam$", "", basename(X1))
+      )
+    ) %>% 
     left_join(., data.df, by = "sample") %>% 
     mutate(pop = .[[group_col]]) %>%
     select(sample, pop) %>%
     mutate(pop = factor(pop, levels = levels))
 
 # missing data information for the used sites
+geno_lines <- system(sprintf("zcat %s", shQuote(geno)), intern = TRUE)
 geno <- 
-    system(str_interp("zcat ${geno}"), intern = TRUE) %>% 
-    str_split("\t", simplify = TRUE) %>% 
-    as_tibble %>% 
+    read.table(text = geno_lines, sep = "\t", fill = TRUE, quote = "", comment.char = "") %>%
+    as_tibble() %>% 
     rename(scaf = V1, pos = V2) %>% 
     unite("scaf_pos", c("scaf", "pos"), sep = "_")
 # remove empty columns
-geno %<>%  
+geno <-
+    geno %>%
     select(!colnames(geno)[ncol(geno)])
 
 df.info <- 
@@ -52,8 +68,8 @@ df.info <-
     slice(-1) %>% 
     unite("concat", everything(), sep = "") %>% 
     bind_cols(df.info, .) %>% 
-    mutate(countN = str_count(concat, "NN"),
-            missingprop = countN/(str_width(concat)/2)) %>% 
+    mutate(countN = lengths(gregexpr("NN", concat, fixed = TRUE)),
+            missingprop = countN/(nchar(concat)/2)) %>% 
     select(!concat)
 
 # color palette

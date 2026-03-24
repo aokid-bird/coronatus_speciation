@@ -2,12 +2,15 @@ name: r_plot_tree
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - r-base=4.2
-  - r-tidyverse
-  - r-magrittr
+  - r-dplyr
+  - r-readr
+  - r-tibble
+  - r-tidyr
+  - r-ggplot2
   - r-patchwork
   - r-ggnewscale
+  - r-ape
   - bioconductor-treeio
   - bioconductor-ggtree
