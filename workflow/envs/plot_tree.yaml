@@ -2,6 +2,7 @@ name: r_plot_tree
 channels:
   - conda-forge
   - bioconda
+  - nodefaults
 dependencies:
   - r-base=4.2
   - r-dplyr
