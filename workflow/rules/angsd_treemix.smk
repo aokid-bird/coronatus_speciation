@@ -237,7 +237,12 @@ rule treemix_run:
         tm=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.treemix.gz",
         block=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/lddecay/block_size.txt"
     output:
-        llik=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e{{edge}}_o{{rep}}.llik"
+        lliks=lambda wc: expand(
+            f"results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e{{edge}}_o{{rep}}.llik",
+            edge=[wc.edge],
+            rep=range(1, TREEMIX_REPS + 1),
+        ),
+        done=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/edge_{{edge}}.done"
     params:
         # Build comma-delimited -root labels based on config/outgroups
         root_opt=(
@@ -248,16 +253,17 @@ rule treemix_run:
                 TREEMIX_ROOT_LABEL
             )
         ),
-        se_flag=(lambda wc: "-se" if (TREEMIX_CFG.get("se", True)) else "")
+        se_flag=(lambda wc: "-se" if (TREEMIX_CFG.get("se", True)) else ""),
+        timeout_seconds=TREEMIX_TIMEOUT_SECONDS,
+        max_attempts=TREEMIX_MAX_ATTEMPTS,
+        reps=TREEMIX_REPS
     threads: 1
     conda:
         "../envs/treemix.yaml"
     shell:
         r"""
         EDGE={wildcards.edge}
-        REP={wildcards.rep}
-        OUTPREF=results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e${{EDGE}}_o${{REP}}
-        mkdir -p $(dirname {output.llik})
+        mkdir -p $(dirname {output.done})
 
         # Validate block size; fallback to a sane default if needed
         BLOCK=$(cat {input.block} 2>/dev/null || echo "")
@@ -271,17 +277,32 @@ rule treemix_run:
           exit 127
         fi
 
-        LOG="${{OUTPREF}}.log"
-        # Pipe full output to .log without touching TreeMix's own .llik output file
-        treemix -i {input.tm} -m $EDGE -o $OUTPREF {params.root_opt} -bootstrap -k $BLOCK {params.se_flag} 2>&1 | tee "$LOG"
-        # Ensure the expected .llik file exists (written by TreeMix itself)
-        test -s {output.llik}
+        for REP in $(seq 1 {params.reps}); do
+          OUTPREF=results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e${{EDGE}}_o${{REP}}
+          LOG="${{OUTPREF}}.log"
+          python workflow/scripts/run_treemix_with_timeout.py \
+            --input {input.tm} \
+            --outprefix "$OUTPREF" \
+            --edge "$EDGE" \
+            --block "$BLOCK" \
+            --timeout-seconds {params.timeout_seconds} \
+            --max-attempts {params.max_attempts} \
+            --root-opt "{params.root_opt}" \
+            --se-flag "{params.se_flag}" \
+            --bootstrap \
+            --log "$LOG"
+        done
+
+        touch {output.done}
         """
 
 
 rule treemix_eval:
     input:
-        expand(f"results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e{{edge}}_o{{rep}}.llik", edge=range(TREEMIX_MAX_M+1), rep=range(1, TREEMIX_REPS+1))
+        expand(
+            f"results/treemix/{output_prefix}/{TREEMIX_MODE}/edge_{{edge}}.done",
+            edge=range(TREEMIX_MAX_M + 1),
+        )
     output:
         summary=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_summary.csv",
         runs=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_runs.csv"

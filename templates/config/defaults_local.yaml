@@ -235,6 +235,8 @@ treemix:
     root_label: null # label for outgroup root population
     max_m: 6 # test migration edges 0..max_m
     reps: 10 # replicates per edge count
+    timeout_seconds: 300 # kill a single TreeMix replicate attempt if it runs longer than this
+    max_attempts: 3 # retry a timed-out or failed replicate up to this many times
     use_optm: true # run OptM if available in env
     merge_outgroups: false # if true, merge multiple outgroup taxa into a single root
     exclude_samples: []

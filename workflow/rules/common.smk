@@ -345,6 +345,8 @@ TREEMIX_ROOT_LABEL = TREEMIX_CFG.get("root_label")
 TREEMIX_MAX_M = int(TREEMIX_CFG.get("max_m", 6))
 TREEMIX_REPS = int(TREEMIX_CFG.get("reps", 10))
 TREEMIX_THREADS = _resolve_threads(TREEMIX_CFG, LEGACY_GLOBAL_THREADS)
+TREEMIX_TIMEOUT_SECONDS = int(TREEMIX_CFG.get("timeout_seconds", 300))
+TREEMIX_MAX_ATTEMPTS = int(TREEMIX_CFG.get("max_attempts", 3))
 # Optional list of sample IDs to exclude from TreeMix analysis
 _treemix_exclude_cfg = TREEMIX_CFG.get("exclude_samples") or []
 if isinstance(_treemix_exclude_cfg, str):
