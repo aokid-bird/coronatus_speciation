@@ -2,46 +2,14 @@
 # Treemix flow: ANGSD -> VCF -> ACF -> rename/meld/root -> treemix matrix -> block size -> treemix runs -> eval
 ###
 
-# Helper to construct a valid -root argument for TreeMix based on
-# config outgroups and treemix settings, mirroring the RAxML-ng approach
-# of deriving labels from available metadata.
-def _abbr_taxon(t):
-    try:
-        import pandas as pd
-        if pd.isna(t):
-            return None
-    except Exception:
-        # if pandas not available in parser, fall back
-        if t is None:
-            return None
-    words = str(t).strip().split()
-    return "".join([w[:2] for w in words if len(w) > 0]) or None
-
-def _treemix_root_opt(include_outgroups, mode, merge_outgroups, root_label):
-    if not include_outgroups:
-        return ""
-    import pandas as pd
-    og = pd.read_csv(config["outgroups"], sep="\t")
-    og = og[og["sample_id"].astype(str).isin(TREEMIX_OUTGROUP_IDS)].copy()
-
-    labels = []
-    if merge_outgroups:
-        lab = root_label
-        if not lab:
-            if "taxon" in og.columns:
-                ab = [x for x in (og["taxon"].apply(_abbr_taxon).dropna().tolist()) if x]
-                uniq = sorted(list(set(ab)))
-                lab = uniq[0] if len(uniq) == 1 else "OUT"
-            else:
-                lab = "OUT"
-        labels = [lab]
-    else:
-        if "taxon" in og.columns:
-            labels = sorted(list(set([x for x in og["taxon"].apply(_abbr_taxon).dropna().tolist() if x])))
-        else:
-            # fall back to per-sample labels
-            labels = sorted(list(set(og["sample_id"].astype(str).tolist())))
-    return "" if not labels else "-root " + ",".join(labels)
+GLACTOOLS_BIN = TREEMIX_CFG.get("glactools_bin", "workflow/bin/glactools")
+TREEMIX_THREADS = _resolve_threads(TREEMIX_CFG, LEGACY_GLOBAL_THREADS)
+TREEMIX_MAX_M = int(TREEMIX_CFG.get("max_m", 6))
+TREEMIX_REPS = int(TREEMIX_CFG.get("reps", 10))
+TREEMIX_TIMEOUT_SECONDS = int(TREEMIX_CFG.get("timeout_seconds", 300))
+TREEMIX_MAX_ATTEMPTS = int(TREEMIX_CFG.get("max_attempts", 3))
+_PLOTFUNC_DEFAULT = Path("workflow/scripts/treemix_plotting_funcs.R")
+TREEMIX_PLOTTING_FUNCS = str(_PLOTFUNC_DEFAULT) if _PLOTFUNC_DEFAULT.exists() else None
 
 rule make_bamlist_treemix:
     """
@@ -209,11 +177,10 @@ rule treemix_run:
     params:
         # Build comma-delimited -root labels based on config/outgroups
         root_opt=(
-            lambda wc: _treemix_root_opt(
-                bool(TREEMIX_OUTGROUP_IDS),
-                TREEMIX_MODE,
-                TREEMIX_CFG.get("merge_outgroups", False),
-                TREEMIX_ROOT_LABEL
+            lambda wc: treemix_root_option(
+                TREEMIX_OUTGROUP_IDS,
+                merge_outgroups=TREEMIX_CFG.get("merge_outgroups", False),
+                root_label=TREEMIX_ROOT_LABEL,
             )
         ),
         se_flag=(lambda wc: "-se" if (TREEMIX_CFG.get("se", True)) else ""),

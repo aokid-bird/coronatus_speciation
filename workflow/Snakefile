@@ -1,5 +1,3 @@
-import pandas as pd
-
 configfile: "config/config.yaml"
 
 PROJECT_CFG = config.get("project", {}) or {}
@@ -7,10 +5,26 @@ ENVIRONMENT = config.get("environment") or PROJECT_CFG.get("environment") or "cl
 IS_LOCAL = ENVIRONMENT == "local"
 IS_CLUSTER = ENVIRONMENT == "cluster"
 
-include: "rules/common.smk"
+include: "rules/common_config.smk"
+include: "rules/common_paths.smk"
+include: "rules/common_samples.smk"
+include: "rules/common_analysis.smk"
+include: "rules/common_rules.smk"
 include: "rules/reference_shared.smk"
 include: "rules/outgroup_shared.smk"
 include: "rules/transfer.smk"
+
+
+def _targets(*items):
+    flattened = []
+    for item in items:
+        if not item:
+            continue
+        if isinstance(item, (list, tuple)):
+            flattened.extend(item)
+        else:
+            flattened.append(item)
+    return flattened
 
 if IS_LOCAL:
     include: "rules/reference_local.smk"
@@ -42,21 +56,20 @@ else:
 
 # Build ngsDist target list based on configured models
 if IS_CLUSTER:
-    NGSDIST_TARGETS = []
-    if NGSDIST_ENABLED:
-        for _m in _MODELS:
-            NGSDIST_TARGETS += [
-                f"results/ngsdist_global/{output_prefix}/{_m}/ngsdist",
-                f"results/ngsdist_global/{output_prefix}/{_m}/ngsdist_input.nexus",
-            ]
+    NGSDIST_TARGETS = _targets(*[
+        [
+            f"results/ngsdist_global/{output_prefix}/{model}/ngsdist",
+            f"results/ngsdist_global/{output_prefix}/{model}/ngsdist_input.nexus",
+        ]
+        for model in (_MODELS if NGSDIST_ENABLED else [])
+    ])
 
     SNAPP_BASE = f"results/snapp/{output_prefix}"
     SNAPP_VCF_DIR = f"{SNAPP_BASE}/vcf"
     SNAPP_ALIGN_DIR = f"{SNAPP_BASE}/alignment"
     SNAPP_RUN_DIR = f"{SNAPP_BASE}/runs"
-    SNAPP_TARGETS = []
-    if SNAPP_ENABLED:
-        SNAPP_TARGETS += [
+    SNAPP_TARGETS = _targets(
+        [
             f"{SNAPP_BASE}/selected_samples.tsv",
             f"{SNAPP_BASE}/selected_samples.txt",
             f"results/bamlists/{output_prefix}/snapp/bamlist.txt",
@@ -69,20 +82,25 @@ if IS_CLUSTER:
             f"{SNAPP_VCF_DIR}/snapp_unlinked.vcf.gz.tbi",
             f"{SNAPP_ALIGN_DIR}/snapp.min{SNAPP_MIN_SAMPLES_LOCUS}.phy",
             f"{SNAPP_ALIGN_DIR}/snapp.min{SNAPP_MIN_SAMPLES_LOCUS}.bin.nexus",
-        ]
-        for _run in SNAPP_RUN_IDS:
-            SNAPP_TARGETS.append(f"{SNAPP_BASE}/constraints/{_run}.txt")
-            SNAPP_TARGETS.append(f"{SNAPP_RUN_DIR}/{_run}/snapp.xml")
+        ] if SNAPP_ENABLED else [],
+        *[
+            [
+                f"{SNAPP_BASE}/constraints/{run_id}.txt",
+                f"{SNAPP_RUN_DIR}/{run_id}/snapp.xml",
+            ]
+            for run_id in (SNAPP_RUN_IDS if SNAPP_ENABLED else [])
+        ],
+    )
 
-    ABBABABA2_TARGETS = []
-    if ABBABABA2_ENABLED:
-        ABBABABA2_TARGETS = [
+    ABBABABA2_TARGETS = _targets(
+        [
             f"results/abbababa2/{output_prefix}/df.dstat.csv",
             f"figures/abbababa2/{output_prefix}/abbababa2.pdf",
-        ]
+        ] if ABBABABA2_ENABLED else []
+    )
 
 if IS_LOCAL:
-    LOCAL_ALL_TARGETS = [
+    LOCAL_ALL_TARGETS = _targets(
         (rules.prepare_reference.input if REF_FROM_METADATA else []),
         rules.manifest_reference_storage.output,
         expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_1.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
@@ -92,13 +110,13 @@ if IS_LOCAL:
         rules.manifest_outgroup_raw_storage.output,
         rules.manifest_outgroup_merged_storage.output,
         rules.generate_external_transfer_scripts.output,
-    ]
+    )
 
     rule all:
         input:
             LOCAL_ALL_TARGETS
 else:
-    CLUSTER_PREPROCESS_TARGETS = [
+    CLUSTER_PREPROCESS_TARGETS = _targets(
         expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_1.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
         expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_2.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
         expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
@@ -112,9 +130,9 @@ else:
         rules.manifest_outgroup_bam_storage.output,
         rules.manifest_outgroup_longread_filter_storage.output,
         rules.generate_external_transfer_scripts.output,
-    ]
+    )
 
-    CORE_ANALYSIS_TARGETS = [
+    CORE_ANALYSIS_TARGETS = _targets(
         expand(f"results/bamlists/{output_prefix}/{{group}}/bamlist.txt", group=groups) if ANGSD_INTERSECT_ACTIVE else [],
         expand(f"results/angsd_intersect/{output_prefix}/{{group}}/gl.geno.gz", group=groups) if ANGSD_INTERSECT_ACTIVE else [],
         f"results/intersect_sites/{output_prefix}/intersect.txt" if ANGSD_INTERSECT_ACTIVE else [],
@@ -135,18 +153,18 @@ else:
             f"results/unlinked_sites/{output_prefix}/sites.txt.bin",
         ] if (SFS_ENABLED and SFS_NEEDS_UNLINKED_SITES) else [],
         f"results/angsd_global_unrelated_unlinked/{output_prefix}/gl.beagle.gz" if GLOBAL_UNRELATED_UNLINKED_ACTIVE else [],
-    ]
+    )
 
-    STRUCTURE_TARGETS = [
+    STRUCTURE_TARGETS = _targets(
         rules.run_pcangsd.output if PCANGSD_ENABLED else [],
         f"results/pca/{output_prefix}/pca_plots.pdf" if PCANGSD_ENABLED else [],
         rules.run_ngsadmix.output if NGSADMIX_ENABLED else [],
         f"results/admixture/{output_prefix}/deltaK.pdf" if NGSADMIX_ENABLED else [],
         f"results/admixture/{output_prefix}/admixture_plots.pdf" if NGSADMIX_ENABLED else [],
         NGSDIST_TARGETS,
-    ]
+    )
 
-    PHYLOGENY_TARGETS = [
+    PHYLOGENY_TARGETS = _targets(
         f"results/angsd_raxml/{output_prefix}/gl.bcf" if RAXML_ENABLED else [],
         expand(f"results/angsd_{{angsd_run}}/{output_prefix}/gl.vcf.gz", angsd_run=["raxml"]) if RAXML_ENABLED else [],
         f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.bootstraps" if RAXML_ENABLED else [],
@@ -158,9 +176,9 @@ else:
         f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_trees_{TREEMIX_MODE}.pdf" if TREEMIX_ENABLED else [],
         ABBABABA2_TARGETS,
         SNAPP_TARGETS,
-    ]
+    )
 
-    SFS_TARGETS = [
+    SFS_TARGETS = _targets(
         expand(
             f"results/angsd_sfs/{output_prefix}/{{site_filter}}/{{group}}/gl.geno.gz",
             site_filter=SFS_SITE_FILTERS_ACTIVE,
@@ -177,14 +195,14 @@ else:
         f"results/sfs/{output_prefix}/theta_window_summary.csv" if SFS_ENABLED else [],
         f"results/sfs/{output_prefix}/lm_theta_tajima_summary.csv" if SFS_ENABLED else [],
         f"results/sfs/{output_prefix}/tajima_vs_theta.pdf" if SFS_ENABLED else [],
-    ]
+    )
 
-    CLUSTER_ALL_TARGETS = (
-        CLUSTER_PREPROCESS_TARGETS
-        + CORE_ANALYSIS_TARGETS
-        + STRUCTURE_TARGETS
-        + PHYLOGENY_TARGETS
-        + SFS_TARGETS
+    CLUSTER_ALL_TARGETS = _targets(
+        CLUSTER_PREPROCESS_TARGETS,
+        CORE_ANALYSIS_TARGETS,
+        STRUCTURE_TARGETS,
+        PHYLOGENY_TARGETS,
+        SFS_TARGETS,
     )
 
     rule all:

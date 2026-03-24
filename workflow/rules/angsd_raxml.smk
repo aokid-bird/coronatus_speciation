@@ -1,39 +1,5 @@
 # rules/angsd_raxml.smk
 
-# Helper: build --outgroup from full species names defined in config.
-def _outgroup_opt_from_species(bamlist_path, species_list):
-    import os
-    import pandas as pd
-    try:
-        with open(bamlist_path) as f:
-            names = [os.path.basename(l.strip()).replace(".bam", "") for l in f if l.strip()]
-    except FileNotFoundError:
-        return ""
-
-    # Normalize species list: allow list or comma-delimited string
-    if isinstance(species_list, str):
-        wanted = [x.strip() for x in species_list.split(",") if x.strip()]
-    else:
-        wanted = list(species_list or [])
-
-    # If user didn't specify, fall back to the outgroups selected for this analysis
-    if not wanted:
-        candidates = set(ANGSD_RAXML_OUTGROUP_IDS)
-    else:
-        # Read outgroups TSV and select sample_ids whose taxon matches the wanted species
-        try:
-            og = pd.read_csv(config["outgroups"], sep="\t")
-            if "taxon" in og.columns:
-                candidates = set(og.loc[og["taxon"].astype(str).isin(wanted), "sample_id"].astype(str).tolist())
-            else:
-                candidates = set()  # taxon column missing; no match possible
-        except Exception:
-            candidates = set()
-
-    # Intersect with actual MSA labels (bam basenames)
-    selected = [n for n in names if n in candidates]
-    return "" if not selected else "--outgroup " + ",".join(selected)
-
 rule make_bamlist_raxml_downsampled:
     """
     Downsample unrelated ingroup BAMs per population before RAxML analyses.
@@ -236,9 +202,10 @@ rule raxml_ng:
         bs=config['raxml']['bs'],
         # Pre-render optional outgroup argument from actual bamlist labels
         outgroup_opt=(
-            (lambda wildcards, input: _outgroup_opt_from_species(
+            (lambda wildcards, input: outgroup_option_from_bamlist(
                 input.bamlist,
-                (config.get('raxml', {}) or {}).get('outgroup_species', [])
+                species=RAXML_OUTGROUP_SPECIES,
+                sample_ids=ANGSD_RAXML_OUTGROUP_IDS,
              )) if ANGSD_RAXML_OUTGROUP_IDS else ""
         )
     conda:
