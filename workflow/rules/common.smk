@@ -3,6 +3,7 @@ from pathlib import Path
 from itertools import combinations
 import re
 import os
+from datetime import datetime, timezone
 
 # main parameters
 output_prefix = config["output_prefix"] # scenario symbols
@@ -53,9 +54,20 @@ SFS_NEEDS_UNLINKED_SITES = "unlinked" in {v.lower() for v in SFS_SITE_FILTERS}
 SFS_PAIRWISE_COMBOS = list(combinations(groups, 2)) if len(groups) >= 2 else []
 
 # directories
-config_bam_base = config['bam_dir']
-config_bam_dir = f"{config_bam_base}/{output_prefix}"
-OUTGROUP_SLICED_DIR = f"{config_bam_dir}/outgroups_sliced"
+STORAGE_CFG = config.get("storage", {}) or {}
+
+def _storage_path(*keys, default=None):
+    value = STORAGE_CFG
+    for key in keys:
+        if not isinstance(value, dict):
+            return default
+        value = value.get(key)
+    return default if value in (None, "") else value
+
+config_bam_base = config["bam_dir"]
+config_bam_dir = _storage_path("bam", "ingroup_dir", default=f"{config_bam_base}/{output_prefix}")
+OUTGROUP_BAM_DIR = _storage_path("bam", "outgroup_dir", default=f"{config_bam_dir}/outgroups")
+OUTGROUP_SLICED_DIR = f"results/outgroups_sliced/{output_prefix}"
 config_singularity_dir = os.path.expandvars(config["singularity_dir"])
 # other parameters
 kin_thr = config["ngsrelate"]["kinship_threshold"]
@@ -83,8 +95,89 @@ ENVIRONMENT = config.get("environment", "cluster")
 # from config
 REF_CONFIG_PATH = config.get("reference", {}).get("fasta", config.get("ref"))
 REFERENCES_TSV = config.get("references_tsv", "data/references.tsv")
-REFERENCE_DIR = config.get("reference_dir", "data/reference")
+REFERENCE_DIR = _storage_path("reference", "dir", default=config.get("reference_dir", "data/reference"))
 REFERENCE_METHOD = config.get("reference_download_method", "datasets")
+OUTGROUP_RAW_DIR = _storage_path("outgroup", "raw_dir", default="data/raw/outgroup")
+OUTGROUP_MERGED_DIR = _storage_path("outgroup", "merged_dir", default="data/merged/outgroup")
+INGROUP_TRIM_DIR = _storage_path("derived", "ingroup", "trim_dir", default="results/trimmomatic/ingroup")
+OUTGROUP_TRIM_DIR = _storage_path("derived", "outgroup", "trim_dir", default="results/trimmomatic/outgroup")
+INGROUP_QC_BASE_DIR = _storage_path("derived", "ingroup", "qc_dir", default="results/qc/ingroup")
+OUTGROUP_QC_BASE_DIR = _storage_path("derived", "outgroup", "qc_dir", default="results/qc/outgroup")
+INGROUP_MAP_TMP_DIR = _storage_path("derived", "ingroup", "mapping_tmp_dir", default=f"results/mapping/{output_prefix}/ingroup")
+OUTGROUP_MAP_TMP_DIR = _storage_path("derived", "outgroup", "mapping_tmp_dir", default=f"results/mapping/{output_prefix}/outgroup")
+OUTGROUP_LR_FILTER_DIR = _storage_path("derived", "outgroup", "longread_filter_dir", default="results/longread/filter")
+
+def manifest_paths(directory: str):
+    return (
+        str(Path(directory) / "README.md"),
+        str(Path(directory) / "provenance.yaml"),
+    )
+
+def _is_directory_target_writable(directory: str) -> bool:
+    probe = Path(directory)
+    while not probe.exists():
+        if probe.parent == probe:
+            return False
+        probe = probe.parent
+    return probe.is_dir() and os.access(probe, os.W_OK)
+
+def manifest_directory(directory: str, fallback_directory: str = None) -> str:
+    if _is_directory_target_writable(directory):
+        return directory
+    if fallback_directory:
+        return fallback_directory
+    return directory
+
+REFERENCE_MANIFEST_DIR = manifest_directory(
+    REFERENCE_DIR,
+    fallback_directory=f"results/reference/{output_prefix}/source_metadata",
+)
+
+def write_storage_manifest(directory: str, title: str, producer: str, details=None):
+    details = details or {}
+    directory_path = Path(directory)
+    directory_path.mkdir(parents=True, exist_ok=True)
+    readme_path = directory_path / "README.md"
+    yaml_path = directory_path / "provenance.yaml"
+    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    project_dir = str(Path.cwd())
+    pipeline_name = Path(project_dir).name
+
+    yaml_lines = [
+        f'title: "{title}"',
+        f'directory: "{directory_path}"',
+        f'created_utc: "{timestamp}"',
+        f'producer: "{producer}"',
+        f'pipeline_name: "{pipeline_name}"',
+        f'project_dir: "{project_dir}"',
+        f'output_prefix: "{output_prefix}"',
+    ]
+    if details:
+        yaml_lines.append("details:")
+        for key, value in details.items():
+            safe_key = str(key).replace(":", "_")
+            safe_value = str(value).replace('"', '\\"')
+            yaml_lines.append(f'  {safe_key}: "{safe_value}"')
+
+    readme_lines = [
+        f"# {title}",
+        "",
+        "This directory is managed by the `gbs_pipeline` Snakemake workflow.",
+        "",
+        f"- Directory: `{directory_path}`",
+        f"- Created (UTC): `{timestamp}`",
+        f"- Producer: `{producer}`",
+        f"- Pipeline: `{pipeline_name}`",
+        f"- Project: `{project_dir}`",
+        f"- output_prefix at write time: `{output_prefix}`",
+    ]
+    if details:
+        readme_lines.extend(["", "## Details"])
+        for key, value in details.items():
+            readme_lines.append(f"- {key}: `{value}`")
+
+    readme_path.write_text("\n".join(readme_lines) + "\n", encoding="ascii")
+    yaml_path.write_text("\n".join(yaml_lines) + "\n", encoding="ascii")
 
 # metadata-driven reference (only on local)
 REF_FROM_METADATA = False
@@ -126,7 +219,60 @@ REF_CHR = f"{REFERENCE_DIR}/{Path(REF).stem}.chr" if REF_FROM_METADATA else f"{P
 # Ingroup sample metadata
 _SAMPLES_DF = pd.read_csv(config["samples"], sep="\t")
 INGROUP_SAMPLE_IDS = _SAMPLES_DF["sample"].astype(str).tolist()
-INGROUP_READS_DIR = (config.get("reads", {}) or {}).get("ingroup_dir", "data/raw/ingroup")
+READS_CFG = (config.get("reads", {}) or {})
+INGROUP_READS_DIR = READS_CFG.get("ingroup_dir", "data/raw/ingroup")
+INGROUP_READS_META_CFG = (READS_CFG.get("ingroup_metadata", {}) or {})
+
+INGROUP_FASTQ_DIR_COL = str(INGROUP_READS_META_CFG.get("dir_col", "fastq_dir"))
+INGROUP_FASTQ_PREFIX_COL = str(INGROUP_READS_META_CFG.get("prefix_col", "fastq_prefix"))
+INGROUP_FASTQ_R1_SUFFIX_COL = str(INGROUP_READS_META_CFG.get("r1_suffix_col", "fastq_r1_suffix"))
+INGROUP_FASTQ_R2_SUFFIX_COL = str(INGROUP_READS_META_CFG.get("r2_suffix_col", "fastq_r2_suffix"))
+INGROUP_FASTQ_EXT_COL = str(INGROUP_READS_META_CFG.get("extension_col", "fastq_extension"))
+
+INGROUP_FASTQ_DEFAULT_PREFIX = str(INGROUP_READS_META_CFG.get("default_prefix", ""))
+INGROUP_FASTQ_DEFAULT_R1_SUFFIX = str(INGROUP_READS_META_CFG.get("default_r1_suffix", "_1"))
+INGROUP_FASTQ_DEFAULT_R2_SUFFIX = str(INGROUP_READS_META_CFG.get("default_r2_suffix", "_2"))
+INGROUP_FASTQ_DEFAULT_EXT = str(INGROUP_READS_META_CFG.get("default_extension", ".fastq.gz"))
+
+def _sample_value(row, colname, default=""):
+    if colname in row.index and pd.notna(row[colname]):
+        return str(row[colname])
+    return default
+
+def _normalize_fastq_ext(ext: str) -> str:
+    value = str(ext or "").strip()
+    if not value:
+        return ""
+    return value if value.startswith(".") else f".{value}"
+
+_INGROUP_FASTQ_RECORDS = {}
+for _, _row in _SAMPLES_DF.iterrows():
+    sample_id = str(_row["sample"])
+    sample_dir = _sample_value(_row, INGROUP_FASTQ_DIR_COL, INGROUP_READS_DIR).strip()
+    prefix = _sample_value(_row, INGROUP_FASTQ_PREFIX_COL, INGROUP_FASTQ_DEFAULT_PREFIX)
+    r1_suffix = _sample_value(_row, INGROUP_FASTQ_R1_SUFFIX_COL, INGROUP_FASTQ_DEFAULT_R1_SUFFIX)
+    r2_suffix = _sample_value(_row, INGROUP_FASTQ_R2_SUFFIX_COL, INGROUP_FASTQ_DEFAULT_R2_SUFFIX)
+    ext = _normalize_fastq_ext(_sample_value(_row, INGROUP_FASTQ_EXT_COL, INGROUP_FASTQ_DEFAULT_EXT))
+    if not sample_dir:
+        raise ValueError(f"Sample '{sample_id}' has an empty FASTQ directory after config/metadata resolution.")
+    _INGROUP_FASTQ_RECORDS[sample_id] = {
+        "dir": sample_dir,
+        "prefix": prefix,
+        "r1_suffix": r1_suffix,
+        "r2_suffix": r2_suffix,
+        "extension": ext,
+    }
+
+def ingroup_fastq_path(sample_id: str, read: str) -> str:
+    sid = str(sample_id)
+    if sid not in _INGROUP_FASTQ_RECORDS:
+        raise KeyError(f"Unknown ingroup sample_id '{sid}'")
+    if str(read) not in {"1", "2"}:
+        raise ValueError(f"read must be '1' or '2', got '{read}'")
+    record = _INGROUP_FASTQ_RECORDS[sid]
+    suffix = record["r1_suffix"] if str(read) == "1" else record["r2_suffix"]
+    filename = f"{record['prefix']}{sid}{suffix}{record['extension']}"
+    return str(Path(record["dir"]) / filename)
 
 def _merge_mapping_scope(scope: str):
     base = {k: v for k, v in (config.get("mapping", {}) or {}).items() if k not in {"ingroup", "outgroup"}}

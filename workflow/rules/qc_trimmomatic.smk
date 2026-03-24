@@ -32,9 +32,9 @@ OUTGROUP_QC_CFG = _qc_scope("outgroup")
 # Only operate on outgroups detected as short-read in common.smk
 SHORTREAD_SAMPLES = [sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]
 
-PRE_QC_DIR = "results/qc/outgroup/pre"
-POST_QC_DIR = "results/qc/outgroup/post"
-TRIM_DIR = "results/trimmomatic/outgroup"
+PRE_QC_DIR = pjoin(OUTGROUP_QC_BASE_DIR, "pre")
+POST_QC_DIR = pjoin(OUTGROUP_QC_BASE_DIR, "post")
+TRIM_DIR = OUTGROUP_TRIM_DIR
 
 FASTQC_CONTAM = (OUTGROUP_QC_CFG.get("fastqc", {}) or {}).get("contaminants", None)
 TRIM_CFG = OUTGROUP_QC_CFG.get("trimmomatic", {}) or {}
@@ -49,7 +49,7 @@ TRIM_EXTRA = str(TRIM_CFG.get("extra", "") or "").strip()
 
 rule fastqc_outgroup_pre:
     input:
-        fq=lambda wc: f"data/merged/outgroup/{wc.sample_id}_{wc.read}.fastq.gz"
+        fq=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_{wc.read}.fastq.gz"
     output:
         html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
         zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
@@ -84,8 +84,8 @@ rule multiqc_outgroup_pre:
 
 rule trimmomatic_outgroup_pe:
     input:
-        fq1=lambda wc: f"data/merged/outgroup/{wc.sample_id}_1.fastq.gz",
-        fq2=lambda wc: f"data/merged/outgroup/{wc.sample_id}_2.fastq.gz"
+        fq1=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_1.fastq.gz",
+        fq2=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_2.fastq.gz"
     output:
         pair1=pjoin(TRIM_DIR, "{sample_id}_pair_R1.fastq.gz"),
         unpair1=pjoin(TRIM_DIR, "{sample_id}_unpair_R1.fastq.gz"),
@@ -171,3 +171,42 @@ rule outgroup_qc_trim_all:
         expand(pjoin(TRIM_DIR, "{sample_id}_pair_R2.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
         # post-QC multiqc
         pjoin(POST_QC_DIR, "multiqc_report.html")
+
+rule manifest_outgroup_trim_storage:
+    input:
+        expand(pjoin(TRIM_DIR, "{sample_id}_pair_R1.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
+        expand(pjoin(TRIM_DIR, "{sample_id}_pair_R2.fastq.gz"), sample_id=SHORTREAD_SAMPLES)
+    output:
+        readme=manifest_paths(TRIM_DIR)[0],
+        yaml=manifest_paths(TRIM_DIR)[1]
+    run:
+        write_storage_manifest(
+            TRIM_DIR,
+            "Outgroup Trimmed Read Storage",
+            "manifest_outgroup_trim_storage",
+            {
+                "asset_type": "trimmed outgroup FASTQ files",
+                "sample_count": len(SHORTREAD_SAMPLES),
+                "source_dir": OUTGROUP_MERGED_DIR,
+            },
+        )
+
+rule manifest_outgroup_qc_storage:
+    input:
+        pre_multiqc=pjoin(PRE_QC_DIR, "multiqc_report.html"),
+        post_multiqc=pjoin(POST_QC_DIR, "multiqc_report.html")
+    output:
+        readme=manifest_paths(OUTGROUP_QC_BASE_DIR)[0],
+        yaml=manifest_paths(OUTGROUP_QC_BASE_DIR)[1]
+    run:
+        write_storage_manifest(
+            OUTGROUP_QC_BASE_DIR,
+            "Outgroup QC Storage",
+            "manifest_outgroup_qc_storage",
+            {
+                "asset_type": "FastQC and MultiQC outputs for outgroup reads",
+                "pre_qc_dir": PRE_QC_DIR,
+                "post_qc_dir": POST_QC_DIR,
+                "sample_count": len(SHORTREAD_SAMPLES),
+            },
+        )

@@ -97,7 +97,7 @@ rule make_ngsrelate_inputs:
         freq = f"results/ngsrelate_global/{output_prefix}/freq",
         id   = f"results/ngsrelate_global/{output_prefix}/id"
     params:
-        bam_dir = config['bam_dir']
+        bam_dir = config_bam_dir
     conda:
         "../envs/ngsrelate_input.yaml"
     shell:

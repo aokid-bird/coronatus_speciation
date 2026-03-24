@@ -137,6 +137,28 @@ rule prepare_reference:
     message:
         "Reference prepared (downloaded + samtools indexed + contigs listed + mapper index)"
 
+rule manifest_reference_storage:
+    input:
+        _prepare_reference_inputs
+    output:
+        readme=manifest_paths(REFERENCE_MANIFEST_DIR)[0],
+        yaml=manifest_paths(REFERENCE_MANIFEST_DIR)[1]
+    run:
+        write_storage_manifest(
+            REFERENCE_MANIFEST_DIR,
+            "Reference Storage",
+            "manifest_reference_storage",
+            {
+                "asset_type": "reference FASTA and mapper index files",
+                "reference_directory": REFERENCE_DIR,
+                "reference_fasta": REF,
+                "reference_fai": FAI,
+                "reference_chr": REF_CHR,
+                "reference_source": REFERENCE_ACCESSION or REF_CONFIG_PATH or "user-supplied",
+                "download_method": REFERENCE_METHOD,
+            },
+        )
+
 # Generic indexing rules (always available)
 
 # Ensure we have an uncompressed FASTA for mapping indices if the provided

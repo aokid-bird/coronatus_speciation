@@ -27,7 +27,7 @@ rule slice_outgroup_bam:
     Slice each outgroup BAM to the union sites bed and index the result.
     """
     input:
-        bam = f"{config_bam_dir}/outgroups/{{sample_id}}.bam",
+        bam = f"{OUTGROUP_BAM_DIR}/{{sample_id}}.bam",
         bed = rules.union_sites_groups.output.bed
     output:
         bam = f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam",

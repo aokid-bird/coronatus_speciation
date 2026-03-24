@@ -7,8 +7,8 @@ Outputs final coordinate-sorted BAM and index in config['bam_dir']/{sample}.bam.
 import re
 from os.path import join as pjoin
 
-TRIM_DIR = "results/trimmomatic/ingroup"
-MAP_TMP = f"results/mapping/{output_prefix}/ingroup"
+TRIM_DIR = INGROUP_TRIM_DIR
+MAP_TMP = INGROUP_MAP_TMP_DIR
 FINAL_DIR = config_bam_dir
 
 MAP_CFG = MAPPING_INGROUP_CFG
@@ -115,3 +115,23 @@ rule ingroup_bams:
     """
     input:
         expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS)
+
+rule manifest_ingroup_bam_storage:
+    input:
+        expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS),
+        expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_SAMPLE_IDS)
+    output:
+        readme=manifest_paths(FINAL_DIR)[0],
+        yaml=manifest_paths(FINAL_DIR)[1]
+    run:
+        write_storage_manifest(
+            FINAL_DIR,
+            "Ingroup BAM Storage",
+            "manifest_ingroup_bam_storage",
+            {
+                "asset_type": "final ingroup BAM and BAI files",
+                "sample_count": len(INGROUP_SAMPLE_IDS),
+                "trim_dir": TRIM_DIR,
+                "mapping_tmp_dir": MAP_TMP,
+            },
+        )

@@ -12,9 +12,32 @@ reference:
 bam_dir: "results/bwa"
 singularity_dir: "${HOME}/envs/singularity"
 
+# Reusable storage for downloaded and preprocessing-heavy assets.
+# Defaults keep everything inside the project directory, but these can be absolute
+# paths such as /Data/WGS/... to reuse the same files across analyses.
+storage:
+    reference:
+        dir: "data/reference"
+    outgroup:
+        raw_dir: "data/raw/outgroup"
+        merged_dir: "data/merged/outgroup"
+    derived:
+        ingroup:
+            trim_dir: "results/trimmomatic/ingroup"
+            qc_dir: "results/qc/ingroup"
+            mapping_tmp_dir: null # default: results/mapping/<output_prefix>/ingroup
+        outgroup:
+            trim_dir: "results/trimmomatic/outgroup"
+            qc_dir: "results/qc/outgroup"
+            mapping_tmp_dir: null # default: results/mapping/<output_prefix>/outgroup
+            longread_filter_dir: "results/longread/filter"
+    bam:
+        ingroup_dir: null  # default: bam_dir/output_prefix
+        outgroup_dir: null # default: <ingroup_dir>/outgroups
+
 # Reference acquisition (local only; used when reference.fasta is null)
 references_tsv: "data/references.tsv" # columns: accession, name, [url]
-reference_dir: "data/reference" # where to store downloaded reference
+reference_dir: "data/reference" # legacy fallback; prefer storage.reference.dir
 reference_download_method: "datasets" # datasets or wget
 
 # Mapping backend (choose bwa or bwa-mem2)
@@ -30,7 +53,17 @@ mapping:
 
 # Input FASTQs for ingroups
 reads:
-    ingroup_dir: "data/raw/ingroup"
+    ingroup_dir: "data/raw/ingroup" # legacy fallback when samples.tsv has no per-sample fastq_dir
+    ingroup_metadata:
+        dir_col: "fastq_dir"
+        prefix_col: "fastq_prefix"
+        r1_suffix_col: "fastq_r1_suffix"
+        r2_suffix_col: "fastq_r2_suffix"
+        extension_col: "fastq_extension"
+        default_prefix: ""
+        default_r1_suffix: "_1"
+        default_r2_suffix: "_2"
+        default_extension: ".fastq.gz"
 
 # sample df
 samples: "data/samples.tsv"

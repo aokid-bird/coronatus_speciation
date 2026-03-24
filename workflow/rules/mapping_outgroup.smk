@@ -10,11 +10,8 @@ import os
 import re
 from os.path import join as pjoin
 
-# Keep outgroup paths isolated from ingroup globals defined in other rule files
-OUTGROUP_TRIM_DIR = "results/trimmomatic/outgroup"
-OUTGROUP_LR_FILTER_DIR = "results/longread/filter"
-OUTGROUP_MAP_TMP = f"results/mapping/{output_prefix}/outgroup"
-OUTGROUP_FINAL_DIR = pjoin(config_bam_dir, "outgroups")
+OUTGROUP_MAP_TMP = OUTGROUP_MAP_TMP_DIR
+OUTGROUP_FINAL_DIR = OUTGROUP_BAM_DIR
 
 MAP_CFG = MAPPING_OUTGROUP_CFG
 LR_CFG = (config.get("longread", {}) or {})
@@ -149,13 +146,13 @@ def _lr_input_fastq(wc):
     if LR_CFG.get("filter", {}).get("enabled", True):
         return pjoin(OUTGROUP_LR_FILTER_DIR, f"{wc.sample_id}.fastq.gz")
     else:
-        return f"data/merged/outgroup/{wc.sample_id}.fastq.gz"
+        return f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}.fastq.gz"
 
 rule filtlong_outgroup:
     wildcard_constraints:
         sample_id=_wc_regex(LONGREAD_SAMPLES)
     input:
-        fq=lambda wc: f"data/merged/outgroup/{wc.sample_id}.fastq.gz"
+        fq=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}.fastq.gz"
     output:
         fq=pjoin(OUTGROUP_LR_FILTER_DIR, "{sample_id}.fastq.gz")
     params:
@@ -214,3 +211,42 @@ rule outgroup_bams:
     """
     input:
         expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam"), sample_id=[sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short","long")])
+
+rule manifest_outgroup_longread_filter_storage:
+    input:
+        expand(pjoin(OUTGROUP_LR_FILTER_DIR, "{sample_id}.fastq.gz"), sample_id=LONGREAD_SAMPLES) if LR_CFG.get("filter", {}).get("enabled", True) else []
+    output:
+        readme=manifest_paths(OUTGROUP_LR_FILTER_DIR)[0],
+        yaml=manifest_paths(OUTGROUP_LR_FILTER_DIR)[1]
+    run:
+        write_storage_manifest(
+            OUTGROUP_LR_FILTER_DIR,
+            "Outgroup Long-read Filter Storage",
+            "manifest_outgroup_longread_filter_storage",
+            {
+                "asset_type": "filtered long-read outgroup FASTQ files",
+                "sample_count": len(LONGREAD_SAMPLES),
+                "filter_enabled": LR_CFG.get("filter", {}).get("enabled", True),
+            },
+        )
+
+rule manifest_outgroup_bam_storage:
+    input:
+        expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam"), sample_id=[sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short", "long")]),
+        expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam.bai"), sample_id=[sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short", "long")])
+    output:
+        readme=manifest_paths(OUTGROUP_FINAL_DIR)[0],
+        yaml=manifest_paths(OUTGROUP_FINAL_DIR)[1]
+    run:
+        write_storage_manifest(
+            OUTGROUP_FINAL_DIR,
+            "Outgroup BAM Storage",
+            "manifest_outgroup_bam_storage",
+            {
+                "asset_type": "final outgroup BAM and BAI files",
+                "sample_count": len(OUTGROUP_SAMPLE_IDS),
+                "trim_dir": OUTGROUP_TRIM_DIR,
+                "longread_filter_dir": OUTGROUP_LR_FILTER_DIR,
+                "mapping_tmp_dir": OUTGROUP_MAP_TMP,
+            },
+        )

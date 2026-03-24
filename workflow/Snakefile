@@ -77,16 +77,30 @@ if config["environment"] == "local":
         input:
             # -1. Reference (download + index + chr list)
             (rules.prepare_reference.input if REF_FROM_METADATA else []),
+            rules.manifest_reference_storage.output,
             # 0. Outgroup
-            expand("data/merged/outgroup/{sample_id}_1.fastq.gz", sample_id=OUTGROUP_SAMPLE_IDS),
-            expand("data/merged/outgroup/{sample_id}_2.fastq.gz", sample_id=OUTGROUP_SAMPLE_IDS),
-            expand("logs/fetch_sra/{srr}.log", srr=OUTGROUP_SRR_IDS)
+            expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_1.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
+            expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_2.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
+            expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
+            expand("logs/fetch_sra/{srr}.log", srr=OUTGROUP_SRR_IDS),
+            rules.manifest_outgroup_raw_storage.output,
+            rules.manifest_outgroup_merged_storage.output
 else:
     rule all:
         input:
             # 0. Outgroup (assumes fastqs already fetched on local)
-            expand("data/merged/outgroup/{sample_id}_1.fastq.gz", sample_id=OUTGROUP_SAMPLE_IDS),
-            expand("data/merged/outgroup/{sample_id}_2.fastq.gz", sample_id=OUTGROUP_SAMPLE_IDS),
+            expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_1.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
+            expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_2.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
+            expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
+            rules.manifest_reference_storage.output,
+            rules.manifest_outgroup_merged_storage.output,
+            rules.manifest_outgroup_trim_storage.output,
+            rules.manifest_outgroup_qc_storage.output,
+            rules.manifest_ingroup_trim_storage.output,
+            rules.manifest_ingroup_qc_storage.output,
+            rules.manifest_ingroup_bam_storage.output,
+            rules.manifest_outgroup_bam_storage.output,
+            rules.manifest_outgroup_longread_filter_storage.output,
             
             # 1. intersect outputs
             # bamlists

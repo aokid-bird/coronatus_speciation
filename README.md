@@ -68,15 +68,23 @@ brew install graphviz
 ## Step 5: Prepare your dataset
 Please refer to any default files or `templates/data` to prepare your own input metadata.
 1. Find a suitable reference genome from NCBI.Genome. Prepare your reference list `data/reference.tsv`. Look up Genome of NCBI (https://www.ncbi.nlm.nih.gov/datasets/genome/) and use closely related species. `accession` column is something with "GCA", and `name` should include something ending with "genomic.fna.gz" which you can usually find in the ftp tab of the genome. If you intend to use `config.reference_download_method = wget` option, then create a column called `url` to retrieve the data. Delete the `url` column if you use the `dataset` method. This file should be referred to at `config.references_tsv`.
-2. Prepare your sample lists `data/sample.tsv`. If there are more than one population definition, then create new columns like `pop2`, `pop3`..., which will be referred to in the `config/config.yaml`. Note that the sample name will be used to identify the fastq files, bam files, etc, so unify the names between fastq files and this lists. This file should be referred to at the config.samples.
+2. Prepare your sample lists `data/sample.tsv`. If there are more than one population definition, then create new columns like `pop2`, `pop3`..., which will be referred to in the `config/config.yaml`. The `sample` column remains the canonical sample ID used for BAMs and downstream analyses.
+For ingroup FASTQ discovery, you may now also define per-sample columns such as `fastq_dir`, `fastq_prefix`, `fastq_r1_suffix`, `fastq_r2_suffix`, and `fastq_extension`. The pipeline resolves each sample path as:
+`<fastq_dir>/<fastq_prefix><sample><fastq_r1_suffix><fastq_extension>`
+and
+`<fastq_dir>/<fastq_prefix><sample><fastq_r2_suffix><fastq_extension>`.
+This allows mixed storage locations and file naming rules within one run.
 3. Prepare your outgroup list `data/outgroup.tsv`. Look up SRA of NCBI (https://www.ncbi.nlm.nih.gov/sra) with your keywords, like genus name. Fill each column. For example, normally, `sample_id` starts with "SAMN", `srr_id` starts with "SRR".
-4. Put your data in `data/raw`. Make sure that the names of fastq files match with the name lists in the sample.tsv.
+4. Put your data where you want. If all ingroup FASTQs follow a single shared directory and default naming rule, you may still use `reads.ingroup_dir`. If samples are distributed across multiple directories or use different naming conventions, define those per sample in `samples.tsv` and the pipeline will use those metadata instead.
 5. Put your adapter sequence fasta in `data/adapters`. Please refer to `templates/data/adapters` for an example.
+6. If you want reusable assets outside the repository, set the explicit `storage.*` keys in your config. These control where the pipeline stores reference files, downloaded outgroup FASTQs, merged FASTQs, trimmed reads, QC outputs, temporary mapping files, filtered long reads, and reusable BAMs. Downstream analysis outputs such as ANGSD, RAxML, TreeMix, SNAPP, and plots remain under the project-local `results/` and `figures/` directories.
 
 ## Step 5: Set up your own config files
 The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your config files in `config/XXX.yaml`. Please refer to templates/config for an example. The `templates/config/defaults_cluster.yaml` or `templates/config/defaults_local.yaml` will guide you to make your own. 
 - Once you make your own config, put them under `config/`. 
 - Create your own config file for each specific tasks and runs. Please make separate config files when you want to change parameters, change population definitions, etc. Then, set different names to `config.output_prefix` whose unique directory will be created under `results/ANALYSISNAME/OUTPUT_PREFIX`.
+- The new `storage` section uses explicit keys. Leave them at their defaults to keep files inside the repository, or point them to absolute directories like `/Data/WGS/...` for reusable storage across analyses. If `storage.bam.ingroup_dir` or `storage.bam.outgroup_dir` is set, those BAMs are treated as reusable preprocessing outputs rather than scenario-specific files.
+- The `reads.ingroup_metadata` section defines which `samples.tsv` columns should be used for ingroup FASTQ directory and naming resolution. The defaults expect columns named `fastq_dir`, `fastq_prefix`, `fastq_r1_suffix`, `fastq_r2_suffix`, and `fastq_extension`, with fallback to `reads.ingroup_dir` plus `_1`/`_2` and `.fastq.gz` when those per-sample columns are absent.
 - The pipeline is still under development, and therefore, flexibility is still low. In the future, you may choose which analyses you want to do by turning "enabled: true" on. In the present version, however, you may need to go through all or most of the analyses.
 
 ## Step 6: Adjust run_pipeline_cluster.sh/run_pipeline_local.sh
@@ -88,6 +96,7 @@ Once creating your snakemake environment `bioinfo_pipeline`, other analyses envi
 
 ## Step 8: Place software bin files and FASTQ, Reference, SRA-FASTQ and other huge files to the cluseter by using FTP transfer.
 Because some files are too huge to place via github, you need to manually transfer files like .bin/.sif files (mainly softwares) and raw data (fastq, .fasta and their index files) to your cluster on your own. You normally use FTP and any other protocols to transfer between your local and cluster.
+Each externalized storage directory also receives a `README.md` and `provenance.yaml` written by the workflow. These files record which pipeline wrote the directory, the project path, the `output_prefix` active at the time, and the type of reusable assets stored there.
 
 The bin files should be treated as following, after relocating them to the cluster. Do this once in the project repository, and it will be fine.
 
