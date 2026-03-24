@@ -1,6 +1,10 @@
-environment: "cluster"
-threads: 4
-output_prefix: "validation"
+project:
+  environment: "cluster"
+  threads: 4
+  output_prefix: "validation"
+  populations: []
+  group_col: "pop1"
+  population_labels: null
 
 slurm:
   partition: "default"
@@ -10,15 +14,20 @@ slurm:
   mail_type: null
   mail_user: null
 
-reference:
-  fasta: "data/reference/mock_reference.fa.gz"
-  fai: null
+paths:
+  bam_dir: "results/bwa"
+  singularity_dir: "${HOME}/envs/singularity"
+  transfer:
+    cluster_storage_root: "/lfs/aokid"
 
-bam_dir: "results/bwa"
-singularity_dir: "${HOME}/envs/singularity"
+inputs:
+  samples_tsv: "data/samples.tsv"
+  outgroups_tsv: "data/outgroup.tsv"
+  references_tsv: "data/references.tsv"
 
-transfer:
-  cluster_storage_root: "/lfs/aokid"
+metadata:
+  outgroups_seq_column: "sequencer"
+  longread_keywords: ["PacBio", "ONT", "Nanopore"]
 
 storage:
   reference:
@@ -40,21 +49,11 @@ storage:
     ingroup_dir: null
     outgroup_dir: null
 
-references_tsv: "data/references.tsv"
-reference_dir: "data/reference"
-reference_download_method: "datasets"
-
-mapping:
-  ingroup:
-    mapper: "bwa-mem2"
-    threads: 2
-    map_unpaired: true
-    extra: ""
-  outgroup:
-    mapper: "bwa-mem2"
-    threads: 2
-    map_unpaired: true
-    extra: ""
+reference:
+  fasta: "data/reference/mock_reference.fa.gz"
+  fai: null
+  storage_dir: "data/reference"
+  download_method: "datasets"
 
 reads:
   ingroup_dir: "data/raw/ingroup"
@@ -69,14 +68,17 @@ reads:
     default_r2_suffix: "_2"
     default_extension: ".fastq.gz"
 
-samples: "data/samples.tsv"
-populations: []
-group_col: "pop1"
-population_labels: null
-
-outgroups: "data/outgroup.tsv"
-outgroups_seq_column: "sequencer"
-longread_keywords: ["PacBio", "ONT", "Nanopore"]
+mapping:
+  ingroup:
+    mapper: "bwa-mem2"
+    threads: 2
+    map_unpaired: true
+    extra: ""
+  outgroup:
+    mapper: "bwa-mem2"
+    threads: 2
+    map_unpaired: true
+    extra: ""
 
 longread:
   filter:
@@ -113,99 +115,93 @@ qc:
       minlen: 36
       extra: ""
 
-angsd_common_args: "-GL 1"
-angsd_args:
-  intersect: "-doGLF 4 -doGeno 4"
-  global: "-doGeno 4 -doGLF 2"
-  global_unrelated_unlinked: "-doGeno 4 -doGLF 2"
-  raxml: "-doGeno 4 -doGLF 4"
-  treemix: "-doGeno 4 -doGLF 4"
-  snapp: "-doGeno 4 -doGLF 2"
-  sfs: "-doGLF 4 -doGeno 4 -dosaf 1"
+angsd:
+  common_args: "-GL 1"
+  args:
+    intersect: "-doGLF 4 -doGeno 4"
+    global: "-doGeno 4 -doGLF 2"
+    global_unrelated_unlinked: "-doGeno 4 -doGLF 2"
+    raxml: "-doGeno 4 -doGLF 4"
+    treemix: "-doGeno 4 -doGLF 4"
+    snapp: "-doGeno 4 -doGLF 2"
+    sfs: "-doGLF 4 -doGeno 4 -dosaf 1"
+  min_ind_ratio:
+    intersect: 0.5
+    sfs: 0.5
+    global: 0.5
+    raxml: 0.5
+    treemix: 0.5
+    snapp: 1.0
 
-angsd_intersect:
-  threads: 2
-
-sfs_analysis:
-  site_filters: ["linked"]
-  fold_states: ["fold"]
-  include_monomorphic: true
-  realSFS:
+analyses:
+  angsd_intersect:
     threads: 2
-    maxiter: 100
-    tole: "1e-6"
-
-angsd_sfs:
-  threads: 2
-
-minIndRatio:
-  intersect: 0.5
-  sfs: 0.5
-  global: 0.5
-  raxml: 0.5
-  treemix: 0.5
-  snapp: 1.0
-
-ngsrelate:
-  kinship_threshold: 0.0884
-  threads: 2
-
-ngsld:
-  threads: 2
-  minmaf: 0.05
-  max_kb_dist: 50
-  min_weight: 0.5
-  weight_field: "column_7"
-
-pcangsd:
-  iter: 10
-  minmaf: 0.05
-  threads: 2
-  axes_plot: []
-
-ngsadmix:
-  maxK: 2
-  n_replicates: 1
-  threads: 2
-  maxiter: 10
-  minmaf: 0.05
-
-ngsdist:
-  models: ["p"]
-  threads: 2
-
-slice_outgroups:
-  threads: 2
-
-raxml:
-  na_fill: 0.01
-  threads_catg: 2
-  var_option: "both"
-  model: "GTGTR4+FO+G"
-  bs: 10
-  threads_run: 2
-  outgroup_species: []
-
-treemix:
-  include_outgroups: true
-  mode: "pop"
-  glactools_bin: "workflow/bin/glactools"
-  root_label: null
-  max_m: 1
-  reps: 1
-  threads: 2
-  timeout_seconds: 60
-  max_attempts: 1
-  use_optm: false
-  merge_outgroups: false
-  exclude_samples: []
-  exclude_outgroups: []
-  outgroup_species: []
-
-abbababa2:
-  enabled: false
-  threads: 2
-  angsd_args: "-doAbbababa2 1"
-
-snapp:
-  enabled: false
+  angsd_global:
+    threads: 2
+    include_outgroups: true
+  angsd_global_unrelated_unlinked:
+    threads: 2
+  angsd_sfs:
+    threads: 2
+  sfs:
+    site_filters: ["linked"]
+    fold_states: ["fold"]
+    include_monomorphic: true
+    realSFS:
+      threads: 2
+      maxiter: 100
+      tole: "1e-6"
+  slice_outgroups:
+    threads: 2
+  ngsrelate:
+    kinship_threshold: 0.0884
+    threads: 2
+  ngsld:
+    threads: 2
+    minmaf: 0.05
+    max_kb_dist: 50
+    min_weight: 0.5
+    weight_field: "column_7"
+  pcangsd:
+    iter: 10
+    minmaf: 0.05
+    threads: 2
+    axes_plot: []
+  ngsadmix:
+    maxK: 2
+    n_replicates: 1
+    threads: 2
+    maxiter: 10
+    minmaf: 0.05
+  ngsdist:
+    models: ["p"]
+    threads: 2
+  raxml:
+    na_fill: 0.01
+    threads_catg: 2
+    var_option: "both"
+    model: "GTGTR4+FO+G"
+    bs: 10
+    threads_run: 2
+    outgroup_species: []
+  treemix:
+    threads: 2
+    include_outgroups: true
+    mode: "pop"
+    glactools_bin: "workflow/bin/glactools"
+    root_label: null
+    max_m: 1
+    reps: 1
+    timeout_seconds: 60
+    max_attempts: 1
+    use_optm: false
+    merge_outgroups: false
+    exclude_samples: []
+    exclude_outgroups: []
+    outgroup_species: []
+  abbababa2:
+    enabled: false
+    threads: 2
+    angsd_args: "-doAbbababa2 1"
+  snapp:
+    enabled: false

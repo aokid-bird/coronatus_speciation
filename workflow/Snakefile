@@ -2,7 +2,8 @@ import pandas as pd
 
 configfile: "config/config.yaml"
 
-ENVIRONMENT = config["environment"]
+PROJECT_CFG = config.get("project", {}) or {}
+ENVIRONMENT = config.get("environment") or PROJECT_CFG.get("environment") or "cluster"
 IS_LOCAL = ENVIRONMENT == "local"
 IS_CLUSTER = ENVIRONMENT == "cluster"
 

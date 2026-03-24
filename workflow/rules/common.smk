@@ -5,6 +5,91 @@ import re
 import os
 from datetime import datetime, timezone
 
+_CFG_MISSING = object()
+
+
+def _config_value(mapping, *keys, default=_CFG_MISSING):
+    value = mapping
+    for key in keys:
+        if not isinstance(value, dict) or key not in value:
+            return default
+        value = value[key]
+    return value
+
+
+def _set_config_value(mapping, keys, value):
+    target = mapping
+    for key in keys[:-1]:
+        child = target.get(key)
+        if not isinstance(child, dict):
+            child = {}
+            target[key] = child
+        target = child
+    target[keys[-1]] = value
+
+
+def _backfill_config(target_keys, *source_options, default=_CFG_MISSING):
+    current = _config_value(config, *target_keys, default=_CFG_MISSING)
+    if current is not _CFG_MISSING:
+        return current
+    for source_keys in source_options:
+        candidate = _config_value(config, *source_keys, default=_CFG_MISSING)
+        if candidate is not _CFG_MISSING:
+            _set_config_value(config, target_keys, candidate)
+            return candidate
+    if default is not _CFG_MISSING:
+        _set_config_value(config, target_keys, default)
+        return default
+    return _CFG_MISSING
+
+
+# Backfill legacy top-level config keys from the grouped refactor schema so
+# existing rule files can remain stable while defaults move to clearer sections.
+_backfill_config(("environment",), ("project", "environment"), default="cluster")
+_backfill_config(("threads",), ("project", "threads"), default=1)
+_backfill_config(("output_prefix",), ("project", "output_prefix"), default="defaults")
+_backfill_config(("populations",), ("project", "populations"), default=[])
+_backfill_config(("group_col",), ("project", "group_col"), default=None)
+_backfill_config(("population_labels",), ("project", "population_labels"), default=None)
+
+_backfill_config(("bam_dir",), ("paths", "bam_dir"), default="results/bwa")
+_backfill_config(("singularity_dir",), ("paths", "singularity_dir"), default="${HOME}/envs/singularity")
+_backfill_config(("transfer",), ("paths", "transfer"), default={})
+
+_backfill_config(("samples",), ("inputs", "samples_tsv"), default="data/samples.tsv")
+_backfill_config(("outgroups",), ("inputs", "outgroups_tsv"), default="data/outgroup.tsv")
+_backfill_config(("references_tsv",), ("inputs", "references_tsv"), default="data/references.tsv")
+
+_backfill_config(("reference_download_method",), ("reference", "download_method"), default="datasets")
+_backfill_config(("reference_dir",), ("reference", "storage_dir"), default="data/reference")
+_backfill_config(("outgroups_seq_column",), ("metadata", "outgroups_seq_column"), default="sequencer")
+_backfill_config(("longread_keywords",), ("metadata", "longread_keywords"), default=["PacBio", "ONT", "Nanopore"])
+
+_backfill_config(("angsd_common_args",), ("angsd", "common_args"), default="")
+_backfill_config(("angsd_args",), ("angsd", "args"), default={})
+_backfill_config(("minIndRatio",), ("angsd", "min_ind_ratio"), default={})
+
+for analysis_name in (
+    "angsd_intersect",
+    "angsd_global",
+    "angsd_global_unrelated_unlinked",
+    "angsd_sfs",
+    "angsd_raxml",
+    "slice_outgroups",
+    "ngsrelate",
+    "ngsld",
+    "pcangsd",
+    "ngsadmix",
+    "ngsdist",
+    "raxml",
+    "treemix",
+    "abbababa2",
+    "snapp",
+):
+    _backfill_config((analysis_name,), ("analyses", analysis_name), default={})
+
+_backfill_config(("sfs_analysis",), ("analyses", "sfs"), default={})
+
 # main parameters
 output_prefix = config["output_prefix"] # scenario symbols
 groups = config["populations"]
