@@ -237,11 +237,6 @@ rule treemix_run:
         tm=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.treemix.gz",
         block=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/lddecay/block_size.txt"
     output:
-        lliks=lambda wc: expand(
-            f"results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e{{edge}}_o{{rep}}.llik",
-            edge=[wc.edge],
-            rep=range(1, TREEMIX_REPS + 1),
-        ),
         done=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/edge_{{edge}}.done"
     params:
         # Build comma-delimited -root labels based on config/outgroups

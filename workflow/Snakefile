@@ -71,19 +71,19 @@ if IS_CLUSTER:
             f"figures/abbababa2/{output_prefix}/abbababa2.pdf",
         ]
 
-LOCAL_ALL_TARGETS = [
-    (rules.prepare_reference.input if REF_FROM_METADATA else []),
-    rules.manifest_reference_storage.output,
-    expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_1.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
-    expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_2.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
-    expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
-    expand("logs/fetch_sra/{srr}.log", srr=OUTGROUP_SRR_IDS),
-    rules.manifest_outgroup_raw_storage.output,
-    rules.manifest_outgroup_merged_storage.output,
-    rules.generate_external_transfer_scripts.output,
-]
-
 if IS_LOCAL:
+    LOCAL_ALL_TARGETS = [
+        (rules.prepare_reference.input if REF_FROM_METADATA else []),
+        rules.manifest_reference_storage.output,
+        expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_1.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
+        expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}_2.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]),
+        expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
+        expand("logs/fetch_sra/{srr}.log", srr=OUTGROUP_SRR_IDS),
+        rules.manifest_outgroup_raw_storage.output,
+        rules.manifest_outgroup_merged_storage.output,
+        rules.generate_external_transfer_scripts.output,
+    ]
+
     rule all:
         input:
             LOCAL_ALL_TARGETS

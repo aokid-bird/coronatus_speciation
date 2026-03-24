@@ -39,7 +39,7 @@ INGROUP_QC_CFG = _qc_scope("ingroup")
 
 PRE_QC_DIR = pjoin(INGROUP_QC_BASE_DIR, "pre")
 POST_QC_DIR = pjoin(INGROUP_QC_BASE_DIR, "post")
-TRIM_DIR = INGROUP_TRIM_DIR
+INGROUP_TRIM_DIR_RULE = INGROUP_TRIM_DIR
 
 FASTQC_CONTAM = (INGROUP_QC_CFG.get("fastqc", {}) or {}).get("contaminants", None)
 TRIM_CFG = INGROUP_QC_CFG.get("trimmomatic", {}) or {}
@@ -100,10 +100,10 @@ rule trimmomatic_ingroup_pe:
         fq1=lambda wc: ingroup_fastq_path(wc.sample_id, "1"),
         fq2=lambda wc: ingroup_fastq_path(wc.sample_id, "2")
     output:
-        pair1=pjoin(TRIM_DIR, "{sample_id}_pair_R1.fastq.gz"),
-        unpair1=pjoin(TRIM_DIR, "{sample_id}_unpair_R1.fastq.gz"),
-        pair2=pjoin(TRIM_DIR, "{sample_id}_pair_R2.fastq.gz"),
-        unpair2=pjoin(TRIM_DIR, "{sample_id}_unpair_R2.fastq.gz")
+        pair1=pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"),
+        unpair1=pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_unpair_R1.fastq.gz"),
+        pair2=pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"),
+        unpair2=pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_unpair_R2.fastq.gz")
     params:
         adapters=TRIM_ADAPTERS,
         clip=TRIM_CLIP,
@@ -112,7 +112,7 @@ rule trimmomatic_ingroup_pe:
         trailing=TRIM_TRAILING,
         minlen=TRIM_MINLEN,
         extra=TRIM_EXTRA,
-        outdir=TRIM_DIR
+        outdir=INGROUP_TRIM_DIR_RULE
     threads: QC_INGROUP_THREADS
     conda:
         "../envs/trimmomatic.yaml"
@@ -140,7 +140,7 @@ rule fastqc_ingroup_post:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS),
         read="1|2"
     input:
-        fq=lambda wc: pjoin(TRIM_DIR, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz")
+        fq=lambda wc: pjoin(INGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz")
     output:
         html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
         zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
@@ -183,21 +183,21 @@ rule ingroup_qc_trim_all:
         # pre-QC htmls for R1/R2
         expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1","2"]),
         # trimmed pairs
-        expand(pjoin(TRIM_DIR, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
-        expand(pjoin(TRIM_DIR, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
         # post-QC multiqc
         pjoin(POST_QC_DIR, "multiqc_report.html")
 
 rule manifest_ingroup_trim_storage:
     input:
-        expand(pjoin(TRIM_DIR, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
-        expand(pjoin(TRIM_DIR, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS)
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS)
     output:
-        readme=manifest_paths(TRIM_DIR)[0],
-        yaml=manifest_paths(TRIM_DIR)[1]
+        readme=manifest_paths(INGROUP_TRIM_DIR_RULE)[0],
+        yaml=manifest_paths(INGROUP_TRIM_DIR_RULE)[1]
     run:
         write_storage_manifest(
-            TRIM_DIR,
+            INGROUP_TRIM_DIR_RULE,
             "Ingroup Trimmed Read Storage",
             "manifest_ingroup_trim_storage",
             {
