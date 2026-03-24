@@ -1,7 +1,7 @@
 project:
   environment: "cluster"
   threads: 4
-  output_prefix: "validation"
+  output_prefix: "validation_minimal"
   populations: []
   group_col: "pop1"
   population_labels: null
@@ -140,14 +140,12 @@ analyses:
   angsd_global:
     enabled: true
     threads: 2
-    include_outgroups: true
-  angsd_global_unrelated_unlinked:
-    threads: 2
+    include_outgroups: false
   angsd_sfs:
-    enabled: true
+    enabled: false
     threads: 2
   sfs:
-    enabled: true
+    enabled: false
     site_filters: ["linked"]
     fold_states: ["fold"]
     include_monomorphic: true
@@ -159,35 +157,35 @@ analyses:
     enabled: true
     threads: 2
   ngsrelate:
-    enabled: true
+    enabled: false
     kinship_threshold: 0.0884
     threads: 2
   ngsld:
-    enabled: true
+    enabled: false
     threads: 2
     minmaf: 0.05
     max_kb_dist: 50
     min_weight: 0.5
     weight_field: "column_7"
   pcangsd:
-    enabled: true
+    enabled: false
     iter: 10
     minmaf: 0.05
     threads: 2
     axes_plot: []
   ngsadmix:
-    enabled: true
+    enabled: false
     maxK: 2
     n_replicates: 1
     threads: 2
     maxiter: 10
     minmaf: 0.05
   ngsdist:
-    enabled: true
+    enabled: false
     models: ["p"]
     threads: 2
   raxml:
-    enabled: true
+    enabled: false
     na_fill: 0.01
     threads_catg: 2
     var_option: "both"
@@ -196,9 +194,9 @@ analyses:
     threads_run: 2
     outgroup_species: []
   treemix:
-    enabled: true
+    enabled: false
     threads: 2
-    include_outgroups: true
+    include_outgroups: false
     mode: "pop"
     glactools_bin: "workflow/bin/glactools"
     root_label: null

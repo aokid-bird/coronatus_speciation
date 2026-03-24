@@ -159,10 +159,13 @@ angsd:
         snapp: 1.0
 
 analyses:
-    angsd_intersect: {}
+    angsd_intersect:
+        enabled: true
     angsd_global:
+        enabled: true
         include_outgroups: true
     angsd_raxml:
+        enabled: true
         include_outgroups: true
         downsampling:
             max_per_population:
@@ -170,8 +173,10 @@ analyses:
             exclude_samples: []
             use_all_samples: false
             seed: 20240526
-    angsd_sfs: {}
+    angsd_sfs:
+        enabled: true
     sfs:
+        enabled: true
         site_filters: [linked]
         fold_states: [fold]
         include_monomorphic: true
@@ -179,25 +184,31 @@ analyses:
             maxiter: 50000
             tole: 1e-6
     ngsrelate:
+        enabled: true
         kinship_threshold: 0.0884
     ngsld:
+        enabled: true
         minmaf: 0.05
         max_kb_dist: 50
         min_weight: 0.5
         weight_field: "column_7"
     pcangsd:
+        enabled: true
         iter: 1000
         minmaf: 0.05
         axes_plot: []
     ngsadmix:
+        enabled: true
         maxK: 6
         n_replicates: 10
         threads: 18
         maxiter: 5000
         minmaf: 0.05
     ngsdist:
+        enabled: true
         models: ["p", "jc69"]
     raxml:
+        enabled: true
         na_fill: 0.01
         threads_catg: 60
         var_option: "both"
@@ -206,6 +217,7 @@ analyses:
         threads_run: 70
         outgroup_species: []
     treemix:
+        enabled: true
         include_outgroups: true
         mode: pop
         glactools_bin: workflow/bin/glactools
@@ -255,3 +267,5 @@ analyses:
                 run1:
                     distributions:
                         - null
+    slice_outgroups:
+        enabled: true

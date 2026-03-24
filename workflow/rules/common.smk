@@ -123,6 +123,10 @@ else:
 def get_population_label(pop: str) -> str:
     return POPULATION_LABELS.get(str(pop), str(pop))
 
+
+def _is_enabled(section, default=True):
+    return bool(section.get("enabled", default))
+
 SFS_CFG = (config.get("sfs_analysis", {}) or {})
 
 def _norm_token(value, default):
@@ -761,3 +765,35 @@ SNAPP_TOPOLOGY_WEIGHT = float(SNAPP_PREP_CFG.get("topology_weight", 1.0))
 SNAPP_PREP_EXTRA = SNAPP_PREP_CFG.get("extra_args", "").strip()
 
 SNAPP_LOG_PREFIX = SNAPP_CFG.get("log_prefix", "snapp")
+
+#========================#
+#### ANALYSIS STATES  ####
+#========================#
+ANGSD_INTERSECT_ENABLED = _is_enabled(ANGSD_INTERSECT_CFG, True)
+ANGSD_GLOBAL_ENABLED = _is_enabled(ANGSD_GLOBAL_CFG, True)
+SFS_ENABLED = _is_enabled(SFS_CFG, True)
+NGSRELATE_ENABLED = _is_enabled(_config_section("ngsrelate"), True)
+NGSLD_ENABLED = _is_enabled(_config_section("ngsld"), True)
+PCANGSD_ENABLED = _is_enabled(_config_section("pcangsd"), True)
+NGSADMIX_ENABLED = _is_enabled(_config_section("ngsadmix"), True)
+NGSDIST_ENABLED = _is_enabled(_config_section("ngsdist"), True)
+RAXML_ENABLED = _is_enabled(_config_section("raxml"), True)
+TREEMIX_ENABLED = _is_enabled(TREEMIX_CFG, True)
+SLICE_OUTGROUPS_ENABLED = _is_enabled(_config_section("slice_outgroups"), True)
+
+STRUCTURE_ANALYSES_ENABLED = PCANGSD_ENABLED or NGSADMIX_ENABLED
+UNRELATED_ANALYSES_ENABLED = STRUCTURE_ANALYSES_ENABLED or RAXML_ENABLED or TREEMIX_ENABLED
+OUTGROUP_ANALYSES_ENABLED = (
+    (ANGSD_GLOBAL_INCLUDE_OUTGROUPS and ANGSD_GLOBAL_ENABLED)
+    or (ANGSD_RAXML_INCLUDE_OUTGROUPS and RAXML_ENABLED)
+    or (TREEMIX_ENABLED and TREEMIX_INCLUDE_OUTGROUPS)
+    or (SNAPP_ENABLED and SNAPP_INCLUDE_OUTGROUPS)
+    or (ABBABABA2_ENABLED and bool(ABBABABA2_OUTGROUP_IDS))
+)
+
+ANGSD_INTERSECT_ACTIVE = ANGSD_INTERSECT_ENABLED or ANGSD_GLOBAL_ENABLED or SFS_ENABLED or RAXML_ENABLED or TREEMIX_ENABLED or ABBABABA2_ENABLED or SNAPP_ENABLED
+ANGSD_GLOBAL_ACTIVE = ANGSD_GLOBAL_ENABLED or NGSRELATE_ENABLED or NGSLD_ENABLED or NGSDIST_ENABLED or STRUCTURE_ANALYSES_ENABLED or SNAPP_ENABLED
+NGSRELATE_ACTIVE = NGSRELATE_ENABLED or UNRELATED_ANALYSES_ENABLED
+NGSLD_ACTIVE = NGSLD_ENABLED or TREEMIX_ENABLED or (SFS_ENABLED and SFS_NEEDS_UNLINKED_SITES)
+GLOBAL_UNRELATED_UNLINKED_ACTIVE = STRUCTURE_ANALYSES_ENABLED
+SLICE_OUTGROUPS_ACTIVE = SLICE_OUTGROUPS_ENABLED and OUTGROUP_ANALYSES_ENABLED
