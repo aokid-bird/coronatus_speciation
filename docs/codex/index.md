@@ -17,8 +17,10 @@ Tips
   - workflow/rules/qc_trimmomatic.smk
   - workflow/rules/mapping_outgroup.smk
   - workflow/rules/common.smk
-  - workflow/rules/outgroup.smk
-  - workflow/rules/reference.smk
+  - workflow/rules/outgroup_local.smk
+  - workflow/rules/outgroup_shared.smk
+  - workflow/rules/reference_local.smk
+  - workflow/rules/reference_shared.smk
 - Mapping tools env: workflow/envs/mapper.yaml
 
 If you want these targets included in the default rule, we can wire an opt-in config flag and update Snakefile accordingly.

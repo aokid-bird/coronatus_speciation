@@ -38,7 +38,7 @@ Specification:
 - `config/cluster.json`: set dedicated resources for `angsd_sfs_group`, `realsfs_1d`, and `realsfs_2d` rules (10 threads / 16 GB as requested).
 - `workflow/rules/common.smk`: normalised SFS configuration values, exposed shared flags (e.g., `SFS_NEEDS_UNLINKED_SITES`, `SFS_PAIR_LABELS`).
 - `workflow/rules/angsd_sfs.smk`: replaced legacy single-rule setup with per-filter ANGSD, 1D/2D realSFS + Fst, and downstream summary rule.
-- `workflow/rules/reference.smk`: added `export_contig_lengths` rule to emit contig lengths from the FASTA index.
+- `workflow/rules/reference_shared.smk`: added `export_contig_lengths` rule to emit contig lengths from the FASTA index.
 - `workflow/Snakefile`: wired new SFS targets and contig-length export into `rule all`, conditionalised unlinked dependencies.
 - `workflow/envs/plot.yaml`: included `r-broom` for tidy model outputs.
 - `workflow/scripts/export_contig_lengths.py`: new helper script producing contig length CSV.

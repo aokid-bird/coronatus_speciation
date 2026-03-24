@@ -87,9 +87,9 @@ Summary of work completed in this step:
   - `workflow/rules/common.smk`
     - Adds `OUTGROUP_READ_TYPE` (short vs long) from `outgroups.tsv` column `sequencer` (configurable)
     - Adds `OUTGROUP_MINIMAP2_PRESET` inference (`map-ont`, `map-hifi`, `map-pb`)
-  - `workflow/rules/outgroup.smk`
+  - `workflow/rules/outgroup_local.smk`
     - Adds `merge_fastq_long` to concatenate single-end long-read fastqs
-  - `workflow/rules/reference.smk`
+  - `workflow/rules/reference_shared.smk`
     - Reference index rules switched to `../envs/mapper.yaml`
   - `workflow/Snakefile`
     - Includes new rule files in cluster mode
@@ -152,8 +152,7 @@ longread:
   - `snakemake -s workflow/Snakefile -c 12 outgroup_bams`
 
 ## Notes
-- SRR fetch remains in `workflow/rules/outgroup.smk` (`fetch_sra`). Use it locally as per your environment policy. The cluster flow assumes merged fastqs already exist.
+- SRR fetch remains in `workflow/rules/outgroup_local.smk` (`fetch_sra_*`). Use it locally as per your environment policy. The cluster flow assumes merged fastqs already exist.
 - The old example placeholders in `_archive/` or `workflow/rules/fastp.smk`, `workflow/rules/bwa.smk`, etc., are not used by the new flow.
 - If you want long-read stats aggregated (e.g., `samtools flagstat` → MultiQC), that can be added easily.
 - If desired, `outgroup_bams` can be wired into `rule all` behind a config flag.
-

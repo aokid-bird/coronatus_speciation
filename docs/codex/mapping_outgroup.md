@@ -119,7 +119,7 @@ longread_keywords: [PacBio, ONT, Nanopore]
 - Short-read mapping to final BAMs for all outgroups (after trimming):
   - `snakemake -s workflow/Snakefile -c 12 outgroup_bams`
 - Long-read mapping (minimap2), with filtering on:
-  - Ensure `data/merged/outgroup/{sample}.fastq.gz` exists (or use `merge_fastq_long` from `outgroup.smk` if needed)
+  - Ensure `data/merged/outgroup/{sample}.fastq.gz` exists (or use `merge_fastq_long` from `outgroup_local.smk` if needed)
   - `snakemake -s workflow/Snakefile -c 12 outgroup_bams`
 
 ## Notes
