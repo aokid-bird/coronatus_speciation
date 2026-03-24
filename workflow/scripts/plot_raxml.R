@@ -63,8 +63,8 @@ geno <-
 df.info <- 
     geno %>% 
     t %>% 
-    as_tibble %>% 
-    set_colnames(.[1,]) %>% 
+    as_tibble() %>% 
+    {setNames(., as.character(unlist(.[1, ], use.names = FALSE)))} %>% 
     slice(-1) %>% 
     unite("concat", everything(), sep = "") %>% 
     bind_cols(df.info, .) %>% 
