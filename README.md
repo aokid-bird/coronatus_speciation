@@ -87,6 +87,12 @@ Once creating your snakemake environment `bioinfo_pipeline`, other analyses envi
 ## Step 8: Place software bin files and FASTQ, Reference, SRA-FASTQ and other huge files to the cluseter by using FTP transfer.
 Because some files are too huge to place via github, you need to manually transfer files like .bin/.sif files (mainly softwares) and raw data (fastq, .fasta and their index files) to your cluster on your own. You normally use FTP and any other protocols to transfer between your local and cluster.
 
+The bin files should be treated as following, after relocating them to the cluster. Do this once in the project repository, and it will be fine.
+
+```bash
+chmod +x workflow/bin/glactools
+```
+
 ## Step X: Run your snakemake
 Once your bash scripts are prepared, inside the pipeline root directory, simply type the following.
 ```bash
