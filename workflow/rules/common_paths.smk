@@ -310,15 +310,19 @@ def is_external_storage_path(path):
 
 def remote_mirror_path(path, cluster_root=None):
     target_root = cluster_root or CLUSTER_STORAGE_ROOT_DEFAULT
-    translated = (
-        _translate_between_storage_roots(path, LOCAL_STORAGE_ROOT, target_root)
-        or _translate_between_storage_roots(path, ACTIVE_STORAGE_ROOT, target_root)
-    )
-    if translated:
-        return translated
-    root = Path(target_root)
+    return str(Path(target_root) / remote_mirror_subpath(path))
+
+
+def remote_mirror_subpath(path):
     candidate = Path(str(path)).expanduser()
-    return str(root / str(candidate).lstrip("/"))
+    for source_root in (LOCAL_STORAGE_ROOT, ACTIVE_STORAGE_ROOT):
+        if not source_root:
+            continue
+        try:
+            return str(candidate.relative_to(Path(source_root)))
+        except ValueError:
+            continue
+    return str(candidate).lstrip("/")
 
 
 def external_transfer_directories():

@@ -33,6 +33,7 @@ def _transfer_items():
             "kind": "dir",
             "category": "external_storage_dir",
             "local_path": str(Path(path)),
+            "remote_subpath": remote_mirror_subpath(path),
             "remote_path": remote_mirror_path(path),
         })
     for path in external_ingroup_fastq_files():
@@ -40,6 +41,7 @@ def _transfer_items():
             "kind": "file",
             "category": "ingroup_fastq",
             "local_path": str(Path(path)),
+            "remote_subpath": remote_mirror_subpath(path),
             "remote_path": remote_mirror_path(path),
         })
     items.sort(key=lambda x: (x["kind"], x["local_path"]))
@@ -61,10 +63,10 @@ rule generate_external_transfer_scripts:
         outdir.mkdir(parents=True, exist_ok=True)
 
         with open(output.manifest, "w", encoding="ascii") as handle:
-            handle.write("kind\tcategory\tlocal_path\tremote_path\n")
+            handle.write("kind\tcategory\tlocal_path\tremote_subpath\tremote_path\n")
             for item in items:
                 handle.write(
-                    f"{item['kind']}\t{item['category']}\t{item['local_path']}\t{item['remote_path']}\n"
+                    f"{item['kind']}\t{item['category']}\t{item['local_path']}\t{item['remote_subpath']}\t{item['remote_path']}\n"
                 )
 
         header = [
@@ -99,7 +101,7 @@ rule generate_external_transfer_scripts:
             upload_lines.append('echo "No external storage paths configured; nothing to transfer."')
         for item in items:
             local_q = _shell_quote(item["local_path"])
-            upload_remote_expr = '${CLUSTER_STORAGE_ROOT}/' + item["local_path"].lstrip("/")
+            upload_remote_expr = '${CLUSTER_STORAGE_ROOT}/' + item["remote_subpath"].lstrip("/")
             if item["kind"] == "dir":
                 upload_lines.extend([
                     f'if [ -d {local_q} ]; then',
@@ -131,7 +133,7 @@ rule generate_external_transfer_scripts:
             download_lines.append('echo "No external storage paths configured; nothing to transfer."')
         for item in items:
             local_q = _shell_quote(item["local_path"])
-            remote_expr = '${CLUSTER_STORAGE_ROOT}/' + item["local_path"].lstrip("/")
+            remote_expr = '${CLUSTER_STORAGE_ROOT}/' + item["remote_subpath"].lstrip("/")
             if item["kind"] == "dir":
                 download_lines.extend([
                     f'mkdir -p {local_q}',
