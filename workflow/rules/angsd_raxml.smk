@@ -1,5 +1,9 @@
 # rules/angsd_raxml.smk
 
+RAXML_DIR = f"results/raxml/{output_prefix}"
+RAXML_FIG_DIR = f"figures/exploratory/raxml/{output_prefix}"
+RAXML_OUTGROUP_SPECIES = RAXML_CFG.get("outgroup_species")
+
 rule make_bamlist_raxml_downsampled:
     """
     Downsample unrelated ingroup BAMs per population before RAxML analyses.
@@ -121,8 +125,7 @@ rule make_bamlist_raxml_analysis:
 
 rule angsd_raxml:
     """
-    ANGSD using all samples of the selected populations 
-    to a generate RAxML-ng input file while excluding too closely related individuals
+    Run ANGSD on the RAxML analysis sample set to produce genotype likelihoods and BCF.
     """
     input:
         bamlist=rules.make_bamlist_raxml_analysis.output.bamlist,
@@ -164,13 +167,13 @@ rule angsd_raxml:
 
 rule catg_format:
     """
-    Generating CATG input files from a vcf.gz output of ANGSD
+    Convert the ANGSD VCF output into CATG format for RAxML-ng.
     """
     input:
         vcf=f"results/angsd_raxml/{output_prefix}/gl.vcf.gz",
         bamlist=rules.make_bamlist_raxml_analysis.output.bamlist
     output:
-        raxmlcatg=f"results/raxml/{output_prefix}/rxmlcatg.txt"
+        raxmlcatg=f"{RAXML_DIR}/rxmlcatg.txt"
     params:
         maxSize = 4 * 1024**3 # max size for future.apply
     threads:config['raxml']['threads_catg']
@@ -184,15 +187,15 @@ rule catg_format:
 
 rule raxml_ng:
     """
-    Run RAxML-ng using CATG input format
+    Run RAxML-ng with bootstrap support on the CATG alignment.
     """
     input:
         raxmlcatg=rules.catg_format.output.raxmlcatg,
         # also pass bamlist to derive exact CATG labels for outgroup option
         bamlist=rules.make_bamlist_raxml_analysis.output.bamlist
     output:
-        raxout=f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.bootstraps",
-        raxsup=f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.support"
+        raxout=f"{RAXML_DIR}/rxmlcatg.txt.raxml.bootstraps",
+        raxsup=f"{RAXML_DIR}/rxmlcatg.txt.raxml.support"
     threads:config['raxml']['threads_run']
     resources:
         mem_mb=200000,
@@ -231,7 +234,7 @@ rule plot_raxml:
         samples=config["samples"],
         geno=rules.angsd_raxml.output.geno
     output:
-        plots=f"figures/exploratory/raxml/{output_prefix}/raxml_bootstrap.pdf"
+        plots=f"{RAXML_FIG_DIR}/raxml_bootstrap.pdf"
     params:
         group_col = config["group_col"],
         populations = config["populations"]
@@ -239,3 +242,14 @@ rule plot_raxml:
         "../envs/plot_tree.yaml"
     script:
         "../scripts/plot_raxml.R"
+
+
+RAXML_TARGETS = [
+    rules.angsd_raxml.output.geno,
+    rules.angsd_raxml.output.bcf,
+    f"results/angsd_raxml/{output_prefix}/gl.vcf.gz",
+    rules.catg_format.output.raxmlcatg,
+    rules.raxml_ng.output.raxout,
+    rules.raxml_ng.output.raxsup,
+    rules.plot_raxml.output.plots,
+] if RAXML_ENABLED else []

@@ -1,5 +1,37 @@
 # SNAPP analysis workflow
 
+SNAPP_MAX_PER_POP = int(SNAPP_CFG.get("max_per_population", 4))
+SNAPP_MIN_SAMPLES_LOCUS = int(SNAPP_CFG.get("min_samples_locus", 4))
+SNAPP_MISSINGNESS_THRESHOLD = (
+    float(SNAPP_CFG.get("missingness_threshold"))
+    if SNAPP_CFG.get("missingness_threshold") is not None
+    else None
+)
+SNAPP_EXCLUDE_SAMPLES = _parse_list(SNAPP_CFG.get("exclude_samples"))
+SNAPP_POPULATION_ALIASES = {
+    str(key): str(value)
+    for key, value in (SNAPP_CFG.get("population_aliases", {}) or {}).items()
+}
+SNAPP_OUTGROUP_ALIASES = {
+    str(key): str(value)
+    for key, value in (SNAPP_CFG.get("outgroup_aliases", {}) or {}).items()
+}
+SNAPP_CONSTRAINTS_CFG = SNAPP_CFG.get("constraints", {}) or {}
+SNAPP_CONSTRAINT_TYPE = SNAPP_CONSTRAINTS_CFG.get("type") or SNAPP_CONSTRAINTS_CFG.get("placement")
+_SNAPP_TAXA_CFG = SNAPP_CONSTRAINTS_CFG.get("taxa")
+SNAPP_CONSTRAINT_TAXA = (
+    ",".join(str(value) for value in _SNAPP_TAXA_CFG)
+    if isinstance(_SNAPP_TAXA_CFG, (list, tuple))
+    else _SNAPP_TAXA_CFG
+)
+SNAPP_RUN_MAP = SNAPP_CONSTRAINTS_CFG.get("runs", {}) or {}
+SNAPP_RUN_IDS = sorted(SNAPP_RUN_MAP.keys())
+SNAPP_PREP_CFG = SNAPP_CFG.get("snapp_prep", {}) or {}
+SNAPP_MCMC_LENGTH = int(SNAPP_PREP_CFG.get("mcmc_length", 500000))
+SNAPP_TOPOLOGY_WEIGHT = float(SNAPP_PREP_CFG.get("topology_weight", 1.0))
+SNAPP_PREP_EXTRA = SNAPP_PREP_CFG.get("extra_args", "").strip()
+SNAPP_LOG_PREFIX = SNAPP_CFG.get("log_prefix", "snapp")
+
 SNAPP_BASE = f"results/snapp/{output_prefix}"
 SNAPP_ALIGN_DIR = f"{SNAPP_BASE}/alignment"
 SNAPP_VCF_DIR = f"{SNAPP_BASE}/vcf"
@@ -105,6 +137,9 @@ rule angsd_snapp:
 
 
 rule snapp_extract_unlinked:
+    """
+    Extract the LD-pruned site set used to restrict the SNAPP alignment.
+    """
     input:
         beagle=rules.angsd_snapp.output.beagle,
         unlinked=f"results/ngsld_global/{output_prefix}/LD_unlinked.id"
@@ -124,6 +159,9 @@ rule snapp_extract_unlinked:
 
 
 rule snapp_prepare_metadata:
+    """
+    Build the sample-name and population metadata tables required by SNAPP helpers.
+    """
     input:
         bamlist=rules.snapp_make_bamlist.output.bamlist,
         summary=rules.snapp_select_samples.output.summary,
@@ -153,6 +191,9 @@ rule snapp_prepare_metadata:
 
 
 rule snapp_filter_vcf:
+    """
+    Filter the SNAPP BCF to the selected unlinked sites and reheader sample names.
+    """
     input:
         bcf=rules.angsd_snapp.output.bcf,
         sites=rules.snapp_extract_unlinked.output.sites,
@@ -185,6 +226,9 @@ rule snapp_filter_vcf:
 
 
 rule snapp_vcf_to_phylip:
+    """
+    Convert the filtered SNAPP VCF into PHYLIP and binary NEXUS alignments.
+    """
     input:
         vcf=rules.snapp_filter_vcf.output.vcf
     output:
@@ -207,6 +251,9 @@ rule snapp_vcf_to_phylip:
 
 
 rule snapp_constraints:
+    """
+    Write the per-run SNAPP topology constraint file from config settings.
+    """
     output:
         constraints=f"{SNAPP_CONSTRAINT_DIR}/{{run}}.txt"
     params:
@@ -235,6 +282,9 @@ rule snapp_constraints:
 
 
 rule snapp_prep_xml:
+    """
+    Prepare the BEAST/SNAPP XML input for a configured constrained run.
+    """
     input:
         phylip=rules.snapp_vcf_to_phylip.output.phylip,
         pop_table=rules.snapp_prepare_metadata.output.pop_table,
@@ -264,3 +314,26 @@ rule snapp_prep_xml:
             {params.extra} \
             > {log} 2>&1
         """
+
+
+SNAPP_TARGETS = []
+if SNAPP_ENABLED:
+    SNAPP_TARGETS = [
+        f"{SNAPP_BASE}/selected_samples.tsv",
+        f"{SNAPP_BASE}/selected_samples.txt",
+        f"results/bamlists/{output_prefix}/snapp/bamlist.txt",
+        f"{SNAPP_BASE}/unlinked_sites.tsv",
+        f"{SNAPP_BASE}/unlinked_summary.tsv",
+        f"{SNAPP_BASE}/sample_names.txt",
+        f"{SNAPP_BASE}/populations.tsv",
+        f"{SNAPP_BASE}/sample_metadata.tsv",
+        f"{SNAPP_VCF_DIR}/snapp_unlinked.vcf.gz",
+        f"{SNAPP_VCF_DIR}/snapp_unlinked.vcf.gz.tbi",
+        f"{SNAPP_ALIGN_DIR}/snapp.min{SNAPP_MIN_SAMPLES_LOCUS}.phy",
+        f"{SNAPP_ALIGN_DIR}/snapp.min{SNAPP_MIN_SAMPLES_LOCUS}.bin.nexus",
+    ]
+    for run_id in SNAPP_RUN_IDS:
+        SNAPP_TARGETS.extend([
+            f"{SNAPP_BASE}/constraints/{run_id}.txt",
+            f"{SNAPP_RUN_DIR}/{run_id}/snapp.xml",
+        ])

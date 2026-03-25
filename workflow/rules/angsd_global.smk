@@ -1,5 +1,8 @@
 # rules/ngsrelate.smk
 
+kin_thr = config["ngsrelate"]["kinship_threshold"]
+NGSRELATE_FIG_DIR = f"figures/exploratory/ngsrelate/{output_prefix}"
+
 _INGROUP_BAMS = [
     f"{config_bam_dir}/{s}.bam"
     for s in ingroup_sample_ids(populations=groups)
@@ -8,7 +11,7 @@ _INGROUP_BAMS = [
 # Rules related to angsd_global
 rule make_bamlist_all:
     """
-    Generate a bamlist including all the samples
+    Write the ingroup BAM list for the configured population set.
     """
     input:
         samples=config["samples"],
@@ -36,7 +39,7 @@ rule make_bamlist_global_analysis:
 
 rule angsd_global:
     """
-    ANGSD using all samples of the selected populations
+    Run ANGSD on the global analysis sample set and emit genotype-likelihood files.
     """
     input:
         bamlist=rules.make_bamlist_global_analysis.output.bamlist,
@@ -127,26 +130,30 @@ rule ngsrelate_global:
         """
 
 rule plot_ngsrelate_kinship:
-  input:
-    kin = f"results/ngsrelate_global/{output_prefix}/ngsrelate_res",
-    meta = config["samples"]
-  output:
-    kinplot = f"results/ngsrelate_global/{output_prefix}/kin_KING_thr{kin_thr}.pdf",
-    netplot = f"results/ngsrelate_global/{output_prefix}/kinnet_KING_thr{kin_thr}.pdf",
-    csv = f"results/ngsrelate_global/{output_prefix}/related_KING_thr{kin_thr}.csv"
-  params:
-    kin_thr = config["ngsrelate"]["kinship_threshold"],
-    pop_col = config["group_col"]
-  conda:
-    "../envs/plot_kinship.yaml"
-  shell:
     """
-    echo "R_LIBS_USER=${{R_LIBS_USER:-}}"
-    echo "LD_LIBRARY_PATH=${{LD_LIBRARY_PATH:-}}"
-    unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
-    export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-    Rscript workflow/scripts/plot_kinship.R {input.kin} {input.meta} {params.kin_thr} {params.pop_col}
+    Plot kinship summaries and write the related-sample table for manual filtering.
     """
+    input:
+        kin = f"results/ngsrelate_global/{output_prefix}/ngsrelate_res",
+        meta = config["samples"]
+    output:
+        kinplot = f"{NGSRELATE_FIG_DIR}/kin_KING_thr{kin_thr}.pdf",
+        netplot = f"{NGSRELATE_FIG_DIR}/kinnet_KING_thr{kin_thr}.pdf",
+        csv = f"results/ngsrelate_global/{output_prefix}/related_KING_thr{kin_thr}.csv"
+    params:
+        kin_thr = config["ngsrelate"]["kinship_threshold"],
+        pop_col = config["group_col"]
+    conda:
+        "../envs/plot_kinship.yaml"
+    shell:
+        """
+        mkdir -p {NGSRELATE_FIG_DIR}
+        echo "R_LIBS_USER=${{R_LIBS_USER:-}}"
+        echo "LD_LIBRARY_PATH=${{LD_LIBRARY_PATH:-}}"
+        unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
+        export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+        Rscript workflow/scripts/plot_kinship.R {input.kin} {input.meta} {params.kin_thr} {params.pop_col}
+        """
 
 rule manual_remove_list:
     input:
@@ -160,7 +167,7 @@ rule manual_remove_list:
 
 rule make_bamlist_unrelated:
     """
-    Generate a bamlist excluding related individuals
+    Remove manually flagged related individuals from the global ingroup bamlist.
     """
     input:
         bamlist_global = rules.make_bamlist_all.output.bamlist,
@@ -285,10 +292,7 @@ rule filter_unlinked_and_summary:
 
 rule angsd_filtered_sites_index:
     """
-    Convert LD_unlinked.id (scaf:pos) and obtain
-      1) TSV (sites.txt) consisted of {scaf pos}
-      2) a list of unique scaf (sites.chr)
-      3) index sites by angsd index -> sites.txt.bin
+    Convert LD-pruned site IDs into ANGSD-ready site and scaffold index files.
     """
     input:
         unlinkedid = rules.ld_pruning.output.unlinkedid
@@ -317,7 +321,7 @@ rule angsd_filtered_sites_index:
 # ANGSD after ngsLD and ngsRelate
 rule make_bamlist_unrelated_analysis:
     """
-    Bamlist for angsd_global_unrelated_unlinked; append sliced outgroups if configured.
+    Write the unrelated-analysis bamlist, optionally appending sliced outgroups.
     """
     input:
         ingroup_unrel = rules.make_bamlist_unrelated.output.bamlist,
@@ -333,8 +337,7 @@ rule make_bamlist_unrelated_analysis:
 
 rule angsd_global_unrelated_unlinked:
     """
-    ANGSD using unlinked sites and unrelated individuals for 
-    the global population setting
+    Run ANGSD on unrelated individuals at the LD-pruned unlinked sites.
     """
     input:
         bamlist=rules.make_bamlist_unrelated_analysis.output.bamlist,
@@ -374,3 +377,20 @@ rule angsd_global_unrelated_unlinked:
               -nThreads {threads} \
               2> {log}
         """
+
+
+ANGSD_GLOBAL_CORE_TARGETS = [
+    f"results/angsd_global/{output_prefix}/gl.geno.gz" if ANGSD_GLOBAL_ACTIVE else [],
+    f"results/ngsrelate_global/{output_prefix}/ngsrelate_res" if NGSRELATE_ACTIVE else [],
+    f"results/ngsrelate_global/{output_prefix}/related_KING_thr{kin_thr}.csv" if NGSRELATE_ACTIVE else [],
+    f"results/ngsld_global/{output_prefix}/snp.pos" if NGSLD_ACTIVE else [],
+    f"results/ngsld_global/{output_prefix}/LD.ld" if NGSLD_ACTIVE else [],
+    f"results/ngsld_global/{output_prefix}/LD_unlinked.id" if NGSLD_ACTIVE else [],
+    f"results/ngsld_global/{output_prefix}/gl_global_unlinked.beagle.gz" if NGSLD_ACTIVE else [],
+    [
+        f"results/unlinked_sites/{output_prefix}/sites.txt",
+        f"results/unlinked_sites/{output_prefix}/sites.chr",
+        f"results/unlinked_sites/{output_prefix}/sites.txt.bin",
+    ] if (SFS_ENABLED and SFS_NEEDS_UNLINKED_SITES) else [],
+    f"results/angsd_global_unrelated_unlinked/{output_prefix}/gl.beagle.gz" if GLOBAL_UNRELATED_UNLINKED_ACTIVE else [],
+]

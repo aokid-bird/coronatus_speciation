@@ -1,6 +1,34 @@
 ABBABABA2_DIR = f"results/angsd_abbababa2/{output_prefix}"
 ABBABABA2_SUMMARY_DIR = f"results/abbababa2/{output_prefix}"
 ABBABABA2_FIG_DIR = f"figures/abbababa2/{output_prefix}"
+ABBABABA2_THREADS = int(ABBABABA2_CFG.get("threads", LEGACY_GLOBAL_THREADS))
+ABBABABA2_ANGSD_ARGS = str(ABBABABA2_CFG.get("angsd_args", "")).strip()
+if not ABBABABA2_ANGSD_ARGS:
+    ABBABABA2_ANGSD_ARGS = "-doAbbababa2 1 -doCounts 1 -minMapQ 30 -minQ 20 -baq 2 -useLast 1"
+ABBABABA2_EXCLUDE_SAMPLES = _parse_list(ABBABABA2_CFG.get("exclude_samples"))
+_ABBABABA2_LABEL_CFG = ABBABABA2_CFG.get("outgroup_label")
+ABBABABA2_OUTGROUP_LABEL_DEFAULT = None
+if isinstance(_ABBABABA2_LABEL_CFG, dict):
+    ABBABABA2_OUTGROUP_LABELS = {
+        str(key): str(value)
+        for key, value in _ABBABABA2_LABEL_CFG.items()
+        if str(value).strip()
+    }
+else:
+    ABBABABA2_OUTGROUP_LABELS = {}
+    if _ABBABABA2_LABEL_CFG is not None:
+        label = str(_ABBABABA2_LABEL_CFG).strip()
+        if label:
+            ABBABABA2_OUTGROUP_LABEL_DEFAULT = label
+
+
+def resolve_abbababa2_outgroup_label(sample_id):
+    sid = str(sample_id)
+    if sid in ABBABABA2_OUTGROUP_LABELS:
+        return ABBABABA2_OUTGROUP_LABELS[sid]
+    if ABBABABA2_OUTGROUP_LABEL_DEFAULT:
+        return ABBABABA2_OUTGROUP_LABEL_DEFAULT
+    return OUTGROUP_TAXON_LABELS.get(sid) or sid
 
 
 rule prepare_abbababa2_inputs:
@@ -109,6 +137,9 @@ rule angsd_abbababa2:
 
 
 rule abbababa2_estavgerror:
+    """
+    Estimate ABBABABA2 average error statistics from the ANGSD output bundle.
+    """
     input:
         abbababa=rules.angsd_abbababa2.output.abbababa,
         sizefile=rules.prepare_abbababa2_inputs.output.sizefile,
@@ -135,6 +166,9 @@ rule abbababa2_estavgerror:
 
 
 rule summarize_abbababa2:
+    """
+    Summarize ABBABABA2 observed and transversion-removed results into a CSV table.
+    """
     input:
         observed=rules.abbababa2_estavgerror.output.observed,
         transrem=rules.abbababa2_estavgerror.output.transrem
@@ -147,6 +181,9 @@ rule summarize_abbababa2:
 
 
 rule plot_abbababa2:
+    """
+    Render the ABBABABA2 summary plot as a PDF figure.
+    """
     input:
         summary=rules.summarize_abbababa2.output.summary
     output:
@@ -155,3 +192,9 @@ rule plot_abbababa2:
         "../envs/plot.yaml"
     script:
         "../scripts/plot_abbababa2.R"
+
+
+ABBABABA2_TARGETS = [
+    f"{ABBABABA2_SUMMARY_DIR}/df.dstat.csv",
+    f"{ABBABABA2_FIG_DIR}/abbababa2.pdf",
+] if ABBABABA2_ENABLED else []

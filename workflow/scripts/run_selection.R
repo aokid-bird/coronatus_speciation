@@ -9,6 +9,9 @@ sites_file <- args[2]
 out_csv <- args[3]
 out_png <- args[4]
 
+dir.create(dirname(out_csv), recursive = TRUE, showWarnings = FALSE)
+dir.create(dirname(out_png), recursive = TRUE, showWarnings = FALSE)
+
 site <- readLines(sites_file)
 D <- npyLoad(selection_file)
 p <- pchisq(D, 1, lower.tail = FALSE)

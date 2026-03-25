@@ -54,50 +54,13 @@ else:
     if SNAPP_ENABLED:
         include: "rules/snapp.smk"
 
-# Build ngsDist target list based on configured models
-if IS_CLUSTER:
-    NGSDIST_TARGETS = _targets(*[
-        [
-            f"results/ngsdist_global/{output_prefix}/{model}/ngsdist",
-            f"results/ngsdist_global/{output_prefix}/{model}/ngsdist_input.nexus",
-        ]
-        for model in (_MODELS if NGSDIST_ENABLED else [])
-    ])
-
-    SNAPP_BASE = f"results/snapp/{output_prefix}"
-    SNAPP_VCF_DIR = f"{SNAPP_BASE}/vcf"
-    SNAPP_ALIGN_DIR = f"{SNAPP_BASE}/alignment"
-    SNAPP_RUN_DIR = f"{SNAPP_BASE}/runs"
-    SNAPP_TARGETS = _targets(
-        [
-            f"{SNAPP_BASE}/selected_samples.tsv",
-            f"{SNAPP_BASE}/selected_samples.txt",
-            f"results/bamlists/{output_prefix}/snapp/bamlist.txt",
-            f"{SNAPP_BASE}/unlinked_sites.tsv",
-            f"{SNAPP_BASE}/unlinked_summary.tsv",
-            f"{SNAPP_BASE}/sample_names.txt",
-            f"{SNAPP_BASE}/populations.tsv",
-            f"{SNAPP_BASE}/sample_metadata.tsv",
-            f"{SNAPP_VCF_DIR}/snapp_unlinked.vcf.gz",
-            f"{SNAPP_VCF_DIR}/snapp_unlinked.vcf.gz.tbi",
-            f"{SNAPP_ALIGN_DIR}/snapp.min{SNAPP_MIN_SAMPLES_LOCUS}.phy",
-            f"{SNAPP_ALIGN_DIR}/snapp.min{SNAPP_MIN_SAMPLES_LOCUS}.bin.nexus",
-        ] if SNAPP_ENABLED else [],
-        *[
-            [
-                f"{SNAPP_BASE}/constraints/{run_id}.txt",
-                f"{SNAPP_RUN_DIR}/{run_id}/snapp.xml",
-            ]
-            for run_id in (SNAPP_RUN_IDS if SNAPP_ENABLED else [])
-        ],
-    )
-
-    ABBABABA2_TARGETS = _targets(
-        [
-            f"results/abbababa2/{output_prefix}/df.dstat.csv",
-            f"figures/abbababa2/{output_prefix}/abbababa2.pdf",
-        ] if ABBABABA2_ENABLED else []
-    )
+PCANGSD_TARGETS = globals().get("PCANGSD_TARGETS", [])
+NGSADMIX_TARGETS = globals().get("NGSADMIX_TARGETS", [])
+NGSDIST_TARGETS = globals().get("NGSDIST_TARGETS", [])
+RAXML_TARGETS = globals().get("RAXML_TARGETS", [])
+TREEMIX_TARGETS = globals().get("TREEMIX_TARGETS", [])
+ABBABABA2_TARGETS = globals().get("ABBABABA2_TARGETS", [])
+SNAPP_TARGETS = globals().get("SNAPP_TARGETS", [])
 
 if IS_LOCAL:
     LOCAL_ALL_TARGETS = _targets(
@@ -140,40 +103,18 @@ else:
         f"results/union_sites/{output_prefix}/union.sites" if SLICE_OUTGROUPS_ACTIVE else [],
         f"results/union_sites/{output_prefix}/union.chr" if SLICE_OUTGROUPS_ACTIVE else [],
         expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS) if SLICE_OUTGROUPS_ACTIVE else [],
-        f"results/angsd_global/{output_prefix}/gl.geno.gz" if ANGSD_GLOBAL_ACTIVE else [],
-        f"results/ngsrelate_global/{output_prefix}/ngsrelate_res" if NGSRELATE_ACTIVE else [],
-        f"results/ngsrelate_global/{output_prefix}/related_KING_thr{kin_thr}.csv" if NGSRELATE_ACTIVE else [],
-        f"results/ngsld_global/{output_prefix}/snp.pos" if NGSLD_ACTIVE else [],
-        f"results/ngsld_global/{output_prefix}/LD.ld" if NGSLD_ACTIVE else [],
-        f"results/ngsld_global/{output_prefix}/LD_unlinked.id" if NGSLD_ACTIVE else [],
-        f"results/ngsld_global/{output_prefix}/gl_global_unlinked.beagle.gz" if NGSLD_ACTIVE else [],
-        [
-            f"results/unlinked_sites/{output_prefix}/sites.txt",
-            f"results/unlinked_sites/{output_prefix}/sites.chr",
-            f"results/unlinked_sites/{output_prefix}/sites.txt.bin",
-        ] if (SFS_ENABLED and SFS_NEEDS_UNLINKED_SITES) else [],
-        f"results/angsd_global_unrelated_unlinked/{output_prefix}/gl.beagle.gz" if GLOBAL_UNRELATED_UNLINKED_ACTIVE else [],
+        ANGSD_GLOBAL_CORE_TARGETS,
     )
 
     STRUCTURE_TARGETS = _targets(
-        rules.run_pcangsd.output if PCANGSD_ENABLED else [],
-        f"results/pca/{output_prefix}/pca_plots.pdf" if PCANGSD_ENABLED else [],
-        rules.run_ngsadmix.output if NGSADMIX_ENABLED else [],
-        f"results/admixture/{output_prefix}/deltaK.pdf" if NGSADMIX_ENABLED else [],
-        f"results/admixture/{output_prefix}/admixture_plots.pdf" if NGSADMIX_ENABLED else [],
+        PCANGSD_TARGETS if PCANGSD_ENABLED else [],
+        NGSADMIX_TARGETS if NGSADMIX_ENABLED else [],
         NGSDIST_TARGETS,
     )
 
     PHYLOGENY_TARGETS = _targets(
-        f"results/angsd_raxml/{output_prefix}/gl.bcf" if RAXML_ENABLED else [],
-        expand(f"results/angsd_{{angsd_run}}/{output_prefix}/gl.vcf.gz", angsd_run=["raxml"]) if RAXML_ENABLED else [],
-        f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.bootstraps" if RAXML_ENABLED else [],
-        f"figures/exploratory/raxml/{output_prefix}/raxml_bootstrap.pdf" if RAXML_ENABLED else [],
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_summary.csv" if TREEMIX_ENABLED else [],
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_runs.csv" if TREEMIX_ENABLED else [],
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_validation2.pdf" if TREEMIX_ENABLED else [],
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_resid_{TREEMIX_MODE}.pdf" if TREEMIX_ENABLED else [],
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_trees_{TREEMIX_MODE}.pdf" if TREEMIX_ENABLED else [],
+        RAXML_TARGETS if RAXML_ENABLED else [],
+        TREEMIX_TARGETS if TREEMIX_ENABLED else [],
         ABBABABA2_TARGETS,
         SNAPP_TARGETS,
     )

@@ -2,6 +2,7 @@
 
 _MODELS = NGSDIST_CFG.get("models", ["p", "jc69"])  # allowed: p, jc69
 NGSDIST_SIF = f"{config_singularity_dir}/ngsdist.sif"
+NGSDIST_DIR = f"results/ngsdist_global/{output_prefix}"
 
 
 rule make_bamlist_ngsdist:
@@ -63,18 +64,15 @@ rule angsd_global_ngsdist:
 
 rule ngsdist_prepare_inputs:
     """
-    Prepare labels and position info for ngsDist from ANGSD global outputs.
-    - labels: one sample id per line (derived from BAM basenames)
-    - posinfo: TSV with chr and site derived from beagle markers
-    - nsites: number of variant sites (lines in beagle minus header)
+    Prepare labels, position info, and site counts for ngsDist.
     """
     input:
         bamlist = rules.make_bamlist_ngsdist.output.bamlist,
         beagle  = rules.angsd_global_ngsdist.output.beagle
     output:
-        labels = f"results/ngsdist_global/{output_prefix}/labels.txt",
-        posinfo= f"results/ngsdist_global/{output_prefix}/posinfo.tsv",
-        nsites = f"results/ngsdist_global/{output_prefix}/nsites.txt"
+        labels = f"{NGSDIST_DIR}/labels.txt",
+        posinfo= f"{NGSDIST_DIR}/posinfo.tsv",
+        nsites = f"{NGSDIST_DIR}/nsites.txt"
     conda:
         "../envs/intersect_sites.yaml"
     shell:
@@ -102,7 +100,7 @@ rule ngsdist_run:
         nsites  = rules.ngsdist_prepare_inputs.output.nsites,
         bamlist = rules.make_bamlist_ngsdist.output.bamlist
     output:
-        dist    = f"results/ngsdist_global/{output_prefix}/{{model}}/ngsdist",
+        dist    = f"{NGSDIST_DIR}/{{model}}/ngsdist",
         log     = f"logs/{output_prefix}/ngsdist_{{model}}.log"
     singularity:
         NGSDIST_SIF
@@ -140,7 +138,7 @@ rule ngsdist_nexus:
     input:
         dist = rules.ngsdist_run.output.dist
     output:
-        nexus = f"results/ngsdist_global/{output_prefix}/{{model}}/ngsdist_input.nexus"
+        nexus = f"{NGSDIST_DIR}/{{model}}/ngsdist_input.nexus"
     conda:
         "../envs/ngsdist_post.yaml"
     wildcard_constraints:
@@ -149,3 +147,22 @@ rule ngsdist_nexus:
         """
         Rscript workflow/scripts/ngsdist_to_nexus.R {input.dist} {output.nexus} yes
         """
+
+
+NGSDIST_TARGETS = [
+    rules.angsd_global_ngsdist.output.geno,
+    rules.angsd_global_ngsdist.output.mafs,
+    rules.angsd_global_ngsdist.output.beagle,
+    rules.ngsdist_prepare_inputs.output.labels,
+    rules.ngsdist_prepare_inputs.output.posinfo,
+    rules.ngsdist_prepare_inputs.output.nsites,
+]
+for _model in _MODELS:
+    NGSDIST_TARGETS.extend(
+        [
+            f"{NGSDIST_DIR}/{_model}/ngsdist",
+            f"{NGSDIST_DIR}/{_model}/ngsdist_input.nexus",
+        ]
+    )
+if not NGSDIST_ENABLED:
+    NGSDIST_TARGETS = []

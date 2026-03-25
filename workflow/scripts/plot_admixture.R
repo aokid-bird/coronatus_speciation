@@ -23,6 +23,9 @@ populations <- snakemake@config[['populations']]
 group_col  <- snakemake@config[['group_col']]
 maxK       <- snakemake@config[['ngsadmix']][['maxK']]
 
+dir.create(dirname(snakemake@output[['delta']]), recursive = TRUE, showWarnings = FALSE)
+dir.create(dirname(snakemake@output[['plots']]), recursive = TRUE, showWarnings = FALSE)
+
 # Read log-likelihoods
 df_like <- map_dfr(log_files, function(f) {
   lines <- readLines(f)

@@ -3,6 +3,9 @@
 ###
 
 GLACTOOLS_BIN = TREEMIX_CFG.get("glactools_bin", "workflow/bin/glactools")
+TREEMIX_MODE = str(TREEMIX_CFG.get("mode", "merge"))
+TREEMIX_ROOT_LABEL = str(TREEMIX_CFG.get("root_label", "")).strip() or None
+TREEMIX_EXCLUDE_SAMPLES = _parse_list(TREEMIX_CFG.get("exclude_samples"))
 TREEMIX_THREADS = _resolve_threads(TREEMIX_CFG, LEGACY_GLOBAL_THREADS)
 TREEMIX_MAX_M = int(TREEMIX_CFG.get("max_m", 6))
 TREEMIX_REPS = int(TREEMIX_CFG.get("reps", 10))
@@ -10,10 +13,12 @@ TREEMIX_TIMEOUT_SECONDS = int(TREEMIX_CFG.get("timeout_seconds", 300))
 TREEMIX_MAX_ATTEMPTS = int(TREEMIX_CFG.get("max_attempts", 3))
 _PLOTFUNC_DEFAULT = Path("workflow/scripts/treemix_plotting_funcs.R")
 TREEMIX_PLOTTING_FUNCS = str(_PLOTFUNC_DEFAULT) if _PLOTFUNC_DEFAULT.exists() else None
+TREEMIX_DIR = f"results/treemix/{output_prefix}/{TREEMIX_MODE}"
+TREEMIX_PLOT_DIR = f"figures/exploratory/treemix/{output_prefix}/{TREEMIX_MODE}"
 
 rule make_bamlist_treemix:
     """
-    Bamlist for treemix, optionally including outgroups per config.treemix.include_outgroups.
+    Write the TreeMix bamlist after applying per-analysis exclusions and outgroup selection.
     """
     input:
         ingroup=rules.make_bamlist_unrelated.output.bamlist,
@@ -108,8 +113,8 @@ rule glactools_prepare_treemix:
         bamlist=rules.make_bamlist_treemix.output.bamlist,
         samples=config["samples"]
     output:
-        acf=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.acf.gz",
-        treemix=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.treemix"
+        acf=f"{TREEMIX_DIR}/input.acf.gz",
+        treemix=f"{TREEMIX_DIR}/input.treemix"
     log:
         f"logs/{output_prefix}/glactools_prepare_treemix.log"
     params:
@@ -141,9 +146,9 @@ rule glactools_prepare_treemix:
 
 rule treemix_input_gz:
     input:
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.treemix"
+        f"{TREEMIX_DIR}/input.treemix"
     output:
-        f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.treemix.gz"
+        f"{TREEMIX_DIR}/input.treemix.gz"
     shell:
         """
         gzip -c {input} > {output}
@@ -156,8 +161,8 @@ rule lddecay_blocksize:
         acf=rules.glactools_prepare_treemix.output.acf,
         treemix=rules.glactools_prepare_treemix.output.treemix
     output:
-        block=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/lddecay/block_size.txt",
-        ldplot=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/lddecay/ld_plot.png"
+        block=f"{TREEMIX_DIR}/lddecay/block_size.txt",
+        ldplot=f"{TREEMIX_DIR}/lddecay/ld_plot.png"
     conda:
         "../envs/treemix_eval.yaml"
     shell:
@@ -170,10 +175,10 @@ rule lddecay_blocksize:
 
 rule treemix_run:
     input:
-        tm=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/input.treemix.gz",
-        block=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/lddecay/block_size.txt"
+        tm=f"{TREEMIX_DIR}/input.treemix.gz",
+        block=f"{TREEMIX_DIR}/lddecay/block_size.txt"
     output:
-        done=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/edge_{{edge}}.done"
+        done=f"{TREEMIX_DIR}/edge_{{edge}}.done"
     params:
         # Build comma-delimited -root labels based on config/outgroups
         root_opt=(
@@ -208,7 +213,7 @@ rule treemix_run:
         fi
 
         for REP in $(seq 1 {params.reps}); do
-          OUTPREF=results/treemix/{output_prefix}/{TREEMIX_MODE}/treemix_e${{EDGE}}_o${{REP}}
+          OUTPREF={TREEMIX_DIR}/treemix_e${{EDGE}}_o${{REP}}
           LOG="${{OUTPREF}}.log"
           python workflow/scripts/run_treemix_with_timeout.py \
             --input {input.tm} \
@@ -230,16 +235,16 @@ rule treemix_run:
 rule treemix_eval:
     input:
         expand(
-            f"results/treemix/{output_prefix}/{TREEMIX_MODE}/edge_{{edge}}.done",
+            f"{TREEMIX_DIR}/edge_{{edge}}.done",
             edge=range(TREEMIX_MAX_M + 1),
         )
     output:
-        summary=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_summary.csv",
-        runs=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_runs.csv"
+        summary=f"{TREEMIX_DIR}/eval_summary.csv",
+        runs=f"{TREEMIX_DIR}/eval_runs.csv"
     params:
-        runs_dir=f"results/treemix/{output_prefix}/{TREEMIX_MODE}",
+        runs_dir=TREEMIX_DIR,
         max_m=TREEMIX_MAX_M,
-        out_prefix=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval",
+        out_prefix=f"{TREEMIX_DIR}/eval",
         plot_funcs_arg=(lambda wc: f"--plotting_funcs {TREEMIX_PLOTTING_FUNCS}" if TREEMIX_PLOTTING_FUNCS else ""),
         optm_flag=(lambda wc: "--optm" if TREEMIX_CFG.get("use_optm", True) else "")
     conda:
@@ -260,16 +265,16 @@ rule treemix_plots:
     Generate TreeMix evaluation plots: lnL/VarExplain, residuals, and tree panels.
     """
     input:
-        runs=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_runs.csv",
-        summary=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/eval_summary.csv",
+        runs=f"{TREEMIX_DIR}/eval_runs.csv",
+        summary=f"{TREEMIX_DIR}/eval_summary.csv",
         bamlist=rules.make_bamlist_treemix.output.bamlist,
         samples=config["samples"]
     output:
-        llkvar_pdf=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_validation2.pdf",
-        resid_pdf=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_resid_{TREEMIX_MODE}.pdf",
-        trees_pdf=f"results/treemix/{output_prefix}/{TREEMIX_MODE}/plots/treemix_trees_{TREEMIX_MODE}.pdf"
+        llkvar_pdf=f"{TREEMIX_PLOT_DIR}/treemix_validation2.pdf",
+        resid_pdf=f"{TREEMIX_PLOT_DIR}/treemix_resid_{TREEMIX_MODE}.pdf",
+        trees_pdf=f"{TREEMIX_PLOT_DIR}/treemix_trees_{TREEMIX_MODE}.pdf"
     params:
-        runs_dir=f"results/treemix/{output_prefix}/{TREEMIX_MODE}",
+        runs_dir=TREEMIX_DIR,
         mode=TREEMIX_MODE,
         group_col=group_col,
         plot_funcs=TREEMIX_PLOTTING_FUNCS,
@@ -281,6 +286,7 @@ rule treemix_plots:
     shell:
         r"""
         unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
+        mkdir -p {TREEMIX_PLOT_DIR}
         Rscript workflow/scripts/treemix_make_plots.R \
             --runs_dir {params.runs_dir} \
             --mode {params.mode} \
@@ -293,3 +299,25 @@ rule treemix_plots:
             --plotting_funcs {params.plot_funcs} \
             --ggplot_treemix {params.ggplot_treemix}
         """
+
+
+TREEMIX_TARGETS = [
+    rules.angsd_treemix.output.geno,
+    rules.angsd_treemix.output.bcf,
+    rules.bcf_to_acf.output.vcf,
+    rules.bcf_to_acf.output.acf,
+    rules.glactools_prepare_treemix.output.acf,
+    rules.glactools_prepare_treemix.output.treemix,
+    f"{TREEMIX_DIR}/input.treemix.gz",
+    rules.lddecay_blocksize.output.block,
+    rules.lddecay_blocksize.output.ldplot,
+    rules.treemix_eval.output.summary,
+    rules.treemix_eval.output.runs,
+    rules.treemix_plots.output.llkvar_pdf,
+    rules.treemix_plots.output.resid_pdf,
+    rules.treemix_plots.output.trees_pdf,
+]
+for _edge in range(TREEMIX_MAX_M + 1):
+    TREEMIX_TARGETS.append(f"{TREEMIX_DIR}/edge_{_edge}.done")
+if not TREEMIX_ENABLED:
+    TREEMIX_TARGETS = []

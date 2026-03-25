@@ -69,6 +69,8 @@ populations <- snakemake@config[['populations']]
 group_col <- snakemake@config[['group_col']]
 axes <- snakemake@config[['pcangsd']][['axes_plot']]
 
+dir.create(dirname(snakemake@output[[1]]), recursive = TRUE, showWarnings = FALSE)
+
 # PCA data
 pc <- eigen(cov_mat)$vectors %>%
   as.data.frame() %>%

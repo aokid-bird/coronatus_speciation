@@ -1,21 +1,25 @@
 # ngsadmix.smk
 
+ADMIX_DIR = f"results/admixture/{output_prefix}"
+ADMIX_FIG_DIR = f"figures/exploratory/admixture/{output_prefix}"
+ADMIX_MAX_K = int(config["ngsadmix"]["maxK"])
+ADMIX_REPLICATES = int(config["ngsadmix"]["n_replicates"])
+
 rule run_ngsadmix:
+    """
+    Run NGSadmix across the configured K range and replicate count.
+    """
     input:
         beagle = rules.angsd_global_unrelated_unlinked.output.beagle
     output:
-        expand(f"results/admixture/{output_prefix}/K{{k}}_{{r}}.qopt", 
-               k=range(1, config["ngsadmix"]["maxK"] + 1), 
-               r=range(1, config["ngsadmix"]["n_replicates"] + 1)),
-               expand(f"results/admixture/{output_prefix}/K{{k}}_{{r}}.log", 
-               k=range(1, config["ngsadmix"]["maxK"] + 1), 
-               r=range(1, config["ngsadmix"]["n_replicates"] + 1))
+        expand(f"{ADMIX_DIR}/K{{k}}_{{r}}.qopt", k=range(1, ADMIX_MAX_K + 1), r=range(1, ADMIX_REPLICATES + 1)),
+        expand(f"{ADMIX_DIR}/K{{k}}_{{r}}.log", k=range(1, ADMIX_MAX_K + 1), r=range(1, ADMIX_REPLICATES + 1))
     params:
-        outdir = f"results/admixture/{output_prefix}",
+        outdir = ADMIX_DIR,
         maxiter = config["ngsadmix"]["maxiter"],
         minmaf = config["ngsadmix"]["minmaf"],
-        maxK = config["ngsadmix"]["maxK"],
-        reps = config["ngsadmix"]["n_replicates"]
+        maxK = ADMIX_MAX_K,
+        reps = ADMIX_REPLICATES
     threads: config["ngsadmix"]["threads"]
     conda:
         "../envs/angsd.yaml"
@@ -35,6 +39,9 @@ rule run_ngsadmix:
         """
 
 rule samples_with_outgroups_admix:
+    """
+    Extend the sample metadata with selected outgroups for plotting labels.
+    """
     input:
         samples=config["samples"],
         outgroups=config["outgroups"]
@@ -61,24 +68,35 @@ rule samples_with_outgroups_admix:
         aug.to_csv(output.samples_aug, sep="\t", index=False)
 
 rule plot_admixture:
+    """
+    Plot DeltaK and admixture barplots for the best replicate at each K.
+    """
     input:
         qopt=expand(
-            f"results/admixture/{output_prefix}/K{{k}}_{{r}}.qopt",
-            k=range(1, config["ngsadmix"]["maxK"]+1),
-            r=range(1, config["ngsadmix"]["n_replicates"]+1)
+            f"{ADMIX_DIR}/K{{k}}_{{r}}.qopt",
+            k=range(1, ADMIX_MAX_K + 1),
+            r=range(1, ADMIX_REPLICATES + 1)
         ),
         logs=expand(
-            f"results/admixture/{output_prefix}/K{{k}}_{{r}}.log",
-            k=range(1, config["ngsadmix"]["maxK"]+1),
-            r=range(1, config["ngsadmix"]["n_replicates"]+1)
+            f"{ADMIX_DIR}/K{{k}}_{{r}}.log",
+            k=range(1, ADMIX_MAX_K + 1),
+            r=range(1, ADMIX_REPLICATES + 1)
         ),
         bamlist=rules.make_bamlist_unrelated_analysis.output.bamlist,
         samples=rules.samples_with_outgroups_admix.output.samples_aug,
         beagle=rules.angsd_global_unrelated_unlinked.output.beagle
     output:
-        delta="results/admixture/{output_prefix}/deltaK.pdf",
-        plots="results/admixture/{output_prefix}/admixture_plots.pdf"
+        delta=f"{ADMIX_FIG_DIR}/deltaK.pdf",
+        plots=f"{ADMIX_FIG_DIR}/admixture_plots.pdf"
     conda:
         "../envs/plot.yaml"
     script:
         "../scripts/plot_admixture.R"
+
+
+NGSADMIX_TARGETS = [
+    *list(rules.run_ngsadmix.output),
+    rules.samples_with_outgroups_admix.output.samples_aug,
+    rules.plot_admixture.output.delta,
+    rules.plot_admixture.output.plots,
+] if NGSADMIX_ENABLED else []

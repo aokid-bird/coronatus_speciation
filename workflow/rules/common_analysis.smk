@@ -43,13 +43,6 @@ REALSFS_THREADS = _resolve_threads(_config_section("sfs_analysis", "realSFS"), 1
 QC_INGROUP_THREADS = _resolve_threads(_config_section("qc", "ingroup", "trimmomatic"), 4)
 QC_OUTGROUP_THREADS = _resolve_threads(_config_section("qc", "outgroup", "trimmomatic"), 4)
 
-kin_thr = NGSRELATE_CFG["kinship_threshold"]
-
-TREEMIX_MODE = TREEMIX_CFG.get("mode", "pop")
-TREEMIX_ROOT_LABEL = TREEMIX_CFG.get("root_label")
-TREEMIX_EXCLUDE_SAMPLES = _parse_list(TREEMIX_CFG.get("exclude_samples"))
-TREEMIX_OUTGROUP_SPECIES = _parse_species_list(TREEMIX_CFG.get("outgroup_species"))
-
 ANGSD_RAXML_DOWNSAMPLE_CFG = ANGSD_RAXML_CFG.get("downsampling", {}) or {}
 
 
@@ -101,95 +94,34 @@ def get_minInd_ratio(key, default=None):
 
 
 # Shared outgroup selections used by multiple downstream analyses.
-RAXML_OUTGROUP_SPECIES = _parse_species_list(RAXML_CFG.get("outgroup_species"))
 ANGSD_GLOBAL_OUTGROUP_IDS = analysis_outgroup_sample_ids(
     include_outgroups=ANGSD_GLOBAL_INCLUDE_OUTGROUPS,
 )
 ANGSD_RAXML_OUTGROUP_IDS = analysis_outgroup_sample_ids(
     include_outgroups=ANGSD_RAXML_INCLUDE_OUTGROUPS,
-    species=RAXML_OUTGROUP_SPECIES,
+    species=RAXML_CFG.get("outgroup_species"),
 )
 TREEMIX_OUTGROUP_IDS = analysis_outgroup_sample_ids(
     include_outgroups=TREEMIX_INCLUDE_OUTGROUPS,
     exclude_ids=TREEMIX_CFG.get("exclude_outgroups"),
-    species=TREEMIX_OUTGROUP_SPECIES,
+    species=TREEMIX_CFG.get("outgroup_species"),
 )
 NGSDIST_OUTGROUP_IDS = analysis_outgroup_sample_ids(
     include_outgroups=NGSDIST_INCLUDE_OUTGROUPS,
 )
 
 ABBABABA2_ENABLED = bool(ABBABABA2_CFG.get("enabled", False))
-ABBABABA2_THREADS = int(ABBABABA2_CFG.get("threads", LEGACY_GLOBAL_THREADS))
-ABBABABA2_ANGSD_ARGS = str(ABBABABA2_CFG.get("angsd_args", "")).strip()
-if not ABBABABA2_ANGSD_ARGS:
-    ABBABABA2_ANGSD_ARGS = "-doAbbababa2 1 -doCounts 1 -minMapQ 30 -minQ 20 -baq 2 -useLast 1"
 ABBABABA2_OUTGROUP_IDS = analysis_outgroup_sample_ids(
     include_outgroups=True,
     selected_ids=ABBABABA2_CFG.get("outgroup_samples"),
 )
-ABBABABA2_EXCLUDE_SAMPLES = _parse_list(ABBABABA2_CFG.get("exclude_samples"))
-_ABBABABA2_LABEL_CFG = ABBABABA2_CFG.get("outgroup_label")
-ABBABABA2_OUTGROUP_LABEL_DEFAULT = None
-if isinstance(_ABBABABA2_LABEL_CFG, dict):
-    ABBABABA2_OUTGROUP_LABELS = {
-        str(key): str(value)
-        for key, value in _ABBABABA2_LABEL_CFG.items()
-        if str(value).strip()
-    }
-else:
-    ABBABABA2_OUTGROUP_LABELS = {}
-    if _ABBABABA2_LABEL_CFG is not None:
-        label = str(_ABBABABA2_LABEL_CFG).strip()
-        if label:
-            ABBABABA2_OUTGROUP_LABEL_DEFAULT = label
-
-
-# Resolve the label that ABBABABA2 should use for an outgroup sample.
-def resolve_abbababa2_outgroup_label(sample_id):
-    sid = str(sample_id)
-    if sid in ABBABABA2_OUTGROUP_LABELS:
-        return ABBABABA2_OUTGROUP_LABELS[sid]
-    if ABBABABA2_OUTGROUP_LABEL_DEFAULT:
-        return ABBABABA2_OUTGROUP_LABEL_DEFAULT
-    return OUTGROUP_TAXON_LABELS.get(sid) or sid
 
 
 SNAPP_ENABLED = bool(SNAPP_CFG.get("enabled", False))
-SNAPP_MAX_PER_POP = int(SNAPP_CFG.get("max_per_population", 4))
-SNAPP_MIN_SAMPLES_LOCUS = int(SNAPP_CFG.get("min_samples_locus", 4))
-SNAPP_MISSINGNESS_THRESHOLD = (
-    float(SNAPP_CFG.get("missingness_threshold"))
-    if SNAPP_CFG.get("missingness_threshold") is not None
-    else None
-)
-SNAPP_EXCLUDE_SAMPLES = _parse_list(SNAPP_CFG.get("exclude_samples"))
-SNAPP_POPULATION_ALIASES = {
-    str(key): str(value)
-    for key, value in (SNAPP_CFG.get("population_aliases", {}) or {}).items()
-}
-SNAPP_OUTGROUP_ALIASES = {
-    str(key): str(value)
-    for key, value in (SNAPP_CFG.get("outgroup_aliases", {}) or {}).items()
-}
 SNAPP_OUTGROUP_IDS = analysis_outgroup_sample_ids(
     include_outgroups=SNAPP_INCLUDE_OUTGROUPS,
     selected_ids=SNAPP_CFG.get("outgroup_samples"),
 )
-SNAPP_CONSTRAINTS_CFG = SNAPP_CFG.get("constraints", {}) or {}
-SNAPP_CONSTRAINT_TYPE = SNAPP_CONSTRAINTS_CFG.get("type") or SNAPP_CONSTRAINTS_CFG.get("placement")
-_SNAPP_TAXA_CFG = SNAPP_CONSTRAINTS_CFG.get("taxa")
-SNAPP_CONSTRAINT_TAXA = (
-    ",".join(str(value) for value in _SNAPP_TAXA_CFG)
-    if isinstance(_SNAPP_TAXA_CFG, (list, tuple))
-    else _SNAPP_TAXA_CFG
-)
-SNAPP_RUN_MAP = SNAPP_CONSTRAINTS_CFG.get("runs", {}) or {}
-SNAPP_RUN_IDS = sorted(SNAPP_RUN_MAP.keys())
-SNAPP_PREP_CFG = SNAPP_CFG.get("snapp_prep", {}) or {}
-SNAPP_MCMC_LENGTH = int(SNAPP_PREP_CFG.get("mcmc_length", 500000))
-SNAPP_TOPOLOGY_WEIGHT = float(SNAPP_PREP_CFG.get("topology_weight", 1.0))
-SNAPP_PREP_EXTRA = SNAPP_PREP_CFG.get("extra_args", "").strip()
-SNAPP_LOG_PREFIX = SNAPP_CFG.get("log_prefix", "snapp")
 
 # Union of sliced outgroups actually needed by enabled analyses.
 ACTIVE_OUTGROUP_SAMPLE_IDS = sorted(
