@@ -1,6 +1,21 @@
 """
 Mapping trimmed ingroup reads to the reference.
 
+Inputs:
+- Trimmed ingroup FASTQs from qc_trimmomatic_ingroup.smk
+- Shared reference FASTA and mapper indices from reference_shared.smk
+
+Config keys used:
+- mapping.mapper
+- mapping.ingroup.mapper
+- mapping.ingroup.map_unpaired
+- mapping.ingroup.extra
+- bam_dir
+- resources.mapping.ingroup_paired
+- resources.mapping.ingroup_unpaired
+- resources.mapping.ingroup_merge
+- threads.mapping.ingroup
+
 Outputs final coordinate-sorted BAM and index in config['bam_dir']/{sample}.bam.
 """
 

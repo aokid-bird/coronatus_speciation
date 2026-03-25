@@ -1,4 +1,19 @@
-# rules/pcangsd.smk
+"""
+PCAngsd and downstream PCA plotting workflow.
+
+Inputs:
+- Unrelated, unlinked BEAGLE from angsd_global.smk
+- Sample and outgroup metadata for plot annotation
+
+Config keys used:
+- pcangsd.enabled
+- pcangsd.iter
+- pcangsd.minmaf
+- pcangsd.axes_plot
+- populations
+- group_col
+- threads.analyses.pcangsd
+"""
 
 PCA_DIR = f"results/pca/{output_prefix}"
 PCA_FIG_DIR = f"figures/exploratory/pca/{output_prefix}"

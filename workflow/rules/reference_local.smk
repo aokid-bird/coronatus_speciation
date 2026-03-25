@@ -1,5 +1,3 @@
-# rules/reference_local.smk
-
 """
 Local-only reference acquisition.
 
@@ -7,6 +5,12 @@ These rules handle downloading and extracting the reference FASTA when the
 config does not provide a ready-to-use path. Shared indexing and derived
 reference outputs are defined in reference_shared.smk so cluster runs do not
 load local-only download behavior.
+
+Config keys used:
+- reference.fasta
+- references_tsv
+- storage.reference.dir
+- reference_download_method
 """
 
 if REF_FROM_METADATA:

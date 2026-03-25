@@ -69,7 +69,7 @@ Summary of work completed in this step:
 - New short-read mapping rules using `bwa mem` or `bwa-mem2 mem`, with optional unpaired mapping and merged final BAMs.
 - Consolidated mapping environment into a single conda env (`mapper.yaml`).
 - Added long-read (PacBio/ONT) branch: optional read filtering with `filtlong` and mapping with `minimap2` using presets based on `sequencer` metadata.
-- Extended `common.smk` to infer read type (short/long) and minimap2 presets from `data/outgroups.tsv`.
+- Extended the shared sample metadata layer to infer read type (short/long) and minimap2 presets from `data/outgroups.tsv`.
 - Added/updated config keys for QC, Trimmomatic, mapping, and long-read options.
 
 ## Files Added or Updated
@@ -84,7 +84,8 @@ Summary of work completed in this step:
     - Long-read: `filtlong_outgroup`, `map_outgroup_long_minimap2`
     - Aggregate: `outgroup_bams`
 - Existing rules updated
-  - `workflow/rules/common.smk`
+  - `workflow/rules/common_samples.smk`
+  - `workflow/rules/common_paths.smk`
     - Adds `OUTGROUP_READ_TYPE` (short vs long) from `outgroups.tsv` column `sequencer` (configurable)
     - Adds `OUTGROUP_MINIMAP2_PRESET` inference (`map-ont`, `map-hifi`, `map-pb`)
   - `workflow/rules/outgroup_local.smk`
@@ -152,7 +153,7 @@ longread:
   - `snakemake -s workflow/Snakefile -c 12 outgroup_bams`
 
 ## Notes
-- SRR fetch remains in `workflow/rules/outgroup_local.smk` (`fetch_sra_*`). Use it locally as per your environment policy. The cluster flow assumes merged fastqs already exist.
+- SRR fetch remains in `workflow/rules/outgroup_local.smk` (`fetch_sra_*`). Use it locally as per your environment policy. The cluster flow assumes merged FASTQs already exist.
 - The old example placeholders in `_archive/` or `workflow/rules/fastp.smk`, `workflow/rules/bwa.smk`, etc., are not used by the new flow.
 - If you want long-read stats aggregated (e.g., `samtools flagstat` → MultiQC), that can be added easily.
 - If desired, `outgroup_bams` can be wired into `rule all` behind a config flag.

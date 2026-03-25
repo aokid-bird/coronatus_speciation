@@ -1,5 +1,25 @@
 """
 ABBABABA2 workflow built on ANGSD genotype-likelihood inputs.
+
+Inputs:
+- Ingroup samples from config.samples grouped by config.group_col
+- Selected outgroups from config.outgroups after slicing to intersected sites
+
+Config keys used:
+- abbababa2.enabled
+- abbababa2.outgroup_samples
+- abbababa2.exclude_samples
+- abbababa2.outgroup_label
+- abbababa2.angsd_args
+- populations
+- population_labels
+- group_col
+- angsd_common_args
+- minIndRatio.abbababa2
+- minIndRatio.global
+- angsd_args.abbababa2
+- resources.analyses.abbababa2
+- threads.analyses.abbababa2
 """
 
 ABBABABA2_DIR = f"results/angsd_abbababa2/{output_prefix}"

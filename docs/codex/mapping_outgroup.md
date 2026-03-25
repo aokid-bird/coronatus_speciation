@@ -75,11 +75,11 @@ File: `workflow/rules/mapping_outgroup.smk`
 - Long-read filtered: `results/longread/filter`
 - Intermediate mapping: `results/mapping/{output_prefix}/outgroup`
 - Final BAM destination: `{config['bam_dir']}/{output_prefix}/outgroups`
-- Mapper backend and reference paths come from `workflow/rules/common.smk`:
+- Mapper backend and reference paths come from the shared config/path layer:
   - `MAPPER`, `REF_UNZIPPED`, `REF_MAP_INDEX_MAIN`
 
 ## Metadata-driven behavior
-- `workflow/rules/common.smk` reads `data/outgroups.tsv` and infers for each `sample_id`:
+- `workflow/rules/common_samples.smk` reads `data/outgroups.tsv` and infers for each `sample_id`:
   - `OUTGROUP_READ_TYPE`: `short` or `long` based on `outgroups_seq_column` and `longread_keywords`
   - `OUTGROUP_MINIMAP2_PRESET`: minimap2 preset per sample
 - Short-read rules operate only on samples with `OUTGROUP_READ_TYPE == 'short'`

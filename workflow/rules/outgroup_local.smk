@@ -4,6 +4,11 @@ Local-only outgroup FASTQ acquisition and merge rules.
 This module is intentionally limited to local bootstrap work: fetching SRA
 FASTQs, merging SRR-level files into sample-level files, and writing storage
 manifests for those local assets.
+
+Config keys used:
+- outgroups
+- storage.outgroup.raw_dir
+- storage.outgroup.merged_dir
 """
 
 import re as _re

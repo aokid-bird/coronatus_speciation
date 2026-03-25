@@ -1,4 +1,20 @@
-# ngsadmix.smk
+"""
+NGSadmix clustering and plotting workflow on unrelated, LD-pruned data.
+
+Inputs:
+- Unrelated, unlinked BEAGLE from angsd_global.smk
+- Sample and outgroup metadata for plot annotation
+
+Config keys used:
+- ngsadmix.enabled
+- ngsadmix.maxK
+- ngsadmix.n_replicates
+- ngsadmix.maxiter
+- ngsadmix.minmaf
+- populations
+- group_col
+- threads.analyses.ngsadmix
+"""
 
 ADMIX_DIR = f"results/admixture/{output_prefix}"
 ADMIX_FIG_DIR = f"figures/exploratory/admixture/{output_prefix}"

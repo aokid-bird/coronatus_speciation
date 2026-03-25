@@ -1,5 +1,33 @@
 """
 RAxML-oriented ANGSD workflow, including optional downsampling and plotting.
+
+Inputs:
+- Unrelated ingroup BAMs from angsd_global.smk
+- Optional sliced outgroup BAMs for rooting
+
+Config keys used:
+- angsd_raxml.enabled
+- angsd_raxml.include_outgroups
+- angsd_raxml.downsampling.max_per_population
+- angsd_raxml.downsampling.exclude_samples
+- angsd_raxml.downsampling.use_all_samples
+- angsd_raxml.downsampling.seed
+- raxml.outgroup_species
+- raxml.threads_catg
+- raxml.threads_run
+- populations
+- population_labels
+- group_col
+- angsd_common_args
+- angsd_args.raxml
+- minIndRatio.raxml
+- minIndRatio.global
+- resources.analyses.angsd_raxml
+- resources.analyses.raxml_catg
+- resources.analyses.raxml_run
+- threads.analyses.angsd_raxml
+- threads.analyses.raxml_catg
+- threads.analyses.raxml_run
 """
 
 RAXML_DIR = f"results/raxml/{output_prefix}"

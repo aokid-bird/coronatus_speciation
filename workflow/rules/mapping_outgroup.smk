@@ -3,6 +3,28 @@ Mapping trimmed outgroup reads to the reference, with optional inclusion of
 unpaired reads. Mapper can be selected via config.mapping.outgroup.mapper (or
 fallback to the global mapping defaults): bwa or bwa-mem2.
 
+Inputs:
+- Trimmed outgroup FASTQs from qc_trimmomatic.smk
+- Long-read merged FASTQs for minimap2/filtlong workflow
+- Shared reference FASTA and mapper indices from reference_shared.smk
+
+Config keys used:
+- mapping.mapper
+- mapping.outgroup.mapper
+- mapping.outgroup.map_unpaired
+- mapping.outgroup.extra
+- longread.filter.min_length
+- longread.filter.keep_percent
+- longread.filter.target_bases
+- longread.filter.extra
+- bam_dir
+- resources.mapping.outgroup_paired
+- resources.mapping.outgroup_unpaired
+- resources.mapping.outgroup_merge
+- resources.mapping.outgroup_longread
+- threads.mapping.outgroup
+- threads.mapping.longread_filter
+
 Outputs final coordinate-sorted BAM and index in config['bam_dir']/outgroups/.
 """
 

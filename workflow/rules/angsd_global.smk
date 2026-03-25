@@ -1,5 +1,30 @@
 """
 Global ANGSD, relatedness, LD pruning, and unrelated-analysis inputs.
+
+Inputs:
+- Ingroup BAMs built from config.samples
+- Optional sliced outgroup BAMs when global analyses include outgroups
+
+Config keys used:
+- angsd_global.enabled
+- angsd_global.include_outgroups
+- angsd_global_unrelated_unlinked.enabled
+- ngsrelate.kinship_threshold
+- ngsld.max_kb_dist
+- ngsld.minmaf
+- ngsld.min_weight
+- ngsld.weight_field
+- group_col
+- populations
+- angsd_common_args
+- angsd_args.global
+- minIndRatio.global
+- resources.analyses.angsd_global
+- resources.analyses.angsd_global_unrelated_unlinked
+- threads.analyses.angsd_global
+- threads.analyses.angsd_global_unrelated_unlinked
+- threads.analyses.ngsrelate
+- threads.analyses.ngsld
 """
 
 kin_thr = config["ngsrelate"]["kinship_threshold"]

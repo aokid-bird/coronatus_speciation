@@ -1,5 +1,33 @@
 """
 SNAPP preparation workflow, including a dedicated ANGSD call and XML setup.
+
+Inputs:
+- Global ANGSD outputs for sample selection
+- Optional sliced outgroup BAMs for SNAPP inclusion
+- LD-pruned site list from angsd_global.smk
+
+Config keys used:
+- snapp.enabled
+- snapp.include_outgroups
+- snapp.max_per_population
+- snapp.min_samples_locus
+- snapp.missingness_threshold
+- snapp.exclude_samples
+- snapp.population_aliases
+- snapp.outgroup_aliases
+- snapp.constraints.type
+- snapp.constraints.taxa
+- snapp.constraints.runs
+- snapp.snapp_prep.mcmc_length
+- snapp.snapp_prep.topology_weight
+- snapp.snapp_prep.extra_args
+- snapp.log_prefix
+- angsd_common_args
+- angsd_args.snapp
+- minIndRatio.snapp
+- minIndRatio.global
+- resources.analyses.snapp
+- threads.analyses.snapp
 """
 
 SNAPP_MAX_PER_POP = int(SNAPP_CFG.get("max_per_population", 4))
@@ -44,7 +72,10 @@ SNAPP_CONSTRAINT_DIR = f"{SNAPP_BASE}/constraints"
 
 
 rule snapp_select_samples:
-    """Select low-missingness individuals for SNAPP."""
+    """
+    Select a bounded number of low-missingness ingroup individuals per
+    population for the SNAPP panel.
+    """
     input:
         geno=f"results/angsd_global/{output_prefix}/gl.geno.gz",
         bamlist=f"results/bamlists/{output_prefix}/global_analysis/bamlist.txt",
@@ -84,7 +115,10 @@ rule snapp_select_samples:
 
 
 rule snapp_make_bamlist:
-    """Generate bamlist for SNAPP run including optional outgroups."""
+    """
+    Write the SNAPP bamlist from the selected ingroup samples and any
+    configured sliced outgroup BAMs.
+    """
     input:
         selected=rules.snapp_select_samples.output.selected,
         outgroups=(lambda wc: sliced_outgroup_inputs(SNAPP_OUTGROUP_IDS))
@@ -101,7 +135,10 @@ rule snapp_make_bamlist:
 
 
 rule angsd_snapp:
-    """ANGSD call restricted to SNAPP individuals."""
+    """
+    Run a dedicated ANGSD call restricted to the SNAPP sample panel so the
+    downstream VCF and alignments match the chosen individuals.
+    """
     input:
         bamlist=rules.snapp_make_bamlist.output.bamlist,
         sites=f"results/intersect_sites/{output_prefix}/intersect.txt",

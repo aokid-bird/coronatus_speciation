@@ -86,7 +86,7 @@ The config file is the most important part of the analysis where you define spec
 - The new `storage` section uses explicit keys. Leave them at their defaults to keep files inside the repository, or point them to absolute directories like `/Data/WGS/...` for reusable storage across analyses. If `storage.bam.ingroup_dir` or `storage.bam.outgroup_dir` is set, those BAMs are treated as reusable preprocessing outputs rather than scenario-specific files.
 - The `reads.ingroup_metadata` section defines which `samples.tsv` columns should be used for ingroup FASTQ directory and naming resolution. The defaults expect columns named `fastq_dir`, `fastq_prefix`, `fastq_r1_suffix`, `fastq_r2_suffix`, and `fastq_extension`, with fallback to `reads.ingroup_dir` plus `_1`/`_2` and `.fastq.gz` when those per-sample columns are absent.
 - The `transfer.cluster_storage_root` setting defines where external absolute paths are mirrored on the cluster. For example, a local external path `/Data/WGS/project_a/reference` is transferred to `/lfs/aokid/Data/WGS/project_a/reference` when `transfer.cluster_storage_root` is `/lfs/aokid`.
-- The pipeline is still under development, and therefore, flexibility is still low. In the future, you may choose which analyses you want to do by turning "enabled: true" on. In the present version, however, you may need to go through all or most of the analyses.
+- Each analysis block now has an `enabled: true|false` switch in the config templates, so you can turn major downstream analyses on or off per run without editing the Snakefile.
 
 ## Step 6: Adjust run_pipeline_cluster.sh/run_pipeline_local.sh
 These two bash scripts are prepared to run Snakemake entirely either in a cluster or a local environment. While they make it easy to run from the beginning to the end of this pipeline, you may want to change some details sometimes. Please adjust the contents, especially options of `snakemake` to your own purposes.
@@ -94,6 +94,10 @@ For cluster execution, the current Slurm setup uses `profile/default/config.yaml
 
 ## Step 7: Analysis environment
 Once creating your snakemake environment `bioinfo_pipeline`, other analyses environment will be created inside the pipeline (for cases of conda) or before the pipeline initiates (for cases of singularity using the run_pipeline.sh). Therefore, you do not have to create your own analysis environment. 
+The workflow now standardizes generic helper environments into:
+- `workflow/envs/python_utils.yaml` for pandas-based Python helper scripts
+- `workflow/envs/r_plotting.yaml` for generic R plotting and reporting scripts
+Specialized environments such as TreeMix evaluation, RAxML tree plotting, ABBABABA2 error estimation, and SNAPP preparation remain separate.
 
 ## Step 8: Place software bin files and FASTQ, Reference, SRA-FASTQ and other huge files to the cluseter by using FTP transfer.
 Because some files are too huge to place via github, you need to manually transfer files like .bin/.sif files (mainly softwares) and raw data (fastq, .fasta and their index files) to your cluster on your own. You normally use FTP and any other protocols to transfer between your local and cluster.

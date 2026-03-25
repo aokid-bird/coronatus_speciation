@@ -4,6 +4,10 @@ Shared outgroup-derived metadata rules.
 These rules consume sample-level outgroup FASTQs regardless of whether they were
 created locally or provided externally, so they can be loaded in both local and
 cluster environments.
+
+Config keys used:
+- outgroups
+- storage.outgroup.merged_dir
 """
 
 LONGREAD_SAMPLES = [sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]

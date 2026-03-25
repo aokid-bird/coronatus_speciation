@@ -1,5 +1,32 @@
 """
 TreeMix workflow from ANGSD genotype likelihoods through evaluation plots.
+
+Inputs:
+- Unrelated ingroup BAMs from angsd_global.smk
+- Optional sliced outgroup BAMs for rooting or merged outgroup groups
+
+Config keys used:
+- treemix.enabled
+- treemix.include_outgroups
+- treemix.exclude_samples
+- treemix.mode
+- treemix.merge_outgroups
+- treemix.root_label
+- treemix.max_m
+- treemix.reps
+- treemix.timeout_seconds
+- treemix.max_attempts
+- treemix.use_optm
+- treemix.se
+- treemix.glactools_bin
+- group_col
+- angsd_common_args
+- angsd_args.treemix
+- minIndRatio.treemix
+- minIndRatio.global
+- resources.analyses.treemix
+- threads.analyses.treemix
+- threads.analyses.treemix_run
 """
 
 GLACTOOLS_BIN = TREEMIX_CFG.get("glactools_bin", "workflow/bin/glactools")

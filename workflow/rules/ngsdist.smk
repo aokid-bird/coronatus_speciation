@@ -1,5 +1,20 @@
 """
 ngsDist workflow with its own ANGSD producer and distance-format exports.
+
+Inputs:
+- Ingroup BAMs plus optional sliced outgroup BAMs
+- Shared intersected sites from angsd_intersect.smk
+
+Config keys used:
+- ngsdist.enabled
+- ngsdist.include_outgroups
+- ngsdist.models
+- angsd_common_args
+- angsd_args.global
+- minIndRatio.global
+- resources.analyses.ngsdist
+- threads.analyses.angsd_global
+- threads.analyses.ngsdist
 """
 
 _MODELS = NGSDIST_CFG.get("models", ["p", "jc69"])  # allowed: p, jc69

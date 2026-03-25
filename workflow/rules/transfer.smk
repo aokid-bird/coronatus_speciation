@@ -4,6 +4,14 @@ Generate helper scripts to mirror external storage paths between local and clust
 The scripts preserve the local storage layout beneath a configurable cluster root
 such as /lfs/aokid, so a local path like /Data/WGS/project/ref becomes
 /lfs/aokid/Data/WGS/project/ref on the cluster.
+
+Config keys used:
+- transfer.cluster_storage_root
+- storage.reference.dir
+- storage.bam.ingroup_dir
+- storage.bam.outgroup_dir
+- reads.ingroup_dir
+- reads.ingroup_metadata
 """
 
 from pathlib import Path
@@ -39,6 +47,10 @@ def _transfer_items():
 
 
 rule generate_external_transfer_scripts:
+    """
+    Write a manifest of external storage paths plus upload/download helper
+    scripts that mirror those paths between local and cluster storage roots.
+    """
     output:
         manifest=TRANSFER_MANIFEST,
         upload=TRANSFER_UPLOAD_SCRIPT,

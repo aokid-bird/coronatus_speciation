@@ -1,10 +1,18 @@
-# rules/reference_shared.smk
-
 """
 Shared reference-derived outputs and mapper indices.
 
 These rules are environment-agnostic and may be used in either local or cluster
 runs once the reference FASTA path has been resolved.
+
+Config keys used:
+- reference.fasta
+- reference.mapper
+- reference.index_threads
+- storage.reference.dir
+- resources.reference.samtools_index
+- resources.reference.bwa_index
+- resources.reference.bwa_mem2_index
+- threads.reference.index
 """
 
 REFERENCE_INDEX_THREADS = _resolve_named_threads(

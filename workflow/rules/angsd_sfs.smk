@@ -1,5 +1,26 @@
 """
 Site-frequency spectrum, theta, Tajima's D, and pairwise Fst analyses.
+
+Inputs:
+- Ingroup BAMs partitioned by configured populations
+- Linked and optionally unlinked site lists from upstream ANGSD rules
+
+Config keys used:
+- angsd_sfs.enabled
+- sfs_analysis.do_1d
+- sfs_analysis.do_2d
+- sfs_analysis.site_filters
+- sfs_analysis.fold_states
+- sfs_analysis.realSFS
+- populations
+- angsd_common_args
+- angsd_args.sfs
+- minIndRatio.sfs
+- minIndRatio.global
+- resources.analyses.angsd_sfs
+- resources.analyses.sfs_realsfs
+- threads.analyses.angsd_sfs
+- threads.analyses.sfs_realsfs
 """
 
 from pathlib import Path
@@ -119,7 +140,10 @@ def _realsfs2d_param_outprefix(wildcards):
 
 
 rule angsd_sfs_group:
-    """Run ANGSD per population and site filter to generate SAF files for SFS."""
+    """
+    Run ANGSD per population and site filter to generate genotype likelihoods,
+    allele-frequency summaries, and SAF files for downstream SFS analyses.
+    """
     input:
         bamlist=_angsd_sfs_group_input_bamlist,
         sites=_angsd_sfs_group_input_sites,
@@ -169,7 +193,10 @@ rule angsd_sfs_group:
 
 
 rule realsfs_1d:
-    """Estimate 1D SFS, theta, and Tajima's D per population."""
+    """
+    Estimate 1D SFS, theta summaries, and Tajima's D for one population,
+    one site filter, and one fold/unfold setting.
+    """
     input:
         saf_idx=_realsfs1d_input_saf_idx,
     output:
@@ -206,7 +233,10 @@ rule realsfs_1d:
 
 
 rule realsfs_2d:
-    """Compute 2D SFS and Fst across population pairs."""
+    """
+    Compute the 2D SFS and pairwise Fst summaries for one configured
+    population pair, site filter, and fold/unfold setting.
+    """
     input:
         saf1=_realsfs2d_input_saf1,
         saf2=_realsfs2d_input_saf2,
@@ -247,7 +277,10 @@ rule realsfs_2d:
 
 
 rule summarize_sfs_stats:
-    """Aggregate SFS-derived diversity statistics and run linear models."""
+    """
+    Aggregate SFS-derived diversity statistics across populations and produce
+    summary tables plus the theta-versus-Tajima diagnostic figure.
+    """
     input:
         sfs=[f"{_realsfs1d_prefix(site, fold, group)}.sfs" for site in SFS_SITE_FILTERS_ACTIVE for fold in SFS_FOLD_STATES_ACTIVE for group in groups],
         pest=[f"{_realsfs1d_prefix(site, fold, group)}.thetas.idx.pestPG" for site in SFS_SITE_FILTERS_ACTIVE for fold in SFS_FOLD_STATES_ACTIVE for group in groups],

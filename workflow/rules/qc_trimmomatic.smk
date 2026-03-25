@@ -29,7 +29,7 @@ def _qc_scope(scope: str):
 
 OUTGROUP_QC_CFG = _qc_scope("outgroup")
 
-# Only operate on outgroups detected as short-read in common.smk
+# Only operate on outgroups detected as short-read in the shared sample helpers.
 SHORTREAD_SAMPLES = [sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "short"]
 
 PRE_QC_DIR = pjoin(OUTGROUP_QC_BASE_DIR, "pre")

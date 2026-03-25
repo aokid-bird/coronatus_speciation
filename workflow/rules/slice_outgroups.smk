@@ -1,6 +1,16 @@
 """
 Build union sites across ingroup populations from ANGSD intersect outputs,
 then slice outgroup BAMs to those sites to reduce size for downstream ANGSD.
+
+Inputs:
+- Per-population intersect ANGSD genotype files
+- Final outgroup BAMs from mapping_outgroup.smk
+
+Config keys used:
+- slice_outgroups.enabled
+- populations
+- resources.mapping.slice_outgroups
+- threads.mapping.slice_outgroups
 """
 
 SLICE_OUTGROUPS_MEM_MB = _resolve_mem_mb(200000, "mapping", "slice_outgroups")

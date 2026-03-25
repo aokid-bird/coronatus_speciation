@@ -1,5 +1,18 @@
 """
 Shared intersect-site discovery across configured ingroup populations.
+
+Inputs:
+- Ingroup BAMs resolved from config.samples and config.group_col
+
+Config keys used:
+- angsd_intersect.enabled
+- populations
+- group_col
+- angsd_common_args
+- angsd_args.intersect
+- minIndRatio.intersect
+- resources.analyses.angsd_intersect
+- threads.analyses.angsd_intersect
 """
 
 ANGSD_INTERSECT_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_intersect", legacy_section=ANGSD_INTERSECT_CFG)
