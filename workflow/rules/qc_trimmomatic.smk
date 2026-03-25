@@ -17,6 +17,7 @@ Config keys used (with defaults shown):
 """
 
 from os.path import join as pjoin
+from pathlib import Path
 
 # Resolve QC config with optional scope-specific overrides
 def _qc_scope(scope: str):
@@ -27,6 +28,30 @@ def _qc_scope(scope: str):
         merged.update(scoped)
         return merged
     return base
+
+
+def _fastqc_output_stem(path):
+    name = Path(str(path)).name
+    for suffix in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return Path(name).stem
+
+
+def _outgroup_pre_fastqc_html(sample_id, read):
+    return pjoin(PRE_QC_DIR, f"{_fastqc_output_stem(f'{OUTGROUP_MERGED_DIR}/{sample_id}_{read}.fastq.gz')}_fastqc.html")
+
+
+def _outgroup_pre_fastqc_zip(sample_id, read):
+    return pjoin(PRE_QC_DIR, f"{_fastqc_output_stem(f'{OUTGROUP_MERGED_DIR}/{sample_id}_{read}.fastq.gz')}_fastqc.zip")
+
+
+def _outgroup_post_fastqc_html(sample_id, read):
+    return pjoin(POST_QC_DIR, f"{sample_id}_pair_R{read}_fastqc.html")
+
+
+def _outgroup_post_fastqc_zip(sample_id, read):
+    return pjoin(POST_QC_DIR, f"{sample_id}_pair_R{read}_fastqc.zip")
 
 OUTGROUP_QC_CFG = _qc_scope("outgroup")
 
@@ -67,8 +92,8 @@ rule fastqc_outgroup_pre:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
-        zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
+        html=lambda wc: _outgroup_pre_fastqc_html(wc.sample_id, wc.read),
+        zip=lambda wc: _outgroup_pre_fastqc_zip(wc.sample_id, wc.read)
     params:
         outdir=PRE_QC_DIR,
         contaminants=FASTQC_CONTAM,
@@ -94,7 +119,7 @@ rule multiqc_outgroup_pre:
     Aggregate pre-trim FastQC reports for short-read outgroups with MultiQC.
     """
     input:
-        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
+        expand(_outgroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
     output:
         html=pjoin(PRE_QC_DIR, "multiqc_report.html")
     conda:
@@ -159,8 +184,8 @@ rule fastqc_outgroup_post:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
-        zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
+        html=lambda wc: _outgroup_post_fastqc_html(wc.sample_id, wc.read),
+        zip=lambda wc: _outgroup_post_fastqc_zip(wc.sample_id, wc.read)
     params:
         outdir=POST_QC_DIR,
         contaminants=FASTQC_CONTAM,
@@ -186,7 +211,7 @@ rule multiqc_outgroup_post:
     Aggregate post-trim FastQC reports for short-read outgroups with MultiQC.
     """
     input:
-        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
+        expand(_outgroup_post_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
     conda:
@@ -202,7 +227,7 @@ rule outgroup_qc_trim_all:
     """
     input:
         # pre-QC htmls for R1/R2
-        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"]),
+        expand(_outgroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1","2"]),
         # trimmed pairs
         expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
         expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
@@ -256,7 +281,7 @@ rule manifest_outgroup_qc_storage:
 
 
 OUTGROUP_QC_TARGETS = [
-    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1", "2"]),
+    *expand(_outgroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1", "2"]),
     *expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
     *expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
     pjoin(PRE_QC_DIR, "multiqc_report.html"),

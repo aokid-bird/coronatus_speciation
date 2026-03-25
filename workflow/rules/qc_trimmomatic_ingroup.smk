@@ -19,6 +19,7 @@ Config keys (scoped under qc.ingroup with fallback to qc base):
 """
 
 from os.path import join as pjoin
+from pathlib import Path
 import re
 
 
@@ -34,6 +35,30 @@ def _qc_scope(scope: str):
 
 def _wc_regex(ids):
     return "(" + "|".join(map(re.escape, ids)) + ")" if ids else r"a^"
+
+
+def _fastqc_output_stem(path):
+    name = Path(str(path)).name
+    for suffix in (".fastq.gz", ".fq.gz", ".fastq", ".fq"):
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return Path(name).stem
+
+
+def _ingroup_pre_fastqc_html(sample_id, read):
+    return pjoin(PRE_QC_DIR, f"{_fastqc_output_stem(ingroup_fastq_path(sample_id, read))}_fastqc.html")
+
+
+def _ingroup_pre_fastqc_zip(sample_id, read):
+    return pjoin(PRE_QC_DIR, f"{_fastqc_output_stem(ingroup_fastq_path(sample_id, read))}_fastqc.zip")
+
+
+def _ingroup_post_fastqc_html(sample_id, read):
+    return pjoin(POST_QC_DIR, f"{sample_id}_pair_R{read}_fastqc.html")
+
+
+def _ingroup_post_fastqc_zip(sample_id, read):
+    return pjoin(POST_QC_DIR, f"{sample_id}_pair_R{read}_fastqc.zip")
 
 
 INGROUP_QC_CFG = _qc_scope("ingroup")
@@ -76,8 +101,8 @@ rule fastqc_ingroup_pre:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
-        zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
+        html=lambda wc: _ingroup_pre_fastqc_html(wc.sample_id, wc.read),
+        zip=lambda wc: _ingroup_pre_fastqc_zip(wc.sample_id, wc.read)
     params:
         outdir=PRE_QC_DIR,
         contaminants=FASTQC_CONTAM,
@@ -104,7 +129,7 @@ rule multiqc_ingroup_pre:
     Aggregate pre-trim ingroup FastQC reports with MultiQC.
     """
     input:
-        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
+        expand(_ingroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(PRE_QC_DIR, "multiqc_report.html")
     conda:
@@ -176,8 +201,8 @@ rule fastqc_ingroup_post:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
-        zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
+        html=lambda wc: _ingroup_post_fastqc_html(wc.sample_id, wc.read),
+        zip=lambda wc: _ingroup_post_fastqc_zip(wc.sample_id, wc.read)
     params:
         outdir=POST_QC_DIR,
         contaminants=FASTQC_CONTAM,
@@ -204,7 +229,7 @@ rule multiqc_ingroup_post:
     Aggregate post-trim ingroup FastQC reports with MultiQC.
     """
     input:
-        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
+        expand(_ingroup_post_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
     conda:
@@ -221,7 +246,7 @@ rule ingroup_qc_trim_all:
     """
     input:
         # pre-QC htmls for R1/R2
-        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"]),
+        expand(_ingroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"]),
         # trimmed pairs
         expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
         expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
@@ -276,7 +301,7 @@ rule manifest_ingroup_qc_storage:
 
 
 INGROUP_QC_TARGETS = [
-    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1", "2"]),
+    *expand(_ingroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1", "2"]),
     *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
     *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
     pjoin(PRE_QC_DIR, "multiqc_report.html"),
