@@ -82,6 +82,7 @@ echo "Unlocking working directory..."
 snakemake \
   --snakefile workflow/Snakefile \
   --configfile "$CONFIG" \
+  --config environment=cluster \
   --unlock \
   "${TARGETS[@]}"
 
@@ -90,6 +91,7 @@ echo "Creating conda environments..."
 snakemake \
   --snakefile workflow/Snakefile \
   --configfile "$CONFIG" \
+  --config environment=cluster \
   --use-conda \
   --conda-create-envs-only \
   --conda-prefix "$CONDA_PREFIX_SNAKEMAKE" \
@@ -121,9 +123,9 @@ done
 
 # create DAG (for specified targets if provided)
 if [ ${#TARGETS[@]} -gt 0 ]; then
-  snakemake --dag --rerun-incomplete --snakefile workflow/Snakefile --configfile "$CONFIG" "${TARGETS[@]}" | dot -Tpdf > "${LOGDIR}/dag.pdf"
+  snakemake --dag --rerun-incomplete --snakefile workflow/Snakefile --configfile "$CONFIG" --config environment=cluster "${TARGETS[@]}" | dot -Tpdf > "${LOGDIR}/dag.pdf"
 else
-  snakemake --dag --rerun-incomplete --snakefile workflow/Snakefile --configfile "$CONFIG" | dot -Tpdf > "${LOGDIR}/dag.pdf"
+  snakemake --dag --rerun-incomplete --snakefile workflow/Snakefile --configfile "$CONFIG" --config environment=cluster | dot -Tpdf > "${LOGDIR}/dag.pdf"
 fi
 
 # Snakemake dryrun
@@ -134,12 +136,14 @@ snakemake \
     --snakefile workflow/Snakefile \
     --rerun-incomplete \
     --configfile "$CONFIG" \
+    --config environment=cluster \
     "${TARGETS[@]}" > "${LOGDIR}/dryrun.log" 2>&1
 
 # Snakemake run
 snakemake \
     --snakefile workflow/Snakefile \
     --configfile "$CONFIG" \
+    --config environment=cluster \
     --profile "$PROFILE" \
     --use-conda \
     --conda-frontend conda \
