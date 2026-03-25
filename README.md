@@ -94,6 +94,7 @@ and
 `<fastq_dir>/<fastq_prefix><sample><fastq_r2_suffix><fastq_extension>`.
 This allows mixed storage locations and file naming rules within one run.
 3. Prepare your outgroup list `data/outgroup.tsv`. Look up SRA of NCBI (https://www.ncbi.nlm.nih.gov/sra) with your keywords, like genus name. Fill each column. For example, normally, `sample_id` starts with "SAMN", `srr_id` starts with "SRR".
+If you do not need outgroups for a project, keep `data/outgroup.tsv` as a header-only TSV rather than a truly empty file. Then set each relevant `include_outgroups: false` switch in config, and disable analyses that intrinsically require outgroups, such as ABBABABA2.
 4. Put your data where you want. If all ingroup FASTQs follow a single shared directory and default naming rule, you may still use `reads.ingroup_dir`. If samples are distributed across multiple directories or use different naming conventions, define those per sample in `samples.tsv` and the pipeline will use those metadata instead.
 5. Put your adapter sequence fasta in `data/adapters`. Please refer to `templates/data/adapters` for an example.
 6. If you want reusable assets outside the repository, set the explicit `storage.*` keys in your config. These control where the pipeline stores reference files, downloaded outgroup FASTQs, merged FASTQs, trimmed reads, QC outputs, temporary mapping files, filtered long reads, and reusable BAMs. Downstream analysis outputs such as ANGSD, RAxML, TreeMix, SNAPP, and plots remain under the project-local `results/` and `figures/` directories.
@@ -108,6 +109,7 @@ The config file is the most important part of the analysis where you define spec
 - The `reads.ingroup_metadata` section defines which `samples.tsv` columns should be used for ingroup FASTQ directory and naming resolution. The defaults expect columns named `fastq_dir`, `fastq_prefix`, `fastq_r1_suffix`, `fastq_r2_suffix`, and `fastq_extension`, with fallback to `reads.ingroup_dir` plus `_1`/`_2` and `.fastq.gz` when those per-sample columns are absent.
 - The `transfer.cluster_storage_root` setting defines where external absolute paths are mirrored on the cluster. For example, a local external path `/Data/WGS/project_a/reference` is transferred to `/lfs/aokid/Data/WGS/project_a/reference` when `transfer.cluster_storage_root` is `/lfs/aokid`.
 - Each analysis block now has an `enabled: true|false` switch in the config templates, so you can turn major downstream analyses on or off per run without editing the Snakefile.
+- When no outgroups are used, make sure `include_outgroups: false` is set for analyses such as global ANGSD, RAxML, TreeMix, ngsDist, and SNAPP if they are enabled. ABBABABA2 should be disabled unless an outgroup panel is provided.
 
 ## Step 6: Adjust run_pipeline_cluster.sh/run_pipeline_local.sh
 These two bash scripts are prepared to run Snakemake entirely either in a cluster or a local environment. While they make it easy to run from the beginning to the end of this pipeline, you may want to change some details sometimes. Please adjust the contents, especially options of `snakemake` to your own purposes.

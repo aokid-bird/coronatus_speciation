@@ -136,6 +136,10 @@ paths:
 
 inputs:
     samples_tsv: "data/samples.tsv"
+    # If outgroups are not used, keep this file as a header-only TSV rather than a
+    # truly empty file, and set include_outgroups: false for analyses that should
+    # not append outgroups. Disable analyses that intrinsically require outgroups
+    # (for example ABBABABA2).
     outgroups_tsv: "data/outgroup.tsv"
     references_tsv: "data/references.tsv"
 
