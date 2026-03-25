@@ -56,18 +56,31 @@ def _translate_between_storage_roots(path, source_root, target_root):
 
 
 config_bam_base = config["bam_dir"]
+INGROUP_FASTQ_BASENAME_COL = str(
+    _config_value(config, "reads", "ingroup_metadata", "basename_col", default="sample")
+)
+INGROUP_BAM_ALIAS_ACTIVE = INGROUP_FASTQ_BASENAME_COL != "sample"
 LOCAL_STORAGE_ROOT = _storage_root_for("local")
 CLUSTER_STORAGE_ROOT = _storage_root_for("cluster")
 ACTIVE_STORAGE_ROOT = _storage_root_for(ENVIRONMENT)
-config_bam_dir = _resolve_storage_path(
+INGROUP_BAM_STORAGE_DIR = _resolve_storage_path(
     ("bam", "ingroup_dir"),
     ("bam", "ingroup_dir"),
-    default=f"{config_bam_base}/{output_prefix}",
+    default=(
+        f"{config_bam_base}/{output_prefix}/preprocess"
+        if INGROUP_BAM_ALIAS_ACTIVE
+        else f"{config_bam_base}/{output_prefix}"
+    ),
+)
+config_bam_dir = (
+    f"{config_bam_base}/{output_prefix}"
+    if INGROUP_BAM_ALIAS_ACTIVE
+    else INGROUP_BAM_STORAGE_DIR
 )
 OUTGROUP_BAM_DIR = _resolve_storage_path(
     ("bam", "outgroup_dir"),
     ("bam", "outgroup_dir"),
-    default=f"{config_bam_dir}/outgroups",
+    default=f"{INGROUP_BAM_STORAGE_DIR}/outgroups",
 )
 OUTGROUP_SLICED_DIR = f"results/outgroups_sliced/{output_prefix}"
 
@@ -304,7 +317,7 @@ def external_transfer_directories():
         INGROUP_QC_BASE_DIR,
         OUTGROUP_QC_BASE_DIR,
         OUTGROUP_LR_FILTER_DIR,
-        config_bam_dir,
+        INGROUP_BAM_STORAGE_DIR,
         OUTGROUP_BAM_DIR,
     ]
     return sorted({path for path in candidates if is_external_storage_path(path)})

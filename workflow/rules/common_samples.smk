@@ -14,6 +14,7 @@ READS_CFG = config.get("reads", {}) or {}
 INGROUP_READS_DIR = resolve_ingroup_reads_dir()
 INGROUP_READS_META_CFG = READS_CFG.get("ingroup_metadata", {}) or {}
 
+INGROUP_FASTQ_BASENAME_COL = str(INGROUP_READS_META_CFG.get("basename_col", "sample"))
 INGROUP_FASTQ_DIR_COL = str(INGROUP_READS_META_CFG.get("dir_col", "fastq_dir"))
 INGROUP_FASTQ_PREFIX_COL = str(INGROUP_READS_META_CFG.get("prefix_col", "fastq_prefix"))
 INGROUP_FASTQ_R1_SUFFIX_COL = str(INGROUP_READS_META_CFG.get("r1_suffix_col", "fastq_r1_suffix"))
@@ -39,17 +40,38 @@ def _normalize_fastq_ext(ext):
     return value if value.startswith(".") else f".{value}"
 
 
+if len(INGROUP_SAMPLE_IDS) != len(set(INGROUP_SAMPLE_IDS)):
+    raise ValueError("The 'sample' column in samples.tsv must contain unique analysis sample IDs.")
+
+
 # Resolve ingroup FASTQ locations once so rules can stay simple.
 _INGROUP_FASTQ_RECORDS = {}
+INGROUP_STORAGE_SAMPLE_IDS = []
+_INGROUP_ANALYSIS_TO_STORAGE = {}
+_INGROUP_STORAGE_TO_ANALYSIS = {}
 for _, row in _SAMPLES_DF.iterrows():
-    sample_id = str(row["sample"])
+    sample_id = str(row["sample"]).strip()
+    storage_id = _sample_value(row, INGROUP_FASTQ_BASENAME_COL, sample_id).strip()
+    if not storage_id:
+        raise ValueError(
+            f"Sample '{sample_id}' has an empty preprocessing basename after config/metadata resolution."
+        )
+    if storage_id in _INGROUP_STORAGE_TO_ANALYSIS:
+        raise ValueError(
+            f"Preprocessing basename '{storage_id}' is reused by both "
+            f"'{_INGROUP_STORAGE_TO_ANALYSIS[storage_id]}' and '{sample_id}'."
+        )
     sample_dir = _sample_value(row, INGROUP_FASTQ_DIR_COL, INGROUP_READS_DIR).strip()
     if not sample_dir:
         raise ValueError(
             f"Sample '{sample_id}' has an empty FASTQ directory after config/metadata resolution."
         )
-    _INGROUP_FASTQ_RECORDS[sample_id] = {
+    _INGROUP_ANALYSIS_TO_STORAGE[sample_id] = storage_id
+    _INGROUP_STORAGE_TO_ANALYSIS[storage_id] = sample_id
+    INGROUP_STORAGE_SAMPLE_IDS.append(storage_id)
+    _INGROUP_FASTQ_RECORDS[storage_id] = {
         "dir": sample_dir,
+        "basename": storage_id,
         "prefix": _sample_value(row, INGROUP_FASTQ_PREFIX_COL, INGROUP_FASTQ_DEFAULT_PREFIX),
         "r1_suffix": _sample_value(row, INGROUP_FASTQ_R1_SUFFIX_COL, INGROUP_FASTQ_DEFAULT_R1_SUFFIX),
         "r2_suffix": _sample_value(row, INGROUP_FASTQ_R2_SUFFIX_COL, INGROUP_FASTQ_DEFAULT_R2_SUFFIX),
@@ -59,17 +81,36 @@ for _, row in _SAMPLES_DF.iterrows():
     }
 
 
-# Return the configured FASTQ path for an ingroup sample/read pair.
-def ingroup_fastq_path(sample_id, read):
+def ingroup_storage_sample_id(sample_id):
     sid = str(sample_id)
+    if sid not in _INGROUP_ANALYSIS_TO_STORAGE:
+        raise KeyError(f"Unknown ingroup analysis sample_id '{sid}'")
+    return _INGROUP_ANALYSIS_TO_STORAGE[sid]
+
+
+def ingroup_analysis_sample_id(storage_id):
+    sid = str(storage_id)
+    if sid not in _INGROUP_STORAGE_TO_ANALYSIS:
+        raise KeyError(f"Unknown ingroup preprocessing basename '{sid}'")
+    return _INGROUP_STORAGE_TO_ANALYSIS[sid]
+
+
+# Return the configured FASTQ path for an ingroup sample/read pair.
+def ingroup_fastq_path(storage_id, read):
+    sid = str(storage_id)
     if sid not in _INGROUP_FASTQ_RECORDS:
-        raise KeyError(f"Unknown ingroup sample_id '{sid}'")
+        raise KeyError(f"Unknown ingroup preprocessing basename '{sid}'")
     if str(read) not in {"1", "2"}:
         raise ValueError(f"read must be '1' or '2', got '{read}'")
     record = _INGROUP_FASTQ_RECORDS[sid]
     suffix = record["r1_suffix"] if str(read) == "1" else record["r2_suffix"]
-    filename = f"{record['prefix']}{sid}{suffix}{record['extension']}"
+    filename = f"{record['prefix']}{record['basename']}{suffix}{record['extension']}"
     return str(Path(record["dir"]) / filename)
+
+
+def ingroup_storage_bam_path(storage_id, bam_dir=None):
+    target_dir = bam_dir or INGROUP_BAM_STORAGE_DIR
+    return f"{target_dir}/{storage_id}.bam"
 
 
 # Derive a sample ID from a BAM/CRAM/SAM path used in bamlists.
@@ -123,7 +164,7 @@ def filter_bam_paths_by_sample_ids(bam_paths, exclude_samples=None, include_samp
 # Identify ingroup FASTQs that live outside the project tree for transfer sync.
 def external_ingroup_fastq_files():
     files = []
-    for sample_id in INGROUP_SAMPLE_IDS:
+    for sample_id in INGROUP_STORAGE_SAMPLE_IDS:
         for read in ("1", "2"):
             fastq = ingroup_fastq_path(sample_id, read)
             if is_external_storage_path(fastq):

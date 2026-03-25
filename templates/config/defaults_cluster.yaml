@@ -214,6 +214,7 @@ reads:
     # If both are null, the workflow falls back to its in-repo default.
     ingroup_dir: null
     ingroup_metadata:
+        basename_col: "sample"
         dir_col: "fastq_dir"
         prefix_col: "fastq_prefix"
         r1_suffix_col: "fastq_r1_suffix"

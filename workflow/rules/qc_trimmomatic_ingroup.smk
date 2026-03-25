@@ -67,7 +67,7 @@ rule fastqc_ingroup_pre:
     Run FastQC on ingroup reads before trimming.
     """
     wildcard_constraints:
-        sample_id=_wc_regex(INGROUP_SAMPLE_IDS),
+        sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS),
         read="1|2"
     input:
         fq=lambda wc: ingroup_fastq_path(wc.sample_id, wc.read)
@@ -97,7 +97,7 @@ rule multiqc_ingroup_pre:
     Aggregate pre-trim ingroup FastQC reports with MultiQC.
     """
     input:
-        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1","2"])
+        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(PRE_QC_DIR, "multiqc_report.html")
     conda:
@@ -113,7 +113,7 @@ rule trimmomatic_ingroup_pe:
     Trim paired-end ingroup reads with Trimmomatic.
     """
     wildcard_constraints:
-        sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
+        sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS)
     input:
         fq1=lambda wc: ingroup_fastq_path(wc.sample_id, "1"),
         fq2=lambda wc: ingroup_fastq_path(wc.sample_id, "2")
@@ -161,7 +161,7 @@ rule fastqc_ingroup_post:
     Run FastQC on paired trimmed ingroup reads.
     """
     wildcard_constraints:
-        sample_id=_wc_regex(INGROUP_SAMPLE_IDS),
+        sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS),
         read="1|2"
     input:
         fq=lambda wc: pjoin(INGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz")
@@ -191,7 +191,7 @@ rule multiqc_ingroup_post:
     Aggregate post-trim ingroup FastQC reports with MultiQC.
     """
     input:
-        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1","2"])
+        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
     conda:
@@ -208,10 +208,10 @@ rule ingroup_qc_trim_all:
     """
     input:
         # pre-QC htmls for R1/R2
-        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1","2"]),
+        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"]),
         # trimmed pairs
-        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
-        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
         # post-QC multiqc
         pjoin(POST_QC_DIR, "multiqc_report.html")
 
@@ -220,8 +220,8 @@ rule manifest_ingroup_trim_storage:
     Document the managed storage location for trimmed ingroup FASTQs.
     """
     input:
-        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
-        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS)
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
+        expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS)
     output:
         readme=manifest_paths(INGROUP_TRIM_DIR_RULE)[0],
         yaml=manifest_paths(INGROUP_TRIM_DIR_RULE)[1]
@@ -232,7 +232,7 @@ rule manifest_ingroup_trim_storage:
             "manifest_ingroup_trim_storage",
             {
                 "asset_type": "trimmed ingroup FASTQ files",
-                "sample_count": len(INGROUP_SAMPLE_IDS),
+                "sample_count": len(INGROUP_STORAGE_SAMPLE_IDS),
                 "source_metadata_tsv": config["samples"],
                 "legacy_default_dir": INGROUP_READS_DIR,
             },
@@ -257,15 +257,15 @@ rule manifest_ingroup_qc_storage:
                 "asset_type": "FastQC and MultiQC outputs for ingroup reads",
                 "pre_qc_dir": PRE_QC_DIR,
                 "post_qc_dir": POST_QC_DIR,
-                "sample_count": len(INGROUP_SAMPLE_IDS),
+                "sample_count": len(INGROUP_STORAGE_SAMPLE_IDS),
             },
         )
 
 
 INGROUP_QC_TARGETS = [
-    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1", "2"]),
-    *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
-    *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1", "2"]),
+    *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
+    *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
     pjoin(PRE_QC_DIR, "multiqc_report.html"),
     pjoin(POST_QC_DIR, "multiqc_report.html"),
     *rules.manifest_ingroup_trim_storage.output,

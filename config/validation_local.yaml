@@ -50,6 +50,7 @@ reference:
 reads:
   ingroup_dir: "data/raw/ingroup"
   ingroup_metadata:
+    basename_col: "sample"
     dir_col: "fastq_dir"
     prefix_col: "fastq_prefix"
     r1_suffix_col: "fastq_r1_suffix"

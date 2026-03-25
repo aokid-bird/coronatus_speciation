@@ -24,7 +24,8 @@ from os.path import join as pjoin
 
 TRIM_DIR = INGROUP_TRIM_DIR
 MAP_TMP = INGROUP_MAP_TMP_DIR
-FINAL_DIR = config_bam_dir
+FINAL_DIR = INGROUP_BAM_STORAGE_DIR
+ALIAS_DIR = config_bam_dir
 
 MAP_CFG = MAPPING_INGROUP_CFG
 MAP_UNPAIRED = bool(MAP_CFG.get("map_unpaired", True))
@@ -44,12 +45,24 @@ def _wc_regex(ids):
     return "(" + "|".join(map(re.escape, ids)) + ")" if ids else r"a^"
 
 
+INGROUP_ANALYSIS_BAM_TARGETS = (
+    expand(pjoin(ALIAS_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS)
+    if INGROUP_BAM_ALIAS_ACTIVE
+    else expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_STORAGE_SAMPLE_IDS)
+)
+INGROUP_ANALYSIS_BAI_TARGETS = (
+    expand(pjoin(ALIAS_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_SAMPLE_IDS)
+    if INGROUP_BAM_ALIAS_ACTIVE
+    else expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_STORAGE_SAMPLE_IDS)
+)
+
+
 rule map_ingroup_paired:
     """
     Map paired trimmed ingroup reads with the configured short-read mapper.
     """
     wildcard_constraints:
-        sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
+        sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS)
     input:
         ref=lambda wc: REF_UNZIPPED,
         idx=lambda wc: REF_MAP_INDEX_INGROUP,
@@ -79,7 +92,7 @@ rule map_ingroup_unpaired:
     Map trimmed ingroup unpaired reads when unpaired mapping is enabled.
     """
     wildcard_constraints:
-        sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
+        sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS)
     input:
         ref=lambda wc: REF_UNZIPPED,
         idx=lambda wc: REF_MAP_INDEX_INGROUP,
@@ -118,7 +131,7 @@ rule ingroup_final_bam:
     Merge, sort, and index final ingroup BAMs from short-read alignments.
     """
     wildcard_constraints:
-        sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
+        sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS)
     input:
         _merge_inputs
     output:
@@ -153,15 +166,38 @@ rule ingroup_bams:
     Aggregate: produce final BAMs for all ingroup samples.
     """
     input:
-        expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS)
+        INGROUP_ANALYSIS_BAM_TARGETS
+
+
+if INGROUP_BAM_ALIAS_ACTIVE:
+    rule ingroup_bam_alias:
+        """
+        Expose user-facing ingroup BAM aliases for downstream analyses.
+        """
+        wildcard_constraints:
+            sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
+        input:
+            bam=lambda wc: ingroup_storage_bam_path(ingroup_storage_sample_id(wc.sample_id)),
+            bai=lambda wc: f"{ingroup_storage_bam_path(ingroup_storage_sample_id(wc.sample_id))}.bai"
+        output:
+            bam=pjoin(ALIAS_DIR, "{sample_id}.bam"),
+            bai=pjoin(ALIAS_DIR, "{sample_id}.bam.bai")
+        message:
+            "Link ingroup BAM alias for downstream sample {wildcards.sample_id}"
+        shell:
+            r"""
+            mkdir -p {ALIAS_DIR}
+            ln -sfn {input.bam} {output.bam}
+            ln -sfn {input.bai} {output.bai}
+            """
 
 rule manifest_ingroup_bam_storage:
     """
     Document the managed storage location for final ingroup BAM files.
     """
     input:
-        expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS),
-        expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_SAMPLE_IDS)
+        expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
+        expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_STORAGE_SAMPLE_IDS)
     output:
         readme=manifest_paths(FINAL_DIR)[0],
         yaml=manifest_paths(FINAL_DIR)[1]
@@ -172,7 +208,7 @@ rule manifest_ingroup_bam_storage:
             "manifest_ingroup_bam_storage",
             {
                 "asset_type": "final ingroup BAM and BAI files",
-                "sample_count": len(INGROUP_SAMPLE_IDS),
+                "sample_count": len(INGROUP_STORAGE_SAMPLE_IDS),
                 "trim_dir": TRIM_DIR,
                 "mapping_tmp_dir": MAP_TMP,
             },
@@ -180,7 +216,7 @@ rule manifest_ingroup_bam_storage:
 
 
 INGROUP_MAPPING_TARGETS = [
-    *expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS),
-    *expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_SAMPLE_IDS),
+    *INGROUP_ANALYSIS_BAM_TARGETS,
+    *INGROUP_ANALYSIS_BAI_TARGETS,
     *rules.manifest_ingroup_bam_storage.output,
 ]
