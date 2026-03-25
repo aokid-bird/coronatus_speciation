@@ -21,10 +21,17 @@ set -u
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
 SINGULARITY_PREFIX_SNAKEMAKE="$HOME/envs/singularity"
-CONFIG=config/config.yaml
+if [ -n "${CONFIG:-}" ]; then
+    CONFIG="$CONFIG"
+elif [ -f config/config_cluster.yaml ]; then
+    CONFIG=config/config_cluster.yaml
+else
+    CONFIG=config/config.yaml
+fi
 PROFILE=profile/default
 CONDARC_SNAKEMAKE="$(pwd)/conda/condarc_snakemake.yaml"
 LOGDIR=$(python workflow/scripts/export_paths.py "$CONFIG")
+echo "Using config \"$CONFIG\""
 echo "Your LOGDIR is \"$LOGDIR\""
 mkdir -p "$LOGDIR"
 

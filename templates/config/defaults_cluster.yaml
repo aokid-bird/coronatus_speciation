@@ -117,7 +117,7 @@ threads:
         snapp: 8
 
 slurm:
-    partition: "default"
+    partition: "ai"
     account: null
     qos: null
     reservation: null
