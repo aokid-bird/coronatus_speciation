@@ -123,7 +123,7 @@ rule multiqc_outgroup_pre:
     Aggregate pre-trim FastQC reports for short-read outgroups with MultiQC.
     """
     input:
-        expand(_outgroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
+        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
     output:
         html=pjoin(PRE_QC_DIR, "multiqc_report.html")
     conda:
@@ -219,7 +219,7 @@ rule multiqc_outgroup_post:
     Aggregate post-trim FastQC reports for short-read outgroups with MultiQC.
     """
     input:
-        expand(_outgroup_post_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
+        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
     conda:
@@ -235,7 +235,7 @@ rule outgroup_qc_trim_all:
     """
     input:
         # pre-QC htmls for R1/R2
-        expand(_outgroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1","2"]),
+        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"]),
         # trimmed pairs
         expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
         expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
@@ -289,7 +289,7 @@ rule manifest_outgroup_qc_storage:
 
 
 OUTGROUP_QC_TARGETS = [
-    *expand(_outgroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=SHORTREAD_SAMPLES, read=["1", "2"]),
+    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1", "2"]),
     *expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
     *expand(pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=SHORTREAD_SAMPLES),
     pjoin(PRE_QC_DIR, "multiqc_report.html"),

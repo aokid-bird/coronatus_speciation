@@ -133,7 +133,7 @@ rule multiqc_ingroup_pre:
     Aggregate pre-trim ingroup FastQC reports with MultiQC.
     """
     input:
-        expand(_ingroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
+        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(PRE_QC_DIR, "multiqc_report.html")
     conda:
@@ -237,7 +237,7 @@ rule multiqc_ingroup_post:
     Aggregate post-trim ingroup FastQC reports with MultiQC.
     """
     input:
-        expand(_ingroup_post_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
+        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
     conda:
@@ -254,7 +254,7 @@ rule ingroup_qc_trim_all:
     """
     input:
         # pre-QC htmls for R1/R2
-        expand(_ingroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"]),
+        expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"]),
         # trimmed pairs
         expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
         expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
@@ -309,7 +309,7 @@ rule manifest_ingroup_qc_storage:
 
 
 INGROUP_QC_TARGETS = [
-    *expand(_ingroup_pre_fastqc_html("{sample_id}", "{read}"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1", "2"]),
+    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1", "2"]),
     *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
     *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_STORAGE_SAMPLE_IDS),
     pjoin(PRE_QC_DIR, "multiqc_report.html"),
