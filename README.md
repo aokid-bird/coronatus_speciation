@@ -65,10 +65,29 @@ conda activate bioinfo_pipeline
 brew install graphviz
 ```
 
+## Project files versus templates
+The upstream pipeline repository keeps example/default files under:
+- `templates/data/`
+- `templates/config/`
+
+These are reference templates, not the active files for a project run.
+
+For each project repository, create and edit your working files under:
+- `data/samples.tsv`
+- `data/outgroup.tsv`
+- `data/references.tsv`
+- `config/*.yaml`
+- `run_pipeline_local.sh`
+- `run_pipeline_cluster.sh`
+
+This keeps upstream template updates separate from project-specific metadata and config changes.
+
+The files under `config/validation_*.yaml` in this pipeline repository are developer validation fixtures used for dry-run testing of the workflow itself. They are not intended to be copied as project configs.
+
 ## Step 5: Prepare your dataset
-Please refer to any default files or `templates/data` to prepare your own input metadata.
-1. Find a suitable reference genome from NCBI.Genome. Prepare your reference list `data/reference.tsv`. Look up Genome of NCBI (https://www.ncbi.nlm.nih.gov/datasets/genome/) and use closely related species. `accession` column is something with "GCA", and `name` should include something ending with "genomic.fna.gz" which you can usually find in the ftp tab of the genome. If you intend to use `config.reference_download_method = wget` option, then create a column called `url` to retrieve the data. Delete the `url` column if you use the `dataset` method. This file should be referred to at `config.references_tsv`.
-2. Prepare your sample lists `data/sample.tsv`. If there are more than one population definition, then create new columns like `pop2`, `pop3`..., which will be referred to in the `config/config.yaml`. The `sample` column remains the canonical sample ID used for BAMs and downstream analyses.
+Please refer to `templates/data/` when creating your own project input metadata under `data/`.
+1. Find a suitable reference genome from NCBI.Genome. Prepare your reference list `data/references.tsv`. Look up Genome of NCBI (https://www.ncbi.nlm.nih.gov/datasets/genome/) and use closely related species. `accession` column is something with "GCA", and `name` should include something ending with "genomic.fna.gz" which you can usually find in the ftp tab of the genome. If you intend to use `config.reference_download_method = wget` option, then create a column called `url` to retrieve the data. Delete the `url` column if you use the `dataset` method. This file should be referred to at `config.references_tsv`.
+2. Prepare your sample list `data/samples.tsv`. If there are more than one population definition, then create new columns like `pop2`, `pop3`..., which will be referred to in the `config/config.yaml`. The `sample` column remains the canonical sample ID used for BAMs and downstream analyses.
 For ingroup FASTQ discovery, you may now also define per-sample columns such as `fastq_dir`, `fastq_prefix`, `fastq_r1_suffix`, `fastq_r2_suffix`, and `fastq_extension`. The pipeline resolves each sample path as:
 `<fastq_dir>/<fastq_prefix><sample><fastq_r1_suffix><fastq_extension>`
 and
@@ -80,7 +99,7 @@ This allows mixed storage locations and file naming rules within one run.
 6. If you want reusable assets outside the repository, set the explicit `storage.*` keys in your config. These control where the pipeline stores reference files, downloaded outgroup FASTQs, merged FASTQs, trimmed reads, QC outputs, temporary mapping files, filtered long reads, and reusable BAMs. Downstream analysis outputs such as ANGSD, RAxML, TreeMix, SNAPP, and plots remain under the project-local `results/` and `figures/` directories.
 
 ## Step 5: Set up your own config files
-The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your config files in `config/XXX.yaml`. Please refer to templates/config for an example. The `templates/config/defaults_cluster.yaml` or `templates/config/defaults_local.yaml` will guide you to make your own. 
+The config file is the most important part of the analysis where you define specific parameters for each analysis. Put your project config files in `config/XXX.yaml`. Please refer to `templates/config/` for examples. The `templates/config/defaults_cluster.yaml` and `templates/config/defaults_local.yaml` files are reference templates and should be copied into project-specific config files before editing.
 - Once you make your own config, put them under `config/`. 
 - Create your own config file for each specific tasks and runs. Please make separate config files when you want to change parameters, change population definitions, etc. Then, set different names to `config.output_prefix` whose unique directory will be created under `results/ANALYSISNAME/OUTPUT_PREFIX`.
 - The new `storage` section uses explicit keys. Leave them at their defaults to keep files inside the repository, or point them to absolute directories like `/Data/WGS/...` for reusable storage across analyses. If `storage.bam.ingroup_dir` or `storage.bam.outgroup_dir` is set, those BAMs are treated as reusable preprocessing outputs rather than scenario-specific files.
