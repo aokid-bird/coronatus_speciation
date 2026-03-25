@@ -61,7 +61,8 @@ rule fastqc_outgroup_pre:
     Run FastQC on merged outgroup reads before trimming.
     """
     input:
-        fq=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_{wc.read}.fastq.gz"
+        fq=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_{wc.read}.fastq.gz",
+        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else []
     output:
         html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
         zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
@@ -103,7 +104,8 @@ rule trimmomatic_outgroup_pe:
     """
     input:
         fq1=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_1.fastq.gz",
-        fq2=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_2.fastq.gz"
+        fq2=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_2.fastq.gz",
+        adapters=lambda wc: TRIM_ADAPTERS if TRIM_ADAPTERS else []
     output:
         pair1=pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"),
         unpair1=pjoin(OUTGROUP_TRIM_DIR_RULE, "{sample_id}_unpair_R1.fastq.gz"),
@@ -147,7 +149,8 @@ rule fastqc_outgroup_post:
     Run FastQC on paired trimmed outgroup reads.
     """
     input:
-        fq=lambda wc: pjoin(OUTGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz")
+        fq=lambda wc: pjoin(OUTGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz"),
+        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else []
     output:
         html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
         zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")

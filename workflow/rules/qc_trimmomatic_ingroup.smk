@@ -70,7 +70,8 @@ rule fastqc_ingroup_pre:
         sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS),
         read="1|2"
     input:
-        fq=lambda wc: ingroup_fastq_path(wc.sample_id, wc.read)
+        fq=lambda wc: ingroup_fastq_path(wc.sample_id, wc.read),
+        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else []
     output:
         html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
         zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
@@ -116,7 +117,8 @@ rule trimmomatic_ingroup_pe:
         sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS)
     input:
         fq1=lambda wc: ingroup_fastq_path(wc.sample_id, "1"),
-        fq2=lambda wc: ingroup_fastq_path(wc.sample_id, "2")
+        fq2=lambda wc: ingroup_fastq_path(wc.sample_id, "2"),
+        adapters=lambda wc: TRIM_ADAPTERS if TRIM_ADAPTERS else []
     output:
         pair1=pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"),
         unpair1=pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_unpair_R1.fastq.gz"),
@@ -164,7 +166,8 @@ rule fastqc_ingroup_post:
         sample_id=_wc_regex(INGROUP_STORAGE_SAMPLE_IDS),
         read="1|2"
     input:
-        fq=lambda wc: pjoin(INGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz")
+        fq=lambda wc: pjoin(INGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz"),
+        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else []
     output:
         html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
         zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
