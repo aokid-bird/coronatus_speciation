@@ -54,35 +54,6 @@ rule run_ngsadmix:
         done
         """
 
-rule samples_with_outgroups_admix:
-    """
-    Extend the sample metadata with selected outgroups for plotting labels.
-    """
-    input:
-        samples=config["samples"],
-        outgroups=config["outgroups"]
-    output:
-        samples_aug=f"results/metadata/{output_prefix}/samples_plus_outgroups.tsv"
-    run:
-        import pandas as pd, os
-        os.makedirs(os.path.dirname(output.samples_aug), exist_ok=True)
-        s = pd.read_csv(input.samples, sep="\t")
-        og = pd.read_csv(input.outgroups, sep="\t")
-        # build rows with columns matching samples: assume 'sample' exists; fill group_col with 'taxon'
-        cols = s.columns.tolist()
-        if "sample" not in cols:
-            raise ValueError("samples TSV must include a 'sample' column")
-        # prepare new rows
-        rows = []
-        for _, r in og.iterrows():
-            row = {c: None for c in cols}
-            row["sample"] = str(r["sample_id"]) if "sample_id" in og.columns else None
-            if group_col in cols and "taxon" in og.columns:
-                row[group_col] = str(r["taxon"]) if pd.notna(r["taxon"]) else None
-            rows.append(row)
-        aug = pd.concat([s, pd.DataFrame(rows)], ignore_index=True)
-        aug.to_csv(output.samples_aug, sep="\t", index=False)
-
 rule plot_admixture:
     """
     Plot DeltaK and admixture barplots for the best replicate at each K.
@@ -99,7 +70,7 @@ rule plot_admixture:
             r=range(1, ADMIX_REPLICATES + 1)
         ),
         bamlist=rules.make_bamlist_unrelated_analysis.output.bamlist,
-        samples=rules.samples_with_outgroups_admix.output.samples_aug,
+        samples=rules.samples_with_outgroups_metadata.output.samples_aug,
         beagle=rules.angsd_global_unrelated_unlinked.output.beagle
     output:
         delta=f"{ADMIX_FIG_DIR}/deltaK.pdf",
@@ -112,7 +83,7 @@ rule plot_admixture:
 
 NGSADMIX_TARGETS = [
     *list(rules.run_ngsadmix.output),
-    rules.samples_with_outgroups_admix.output.samples_aug,
+    rules.samples_with_outgroups_metadata.output.samples_aug,
     rules.plot_admixture.output.delta,
     rules.plot_admixture.output.plots,
 ] if NGSADMIX_ENABLED else []
