@@ -250,6 +250,7 @@ longread:
 qc:
     ingroup:
         fastqc:
+            adapters: null
             contaminants: null
         trimmomatic:
             adapters_fa: null
@@ -261,6 +262,7 @@ qc:
             extra: ""
     outgroup:
         fastqc:
+            adapters: null
             contaminants: null
         trimmomatic:
             adapters_fa: null

@@ -6,6 +6,7 @@ Inputs:
 
 Config keys used (with defaults shown):
 - qc.outgroup.fastqc.contaminants: null
+- qc.outgroup.fastqc.adapters: null
 - qc.outgroup.trimmomatic.adapters_fa: null  # e.g., data/adapters/TruSeq3-PE.fa
 - qc.outgroup.trimmomatic.clip: "2:30:10"
 - qc.outgroup.trimmomatic.slidingwindow: "4:20"
@@ -37,6 +38,7 @@ POST_QC_DIR = pjoin(OUTGROUP_QC_BASE_DIR, "post")
 OUTGROUP_TRIM_DIR_RULE = OUTGROUP_TRIM_DIR
 
 FASTQC_CONTAM = (OUTGROUP_QC_CFG.get("fastqc", {}) or {}).get("contaminants", None)
+FASTQC_ADAPTERS = (OUTGROUP_QC_CFG.get("fastqc", {}) or {}).get("adapters", None)
 OUTGROUP_FASTQC_THREADS = _resolve_named_threads(
     4,
     "qc",
@@ -62,14 +64,17 @@ rule fastqc_outgroup_pre:
     """
     input:
         fq=lambda wc: f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}_{wc.read}.fastq.gz",
-        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else []
+        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
+        adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
         html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
         zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
     params:
         outdir=PRE_QC_DIR,
         contaminants=FASTQC_CONTAM,
-        contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else "")
+        adapters=FASTQC_ADAPTERS,
+        contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
+        adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else "")
     threads: OUTGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
@@ -79,6 +84,7 @@ rule fastqc_outgroup_pre:
         r"""
         mkdir -p {params.outdir}
         fastqc -t {threads} -o {params.outdir} \
+            {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
         """
@@ -150,14 +156,17 @@ rule fastqc_outgroup_post:
     """
     input:
         fq=lambda wc: pjoin(OUTGROUP_TRIM_DIR_RULE, f"{wc.sample_id}_pair_R{wc.read}.fastq.gz"),
-        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else []
+        contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
+        adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
         html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
         zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
     params:
         outdir=POST_QC_DIR,
         contaminants=FASTQC_CONTAM,
-        contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else "")
+        adapters=FASTQC_ADAPTERS,
+        contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
+        adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else "")
     threads: OUTGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
@@ -167,6 +176,7 @@ rule fastqc_outgroup_post:
         r"""
         mkdir -p {params.outdir}
         fastqc -t {threads} -o {params.outdir} \
+            {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
         """

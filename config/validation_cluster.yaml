@@ -93,6 +93,7 @@ longread:
 qc:
   ingroup:
     fastqc:
+      adapters: null
       contaminants: null
     trimmomatic:
       threads: 2
@@ -105,6 +106,7 @@ qc:
       extra: ""
   outgroup:
     fastqc:
+      adapters: null
       contaminants: null
     trimmomatic:
       threads: 2
