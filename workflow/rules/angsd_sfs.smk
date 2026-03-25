@@ -1,4 +1,6 @@
-# rules/angsd_sfs.smk
+"""
+Site-frequency spectrum, theta, Tajima's D, and pairwise Fst analyses.
+"""
 
 from pathlib import Path
 
@@ -259,3 +261,38 @@ rule summarize_sfs_stats:
         "../envs/plot.yaml"
     script:
         "../scripts/summarize_sfs.R"
+
+
+ANGSD_SFS_TARGETS = [
+    *expand(
+        f"results/angsd_sfs/{output_prefix}/{{site_filter}}/{{group}}/gl.geno.gz",
+        site_filter=SFS_SITE_FILTERS_ACTIVE,
+        group=groups,
+    ),
+    *expand(
+        f"results/realsfs_1d/{output_prefix}/{{site_filter}}/{{fold}}/{{group}}/gl.sfs",
+        site_filter=SFS_SITE_FILTERS_ACTIVE,
+        fold=SFS_FOLD_STATES_ACTIVE,
+        group=groups,
+    ),
+    *expand(
+        f"results/realsfs_1d/{output_prefix}/{{site_filter}}/{{fold}}/{{group}}/gl.thetas.idx.pestPG",
+        site_filter=SFS_SITE_FILTERS_ACTIVE,
+        fold=SFS_FOLD_STATES_ACTIVE,
+        group=groups,
+    ),
+    f"results/reference/{output_prefix}/contig_lengths.csv",
+    *(
+        expand(
+            f"results/realsfs_2d/{output_prefix}/{{site_filter}}/{{fold}}/{{pair}}/pair.ml",
+            site_filter=SFS_SITE_FILTERS_ACTIVE,
+            fold=SFS_FOLD_STATES_ACTIVE,
+            pair=SFS_PAIR_LABELS,
+        )
+        if SFS_PAIR_LABELS else []
+    ),
+    f"results/sfs/{output_prefix}/sfs_1d_summary.csv",
+    f"results/sfs/{output_prefix}/theta_window_summary.csv",
+    f"results/sfs/{output_prefix}/lm_theta_tajima_summary.csv",
+    f"results/sfs/{output_prefix}/tajima_vs_theta.pdf",
+] if SFS_ENABLED else []

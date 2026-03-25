@@ -61,6 +61,8 @@ RAXML_TARGETS = globals().get("RAXML_TARGETS", [])
 TREEMIX_TARGETS = globals().get("TREEMIX_TARGETS", [])
 ABBABABA2_TARGETS = globals().get("ABBABABA2_TARGETS", [])
 SNAPP_TARGETS = globals().get("SNAPP_TARGETS", [])
+ANGSD_INTERSECT_TARGETS = globals().get("ANGSD_INTERSECT_TARGETS", [])
+ANGSD_SFS_TARGETS = globals().get("ANGSD_SFS_TARGETS", [])
 
 if IS_LOCAL:
     LOCAL_ALL_TARGETS = _targets(
@@ -96,10 +98,7 @@ else:
     )
 
     CORE_ANALYSIS_TARGETS = _targets(
-        expand(f"results/bamlists/{output_prefix}/{{group}}/bamlist.txt", group=groups) if ANGSD_INTERSECT_ACTIVE else [],
-        expand(f"results/angsd_intersect/{output_prefix}/{{group}}/gl.geno.gz", group=groups) if ANGSD_INTERSECT_ACTIVE else [],
-        f"results/intersect_sites/{output_prefix}/intersect.txt" if ANGSD_INTERSECT_ACTIVE else [],
-        f"results/intersect_sites/{output_prefix}/intersect.chr" if ANGSD_INTERSECT_ACTIVE else [],
+        ANGSD_INTERSECT_TARGETS,
         f"results/union_sites/{output_prefix}/union.sites" if SLICE_OUTGROUPS_ACTIVE else [],
         f"results/union_sites/{output_prefix}/union.chr" if SLICE_OUTGROUPS_ACTIVE else [],
         expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS) if SLICE_OUTGROUPS_ACTIVE else [],
@@ -119,24 +118,7 @@ else:
         SNAPP_TARGETS,
     )
 
-    SFS_TARGETS = _targets(
-        expand(
-            f"results/angsd_sfs/{output_prefix}/{{site_filter}}/{{group}}/gl.geno.gz",
-            site_filter=SFS_SITE_FILTERS_ACTIVE,
-            group=groups,
-        ) if SFS_ENABLED else [],
-        f"results/reference/{output_prefix}/contig_lengths.csv" if SFS_ENABLED else [],
-        expand(
-            f"results/realsfs_2d/{output_prefix}/{{site_filter}}/{{fold}}/{{pair}}/pair.ml",
-            site_filter=SFS_SITE_FILTERS_ACTIVE,
-            fold=SFS_FOLD_STATES_ACTIVE,
-            pair=SFS_PAIR_LABELS,
-        ) if (SFS_ENABLED and SFS_PAIR_LABELS) else [],
-        f"results/sfs/{output_prefix}/sfs_1d_summary.csv" if SFS_ENABLED else [],
-        f"results/sfs/{output_prefix}/theta_window_summary.csv" if SFS_ENABLED else [],
-        f"results/sfs/{output_prefix}/lm_theta_tajima_summary.csv" if SFS_ENABLED else [],
-        f"results/sfs/{output_prefix}/tajima_vs_theta.pdf" if SFS_ENABLED else [],
-    )
+    SFS_TARGETS = _targets(ANGSD_SFS_TARGETS)
 
     CLUSTER_ALL_TARGETS = _targets(
         CLUSTER_PREPROCESS_TARGETS,

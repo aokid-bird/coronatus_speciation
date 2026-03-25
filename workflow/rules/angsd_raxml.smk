@@ -1,8 +1,40 @@
-# rules/angsd_raxml.smk
+"""
+RAxML-oriented ANGSD workflow, including optional downsampling and plotting.
+"""
 
 RAXML_DIR = f"results/raxml/{output_prefix}"
 RAXML_FIG_DIR = f"figures/exploratory/raxml/{output_prefix}"
 RAXML_OUTGROUP_SPECIES = RAXML_CFG.get("outgroup_species")
+ANGSD_RAXML_DOWNSAMPLE_CFG = ANGSD_RAXML_CFG.get("downsampling", {}) or {}
+
+
+def _parse_max_per_population(raw):
+    if raw is None or (isinstance(raw, str) and raw.strip().lower() in {"", "none"}):
+        return None
+    if isinstance(raw, dict):
+        parsed = {}
+        for key, value in raw.items():
+            if value is None or (isinstance(value, str) and value.strip().lower() in {"", "none"}):
+                parsed[str(key)] = None
+            else:
+                parsed[str(key)] = int(value)
+        return parsed
+    return int(raw)
+
+
+try:
+    RAXML_DOWNSAMPLE_MAX = _parse_max_per_population(
+        ANGSD_RAXML_DOWNSAMPLE_CFG.get("max_per_population")
+    )
+except (TypeError, ValueError):
+    RAXML_DOWNSAMPLE_MAX = None
+
+RAXML_DOWNSAMPLE_EXCLUDE = _parse_list(ANGSD_RAXML_DOWNSAMPLE_CFG.get("exclude_samples"))
+RAXML_DOWNSAMPLE_USE_ALL = bool(ANGSD_RAXML_DOWNSAMPLE_CFG.get("use_all_samples", False))
+try:
+    RAXML_DOWNSAMPLE_SEED = _normalise_seed(ANGSD_RAXML_DOWNSAMPLE_CFG.get("seed"))
+except (TypeError, ValueError):
+    RAXML_DOWNSAMPLE_SEED = None
 
 rule make_bamlist_raxml_downsampled:
     """
@@ -16,10 +48,10 @@ rule make_bamlist_raxml_downsampled:
     params:
         group_col=group_col,
         populations=groups,
-        max_per_pop=ANGSD_RAXML_DOWNSAMPLE_MAX,
-        exclude=ANGSD_RAXML_DOWNSAMPLE_EXCLUDE,
-        use_all=ANGSD_RAXML_DOWNSAMPLE_USE_ALL,
-        seed=ANGSD_RAXML_DOWNSAMPLE_SEED
+        max_per_pop=RAXML_DOWNSAMPLE_MAX,
+        exclude=RAXML_DOWNSAMPLE_EXCLUDE,
+        use_all=RAXML_DOWNSAMPLE_USE_ALL,
+        seed=RAXML_DOWNSAMPLE_SEED
     run:
         import os
         import pandas as pd

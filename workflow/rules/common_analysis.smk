@@ -43,44 +43,6 @@ REALSFS_THREADS = _resolve_threads(_config_section("sfs_analysis", "realSFS"), 1
 QC_INGROUP_THREADS = _resolve_threads(_config_section("qc", "ingroup", "trimmomatic"), 4)
 QC_OUTGROUP_THREADS = _resolve_threads(_config_section("qc", "outgroup", "trimmomatic"), 4)
 
-ANGSD_RAXML_DOWNSAMPLE_CFG = ANGSD_RAXML_CFG.get("downsampling", {}) or {}
-
-
-# Normalize downsampling limits, allowing ints, dicts, and null-like values.
-def _parse_max_per_population(raw):
-    if raw is None or (isinstance(raw, str) and raw.strip().lower() in {"", "none"}):
-        return None
-    if isinstance(raw, dict):
-        parsed = {}
-        for key, value in raw.items():
-            if value is None or (isinstance(value, str) and value.strip().lower() in {"", "none"}):
-                parsed[str(key)] = None
-            else:
-                parsed[str(key)] = int(value)
-        return parsed
-    return int(raw)
-
-
-ANGSD_RAXML_DOWNSAMPLE_MAX = None
-try:
-    ANGSD_RAXML_DOWNSAMPLE_MAX = _parse_max_per_population(
-        ANGSD_RAXML_DOWNSAMPLE_CFG.get("max_per_population")
-    )
-except (TypeError, ValueError):
-    ANGSD_RAXML_DOWNSAMPLE_MAX = None
-
-ANGSD_RAXML_DOWNSAMPLE_EXCLUDE = _parse_list(
-    ANGSD_RAXML_DOWNSAMPLE_CFG.get("exclude_samples")
-)
-ANGSD_RAXML_DOWNSAMPLE_USE_ALL = bool(
-    ANGSD_RAXML_DOWNSAMPLE_CFG.get("use_all_samples", False)
-)
-try:
-    ANGSD_RAXML_DOWNSAMPLE_SEED = _normalise_seed(ANGSD_RAXML_DOWNSAMPLE_CFG.get("seed"))
-except (TypeError, ValueError):
-    ANGSD_RAXML_DOWNSAMPLE_SEED = None
-
-
 # Resolve ANGSD minInd ratios with the same fallback order across analyses.
 def get_minInd_ratio(key, default=None):
     ratios = config.get("minIndRatio", {}) or {}

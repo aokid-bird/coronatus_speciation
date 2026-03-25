@@ -1,4 +1,6 @@
-# rules/angsd.smk
+"""
+Shared intersect-site discovery across configured ingroup populations.
+"""
 
 def _bams_for_group(group):
     return [
@@ -6,11 +8,9 @@ def _bams_for_group(group):
         for s in _SAMPLES_DF[_SAMPLES_DF[group_col] == group]["sample"].astype(str)
     ]
 
-
-# Rules related to angsd_intersect
 rule make_bamlist_group:
     """
-    Generate bamlists for each groups defined
+    Write one ingroup bamlist per configured population.
     """
     input:
         samples = config["samples"],
@@ -25,7 +25,7 @@ rule make_bamlist_group:
 
 rule angsd_intersect_group:
     """
-    Population-specific ANGSD to find intersecting sites among populations 
+    Run ANGSD per population to produce genotype calls for site intersection.
     """
     input:
         bamlist = f"results/bamlists/{output_prefix}/{{group}}/bamlist.txt"
@@ -56,6 +56,9 @@ rule angsd_intersect_group:
         """
 
 rule intersect_sites_group:
+    """
+    Intersect the per-population ANGSD outputs and emit the shared site lists.
+    """
     input:
         genos = expand(f"results/angsd_intersect/{output_prefix}/{{group}}/gl.geno.gz", group=groups)
     output:
@@ -72,6 +75,9 @@ rule intersect_sites_group:
         """
 
 rule angsd_sites_index:
+    """
+    Index the shared intersected site list for downstream ANGSD rules.
+    """
     input:
         sites = f"results/intersect_sites/{output_prefix}/intersect.txt"
     output:
@@ -84,3 +90,12 @@ rule angsd_sites_index:
         """
         angsd sites index {input.sites}
         """
+
+
+ANGSD_INTERSECT_TARGETS = [
+    *expand(f"results/bamlists/{output_prefix}/{{group}}/bamlist.txt", group=groups),
+    *expand(f"results/angsd_intersect/{output_prefix}/{{group}}/gl.geno.gz", group=groups),
+    f"results/intersect_sites/{output_prefix}/intersect.txt",
+    f"results/intersect_sites/{output_prefix}/intersect.chr",
+    f"results/intersect_sites/{output_prefix}/intersect.txt.bin",
+] if ANGSD_INTERSECT_ACTIVE else []

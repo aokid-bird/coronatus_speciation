@@ -1,4 +1,6 @@
-# rules/ngsrelate.smk
+"""
+Global ANGSD, relatedness, LD pruning, and unrelated-analysis inputs.
+"""
 
 kin_thr = config["ngsrelate"]["kinship_threshold"]
 NGSRELATE_FIG_DIR = f"figures/exploratory/ngsrelate/{output_prefix}"
@@ -8,7 +10,6 @@ _INGROUP_BAMS = [
     for s in ingroup_sample_ids(populations=groups)
 ]
 
-# Rules related to angsd_global
 rule make_bamlist_all:
     """
     Write the ingroup BAM list for the configured population set.
@@ -83,7 +84,6 @@ rule angsd_global:
               2> {log}
         """
 
-# related to ngsRelate
 rule make_ngsrelate_inputs:
     input:
         mafs   = f"results/angsd_global/{output_prefix}/gl.mafs.gz",
@@ -190,7 +190,6 @@ rule make_bamlist_unrelated:
         )]
         write_bamlist(output.bamlist, bamlist_filtered.tolist())
 
-# Rules related to ngsLD
 rule make_ngsld_inputs:
     input:
         beagle = f"results/angsd_global/{output_prefix}/gl.beagle.gz"
@@ -318,7 +317,6 @@ rule angsd_filtered_sites_index:
         angsd sites index {output.sites}
         """
 
-# ANGSD after ngsLD and ngsRelate
 rule make_bamlist_unrelated_analysis:
     """
     Write the unrelated-analysis bamlist, optionally appending sliced outgroups.
