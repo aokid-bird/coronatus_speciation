@@ -55,6 +55,15 @@ git fetch upstream
 git merge upstream/main
 git push origin main
 ```
+If you want to replace the upstream to other test branches, then
+```bash
+git fetch origin
+git fetch upstream
+git switch main
+git branch --set-upstream-to=origin/main
+git merge upstream/{test_branch_name}
+git push origin main
+```
 
 ## Step 4: Set up Snakemake environment
 In the current snakemake.yaml, the snakemake environment (bioinfo_pipeline) will be created with python 3.10 and Snakemake 7.32.4. This will allow you to use f-string in the Snakemake rules.
