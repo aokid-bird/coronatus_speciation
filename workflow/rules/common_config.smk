@@ -59,7 +59,6 @@ def _backfill_config(target_keys, *source_options, default=_CFG_MISSING):
 # config defaults are organized under grouped sections.
 for target_keys, source_keys, default in [
     (("environment",), ("project", "environment"), "cluster"),
-    (("threads",), ("project", "threads"), 1),
     (("output_prefix",), ("project", "output_prefix"), "defaults"),
     (("populations",), ("project", "populations"), []),
     (("group_col",), ("project", "group_col"), None),
@@ -101,10 +100,22 @@ for analysis_name in (
 
 _backfill_config(("sfs_analysis",), ("analyses", "sfs"), default={})
 
+
+def _legacy_global_threads(default=1):
+    project_threads = _config_value(config, "project", "threads", default=_CFG_MISSING)
+    if project_threads is not _CFG_MISSING and project_threads is not None:
+        return int(project_threads)
+
+    legacy_threads = config.get("threads", default)
+    if isinstance(legacy_threads, dict):
+        return int(default)
+    return int(legacy_threads)
+
+
 output_prefix = config["output_prefix"]
 groups = config["populations"]
 group_col = config["group_col"]
-LEGACY_GLOBAL_THREADS = int(config.get("threads", 1))
+LEGACY_GLOBAL_THREADS = _legacy_global_threads(1)
 ENVIRONMENT = config.get("environment", "cluster")
 
 
@@ -199,7 +210,7 @@ def _resolve_named_threads(default, *keys, legacy_section=None, legacy_key="thre
         value = legacy_section.get(legacy_key)
     if value is _CFG_MISSING or value is None:
         if legacy_fallback_global:
-            value = config.get("threads", default)
+            value = LEGACY_GLOBAL_THREADS
         else:
             value = default
     return int(value)
@@ -208,7 +219,7 @@ def _resolve_named_threads(default, *keys, legacy_section=None, legacy_key="thre
 def _resolve_threads(section, default, legacy_fallback=True):
     value = section.get("threads")
     if value is None and legacy_fallback:
-        value = config.get("threads", default)
+        value = LEGACY_GLOBAL_THREADS
     if value is None:
         value = default
     return int(value)
