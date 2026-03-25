@@ -14,7 +14,7 @@ parser.add_argument("--bam_dir", required=True)
 args = parser.parse_args()
 
 # generate id
-df = pd.read_csv(args.bamlist, delim_whitespace=True, header=None)
+df = pd.read_csv(args.bamlist, sep=r"\s+", header=None, engine="python")
 df.columns = ["path"]
 ids = df["path"].str.replace(f"{args.bam_dir}/", "", regex=False).str.replace(".bam", "", regex=False)
 Path(args.id_out).write_text("\n".join(ids) + "\n")
