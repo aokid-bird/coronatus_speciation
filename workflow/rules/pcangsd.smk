@@ -21,7 +21,7 @@ rule run_pcangsd:
         outprefix = f"{PCA_DIR}/pcangsd",
         iter = config["pcangsd"]["iter"],
         minmaf = config["pcangsd"]["minmaf"]
-    threads: config["pcangsd"]["threads"]
+    threads: PCANGSD_THREADS
     singularity:
         f"{config_singularity_dir}/pcangsd_1.35.sif"
     shell:
@@ -47,7 +47,7 @@ rule pca_selection:
     log:
         f"logs/{output_prefix}/pca_selection.log"
     conda:
-        "../envs/pca_selection.yaml"
+        "../envs/r_plotting.yaml"
     shell:
         """
         Rscript workflow/scripts/run_selection.R \
@@ -67,7 +67,7 @@ rule plot_pca:
     output:
         pdf=f"{PCA_FIG_DIR}/pca_plots.pdf"
     conda:
-        "../envs/plot.yaml"
+        "../envs/r_plotting.yaml"
     script:
         "../scripts/plot_pca.R"
 

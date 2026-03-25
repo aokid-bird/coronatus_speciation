@@ -1,7 +1,0 @@
-# envs/ngsrelate_input.yaml
-name: ngsrelate_input
-channels:
-    - conda-forge
-dependencies:
-    - python=3.11
-    - pandas

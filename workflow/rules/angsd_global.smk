@@ -9,7 +9,6 @@ ANGSD_GLOBAL_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_global", legacy
 ANGSD_GLOBAL_UNRELATED_CFG = _config_section("angsd_global_unrelated_unlinked")
 ANGSD_GLOBAL_UNRELATED_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_global_unrelated_unlinked", legacy_section=ANGSD_GLOBAL_UNRELATED_CFG)
 ANGSD_GLOBAL_UNRELATED_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_global_unrelated_unlinked", legacy_section=ANGSD_GLOBAL_UNRELATED_CFG)
-NGSRELATE_THREADS = _resolve_threads(NGSRELATE_CFG, LEGACY_GLOBAL_THREADS)
 
 _INGROUP_BAMS = [
     f"{config_bam_dir}/{s}.bam"
@@ -100,7 +99,7 @@ rule make_ngsrelate_inputs:
     params:
         bam_dir = config_bam_dir
     conda:
-        "../envs/ngsrelate_input.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/ngsrelate_prepare_inputs.py \
@@ -150,7 +149,7 @@ rule plot_ngsrelate_kinship:
         kin_thr = config["ngsrelate"]["kinship_threshold"],
         pop_col = config["group_col"]
     conda:
-        "../envs/plot_kinship.yaml"
+        "../envs/r_plotting.yaml"
     shell:
         """
         mkdir -p {NGSRELATE_FIG_DIR}
@@ -205,7 +204,7 @@ rule make_ngsld_inputs:
     output:
         snppos = f"results/ngsld_global/{output_prefix}/snp.pos"
     conda:
-        "../envs/intersect_sites.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/make_ngsld_snppos.py \
@@ -287,7 +286,7 @@ rule filter_unlinked_and_summary:
         unlinkedbeagle = f"results/ngsld_global/{output_prefix}/gl_global_unlinked.beagle.gz",
         summary        = f"results/ngsld_global/{output_prefix}/ld_summary.csv"
     conda:
-        "../envs/intersect_sites.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/process_unlinked_and_summary.py \

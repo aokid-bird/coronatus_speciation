@@ -26,7 +26,13 @@ OUTGROUP_MAP_FINAL_RUNTIME = _resolve_runtime(1440, "mapping", "outgroup_merge")
 OUTGROUP_LONGREAD_MAP_MEM_MB = _resolve_mem_mb(200000, "mapping", "outgroup_longread")
 OUTGROUP_LONGREAD_MAP_RUNTIME = _resolve_runtime(1440, "mapping", "outgroup_longread")
 OUTGROUP_FILTLONG_CFG = (LR_CFG.get("filter", {}) or {})
-OUTGROUP_FILTLONG_THREADS = _resolve_threads(OUTGROUP_FILTLONG_CFG, 4, legacy_fallback=False)
+OUTGROUP_FILTLONG_THREADS = _resolve_named_threads(
+    4,
+    "mapping",
+    "longread_filter",
+    legacy_section=OUTGROUP_FILTLONG_CFG,
+    legacy_fallback_global=False,
+)
 
 # choose mapper subcommand and reference argument (prefix or fasta)
 MAPPER_CMD = "bwa-mem2 mem" if MAPPER_OUTGROUP == "bwa-mem2" else "bwa mem"

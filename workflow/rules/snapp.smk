@@ -68,7 +68,7 @@ rule snapp_select_samples:
             else ""
         )
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/snapp_select_samples.py \
@@ -154,7 +154,7 @@ rule snapp_extract_unlinked:
         sites=f"{SNAPP_BASE}/unlinked_sites.tsv",
         summary=f"{SNAPP_BASE}/unlinked_summary.tsv"
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/snapp_extract_unlinked_sites.py \
@@ -182,7 +182,7 @@ rule snapp_prepare_metadata:
         pop_alias_args=" ".join([f"--population-alias {k}={v}" for k, v in SNAPP_POPULATION_ALIASES.items()]),
         out_alias_args=" ".join([f"--outgroup-alias {k}={v}" for k, v in SNAPP_OUTGROUP_ALIASES.items()])
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/snapp_prepare_metadata.py \
@@ -245,7 +245,7 @@ rule snapp_vcf_to_phylip:
         folder=SNAPP_ALIGN_DIR,
         min_samples=SNAPP_MIN_SAMPLES_LOCUS
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python workflow/scripts/vcf2phylip.py \
@@ -269,7 +269,7 @@ rule snapp_constraints:
         dist_args=lambda wc: " ".join(f"--distribution '{d}'" for d in (SNAPP_RUN_MAP.get(wc.run, {}).get("distributions", []) or [])),
         dist_count=lambda wc: len(SNAPP_RUN_MAP.get(wc.run, {}).get("distributions", []) or [])
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         if [ -z "{params.type}" ] || [ -z "{params.taxa}" ]; then

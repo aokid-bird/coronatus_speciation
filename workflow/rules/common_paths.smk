@@ -209,8 +209,8 @@ MAPPING_INGROUP_CFG = {k: v for k, v in MAPPING_CFG.items() if k not in {"ingrou
 MAPPING_OUTGROUP_CFG = dict(MAPPING_INGROUP_CFG)
 MAPPING_INGROUP_CFG.update(MAPPING_CFG.get("ingroup", {}) or {})
 MAPPING_OUTGROUP_CFG.update(MAPPING_CFG.get("outgroup", {}) or {})
-MAPPING_INGROUP_THREADS = _resolve_threads(MAPPING_INGROUP_CFG, 6)
-MAPPING_OUTGROUP_THREADS = _resolve_threads(MAPPING_OUTGROUP_CFG, 6)
+MAPPING_INGROUP_THREADS = _resolve_named_threads(6, "mapping", "ingroup", legacy_section=MAPPING_INGROUP_CFG)
+MAPPING_OUTGROUP_THREADS = _resolve_named_threads(6, "mapping", "outgroup", legacy_section=MAPPING_OUTGROUP_CFG)
 MAPPER_INGROUP = MAPPING_INGROUP_CFG.get("mapper", config.get("mapper", "bwa"))
 MAPPER_OUTGROUP = MAPPING_OUTGROUP_CFG.get("mapper", MAPPER_INGROUP)
 

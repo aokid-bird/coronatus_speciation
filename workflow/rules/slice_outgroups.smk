@@ -20,7 +20,7 @@ rule union_sites_groups:
     params:
         script = "workflow/scripts/union_sites.py"
     conda:
-        "../envs/intersect_sites.yaml"
+        "../envs/python_utils.yaml"
     shell:
         r"""
         python {params.script} --genofiles {input.genos} --out_sites {output.sites} --out_scafs {output.scafs}

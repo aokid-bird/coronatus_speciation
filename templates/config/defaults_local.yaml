@@ -87,6 +87,38 @@ resources:
             mem_mb: "16G"
             runtime: 1440
 
+threads:
+    reference:
+        index: 2
+    qc:
+        ingroup_fastqc: 4
+        ingroup_trimmomatic: 4
+        outgroup_fastqc: 4
+        outgroup_trimmomatic: 4
+    mapping:
+        ingroup: 4
+        outgroup: 4
+        longread_filter: 4
+        slice_outgroups: 8
+    analyses:
+        angsd_intersect: 4
+        angsd_global: 4
+        angsd_global_unrelated_unlinked: 4
+        angsd_raxml: 4
+        angsd_sfs: 4
+        sfs_realsfs: 6
+        ngsrelate: 4
+        ngsld: 4
+        pcangsd: 4
+        ngsadmix: 18
+        ngsdist: 4
+        treemix: 4
+        treemix_run: 1
+        raxml_catg: 8
+        raxml_run: 8
+        abbababa2: 4
+        snapp: 4
+
 paths:
     bam_dir: "results/bwa"
     singularity_dir: "${HOME}/envs/singularity"
@@ -127,7 +159,6 @@ reference:
     fai: null
     storage_dir: "data/reference"
     download_method: "datasets"
-    index_threads: 2
 
 reads:
     ingroup_dir: "data/raw/ingroup"
@@ -145,19 +176,16 @@ reads:
 mapping:
     ingroup:
         mapper: bwa-mem2
-        threads: 4
         map_unpaired: true
         extra: ""
     outgroup:
         mapper: bwa-mem2
-        threads: 4
         map_unpaired: true
         extra: ""
 
 longread:
     filter:
         enabled: true
-        threads: 4
         min_length: 1000
         keep_percent: 90
         extra: ""
@@ -167,10 +195,8 @@ longread:
 qc:
     ingroup:
         fastqc:
-            threads: 4
             contaminants: null
         trimmomatic:
-            threads: 4
             adapters_fa: null
             clip: "2:30:7"
             slidingwindow: "4:15"
@@ -180,10 +206,8 @@ qc:
             extra: ""
     outgroup:
         fastqc:
-            threads: 4
             contaminants: null
         trimmomatic:
-            threads: 4
             adapters_fa: null
             clip: "2:30:7"
             slidingwindow: "4:15"
@@ -247,17 +271,13 @@ angsd:
 analyses:
     angsd_intersect:
         enabled: true
-        threads: 4
     angsd_global:
         enabled: true
-        threads: 4
         include_outgroups: true
     angsd_global_unrelated_unlinked:
         enabled: true
-        threads: 4
     angsd_raxml:
         enabled: true
-        threads: 4
         include_outgroups: true
         downsampling:
             max_per_population:
@@ -267,33 +287,27 @@ analyses:
             seed: 20240526
     angsd_sfs:
         enabled: true
-        threads: 4
     sfs:
         enabled: true
         site_filters: [linked]
         fold_states: [fold]
         include_monomorphic: true
         realSFS:
-            threads: 6
             maxiter: 50000
             tole: 1e-6
     ngsrelate:
         enabled: true
         kinship_threshold: 0.0884
-        threads: 4
     ngsld:
         enabled: true
-        threads: 4
         minmaf: 0.05
         max_kb_dist: 50
         min_weight: 0.5
         weight_field: "column_7"
     slice_outgroups:
         enabled: true
-        threads: 8
     pcangsd:
         enabled: true
-        threads: 4
         iter: 1000
         minmaf: 0.05
         axes_plot: []
@@ -301,39 +315,27 @@ analyses:
         enabled: true
         maxK: 6
         n_replicates: 10
-        threads: 18
         maxiter: 5000
         minmaf: 0.05
     ngsdist:
         enabled: true
-        threads: 4
         models: ["p", "jc69"]
         include_outgroups: true
     raxml:
         enabled: true
         na_fill: 0.01
-        threads_catg: 8
-        catg_resources:
-            mem_mb: 200000
-            runtime: 2880
         var_option: "both"
         model: "GTGTR4+FO+G"
         bs: 100
-        threads_run: 8
-        run_resources:
-            mem_mb: 200000
-            runtime: 4320
         outgroup_species: []
     treemix:
         enabled: true
-        threads: 4
         include_outgroups: true
         mode: pop
         glactools_bin: workflow/bin/glactools
         root_label: null
         max_m: 6
         reps: 10
-        run_threads: 1
         timeout_seconds: 300
         max_attempts: 3
         use_optm: true
@@ -344,7 +346,6 @@ analyses:
         outgroup_species: []
     abbababa2:
         enabled: true
-        threads: 4
         angsd_args: >
             -doAbbababa2 1
             -doCounts 1
@@ -358,7 +359,6 @@ analyses:
         exclude_samples: []
     snapp:
         enabled: true
-        threads: 4
         max_per_population: 4
         min_samples_locus: 4
         missingness_threshold: 0.2

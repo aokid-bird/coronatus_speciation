@@ -28,20 +28,29 @@ NGSDIST_INCLUDE_OUTGROUPS = bool(NGSDIST_CFG.get("include_outgroups", ANGSD_GLOB
 TREEMIX_INCLUDE_OUTGROUPS = bool(TREEMIX_CFG.get("include_outgroups", True))
 SNAPP_INCLUDE_OUTGROUPS = bool(SNAPP_CFG.get("include_outgroups", True))
 
-ANGSD_INTERSECT_THREADS = _resolve_threads(ANGSD_INTERSECT_CFG, LEGACY_GLOBAL_THREADS)
-ANGSD_GLOBAL_THREADS = _resolve_threads(ANGSD_GLOBAL_CFG, LEGACY_GLOBAL_THREADS)
-ANGSD_GLOBAL_UNRELATED_THREADS = _resolve_threads(
-    _config_section("angsd_global_unrelated_unlinked"),
+ANGSD_INTERSECT_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "angsd_intersect", legacy_section=ANGSD_INTERSECT_CFG)
+ANGSD_GLOBAL_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "angsd_global", legacy_section=ANGSD_GLOBAL_CFG)
+ANGSD_GLOBAL_UNRELATED_THREADS = _resolve_named_threads(
     ANGSD_GLOBAL_THREADS,
+    "analyses",
+    "angsd_global_unrelated_unlinked",
+    legacy_section=_config_section("angsd_global_unrelated_unlinked"),
 )
-ANGSD_SFS_THREADS = _resolve_threads(ANGSD_SFS_CFG, LEGACY_GLOBAL_THREADS)
-ANGSD_RAXML_THREADS = _resolve_threads(ANGSD_RAXML_CFG, LEGACY_GLOBAL_THREADS)
-ANGSD_SNAPP_THREADS = _resolve_threads(SNAPP_CFG, ANGSD_GLOBAL_THREADS)
-SLICE_OUTGROUPS_THREADS = _resolve_threads(SLICE_OUTGROUPS_CFG, 6)
-NGSLD_THREADS = _resolve_threads(NGSLD_CFG, LEGACY_GLOBAL_THREADS)
-REALSFS_THREADS = _resolve_threads(_config_section("sfs_analysis", "realSFS"), 10, legacy_fallback=False)
-QC_INGROUP_THREADS = _resolve_threads(_config_section("qc", "ingroup", "trimmomatic"), 4)
-QC_OUTGROUP_THREADS = _resolve_threads(_config_section("qc", "outgroup", "trimmomatic"), 4)
+ANGSD_SFS_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "angsd_sfs", legacy_section=ANGSD_SFS_CFG)
+ANGSD_RAXML_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "angsd_raxml", legacy_section=ANGSD_RAXML_CFG)
+ANGSD_SNAPP_THREADS = _resolve_named_threads(ANGSD_GLOBAL_THREADS, "analyses", "snapp", legacy_section=SNAPP_CFG)
+SLICE_OUTGROUPS_THREADS = _resolve_named_threads(6, "mapping", "slice_outgroups", legacy_section=SLICE_OUTGROUPS_CFG)
+NGSRELATE_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "ngsrelate", legacy_section=NGSRELATE_CFG)
+NGSLD_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "ngsld", legacy_section=NGSLD_CFG)
+PCANGSD_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "pcangsd", legacy_section=PCANGSD_CFG)
+NGSADMIX_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "ngsadmix", legacy_section=NGSADMIX_CFG)
+NGSDIST_THREADS = _resolve_named_threads(1, "analyses", "ngsdist", legacy_section=NGSDIST_CFG)
+TREEMIX_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "treemix", legacy_section=TREEMIX_CFG)
+TREEMIX_RUN_THREADS = _resolve_named_threads(1, "analyses", "treemix_run", legacy_section=TREEMIX_CFG, legacy_key="run_threads", legacy_fallback_global=False)
+ABBABABA2_THREADS = _resolve_named_threads(LEGACY_GLOBAL_THREADS, "analyses", "abbababa2", legacy_section=ABBABABA2_CFG)
+REALSFS_THREADS = _resolve_named_threads(10, "analyses", "sfs_realsfs", legacy_section=_config_section("sfs_analysis", "realSFS"), legacy_fallback_global=False)
+QC_INGROUP_THREADS = _resolve_named_threads(4, "qc", "ingroup_trimmomatic", legacy_section=_config_section("qc", "ingroup", "trimmomatic"))
+QC_OUTGROUP_THREADS = _resolve_named_threads(4, "qc", "outgroup_trimmomatic", legacy_section=_config_section("qc", "outgroup", "trimmomatic"))
 
 # Resolve ANGSD minInd ratios with the same fallback order across analyses.
 def get_minInd_ratio(key, default=None):

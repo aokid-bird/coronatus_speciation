@@ -264,7 +264,7 @@ rule summarize_sfs_stats:
         populations=groups,
         min_contig_length=2_000_000
     conda:
-        "../envs/plot.yaml"
+        "../envs/r_plotting.yaml"
     script:
         "../scripts/summarize_sfs.R"
 

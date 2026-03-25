@@ -20,7 +20,7 @@ rule run_ngsadmix:
         minmaf = config["ngsadmix"]["minmaf"],
         maxK = ADMIX_MAX_K,
         reps = ADMIX_REPLICATES
-    threads: config["ngsadmix"]["threads"]
+    threads: NGSADMIX_THREADS
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -89,7 +89,7 @@ rule plot_admixture:
         delta=f"{ADMIX_FIG_DIR}/deltaK.pdf",
         plots=f"{ADMIX_FIG_DIR}/admixture_plots.pdf"
     conda:
-        "../envs/plot.yaml"
+        "../envs/r_plotting.yaml"
     script:
         "../scripts/plot_admixture.R"
 

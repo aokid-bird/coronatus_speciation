@@ -42,7 +42,13 @@ POST_QC_DIR = pjoin(INGROUP_QC_BASE_DIR, "post")
 INGROUP_TRIM_DIR_RULE = INGROUP_TRIM_DIR
 
 FASTQC_CONTAM = (INGROUP_QC_CFG.get("fastqc", {}) or {}).get("contaminants", None)
-INGROUP_FASTQC_THREADS = _resolve_threads((INGROUP_QC_CFG.get("fastqc", {}) or {}), 4, legacy_fallback=False)
+INGROUP_FASTQC_THREADS = _resolve_named_threads(
+    4,
+    "qc",
+    "ingroup_fastqc",
+    legacy_section=(INGROUP_QC_CFG.get("fastqc", {}) or {}),
+    legacy_fallback_global=False,
+)
 TRIM_CFG = INGROUP_QC_CFG.get("trimmomatic", {}) or {}
 INGROUP_TRIM_MEM_MB = _resolve_mem_mb(200000, "qc", "ingroup_trimmomatic")
 INGROUP_TRIM_RUNTIME = _resolve_runtime(1440, "qc", "ingroup_trimmomatic")

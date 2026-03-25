@@ -7,7 +7,6 @@ NGSDIST_SIF = f"{config_singularity_dir}/ngsdist.sif"
 NGSDIST_DIR = f"results/ngsdist_global/{output_prefix}"
 NGSDIST_MEM_MB = _resolve_mem_mb(16000, "analyses", "ngsdist", legacy_section=NGSDIST_CFG)
 NGSDIST_RUNTIME = _resolve_runtime(1440, "analyses", "ngsdist", legacy_section=NGSDIST_CFG)
-NGSDIST_THREADS = _resolve_threads(NGSDIST_CFG, 1)
 
 
 rule make_bamlist_ngsdist:
@@ -82,7 +81,7 @@ rule ngsdist_prepare_inputs:
         posinfo= f"{NGSDIST_DIR}/posinfo.tsv",
         nsites = f"{NGSDIST_DIR}/nsites.txt"
     conda:
-        "../envs/intersect_sites.yaml"
+        "../envs/python_utils.yaml"
     shell:
         r"""
         mkdir -p $(dirname {output.labels})
@@ -148,7 +147,7 @@ rule ngsdist_nexus:
     output:
         nexus = f"{NGSDIST_DIR}/{{model}}/ngsdist_input.nexus"
     conda:
-        "../envs/ngsdist_post.yaml"
+        "../envs/r_plotting.yaml"
     wildcard_constraints:
         model="|".join(_MODELS)
     shell:

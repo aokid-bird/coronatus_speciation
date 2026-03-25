@@ -8,10 +8,10 @@ RAXML_OUTGROUP_SPECIES = RAXML_CFG.get("outgroup_species")
 ANGSD_RAXML_DOWNSAMPLE_CFG = ANGSD_RAXML_CFG.get("downsampling", {}) or {}
 ANGSD_RAXML_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_raxml", legacy_section=ANGSD_RAXML_CFG)
 ANGSD_RAXML_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_raxml", legacy_section=ANGSD_RAXML_CFG)
-CATG_THREADS = int(RAXML_CFG.get("threads_catg", 1))
+CATG_THREADS = _resolve_named_threads(1, "analyses", "raxml_catg", legacy_section=RAXML_CFG, legacy_key="threads_catg", legacy_fallback_global=False)
 CATG_MEM_MB = _resolve_mem_mb(200000, "analyses", "raxml_catg", legacy_section={"resources": RAXML_CFG.get("catg_resources", {}) or {}})
 CATG_RUNTIME = _resolve_runtime(2880, "analyses", "raxml_catg", legacy_section={"resources": RAXML_CFG.get("catg_resources", {}) or {}})
-RAXML_RUN_THREADS = int(RAXML_CFG.get("threads_run", 1))
+RAXML_RUN_THREADS = _resolve_named_threads(1, "analyses", "raxml_run", legacy_section=RAXML_CFG, legacy_key="threads_run", legacy_fallback_global=False)
 RAXML_RUN_MEM_MB = _resolve_mem_mb(200000, "analyses", "raxml_run", legacy_section={"resources": RAXML_CFG.get("run_resources", {}) or {}})
 RAXML_RUN_RUNTIME = _resolve_runtime(4320, "analyses", "raxml_run", legacy_section={"resources": RAXML_CFG.get("run_resources", {}) or {}})
 

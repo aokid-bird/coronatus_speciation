@@ -5,7 +5,6 @@ ABBABABA2 workflow built on ANGSD genotype-likelihood inputs.
 ABBABABA2_DIR = f"results/angsd_abbababa2/{output_prefix}"
 ABBABABA2_SUMMARY_DIR = f"results/abbababa2/{output_prefix}"
 ABBABABA2_FIG_DIR = f"figures/abbababa2/{output_prefix}"
-ABBABABA2_THREADS = int(ABBABABA2_CFG.get("threads", LEGACY_GLOBAL_THREADS))
 ABBABABA2_MEM_MB = _resolve_mem_mb(16000, "analyses", "abbababa2", legacy_section=ABBABABA2_CFG)
 ABBABABA2_RUNTIME = _resolve_runtime(1440, "analyses", "abbababa2", legacy_section=ABBABABA2_CFG)
 ABBABABA2_ANGSD_ARGS = str(ABBABABA2_CFG.get("angsd_args", "")).strip()
@@ -184,7 +183,7 @@ rule summarize_abbababa2:
     output:
         summary=f"{ABBABABA2_SUMMARY_DIR}/df.dstat.csv"
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     script:
         "../scripts/summarize_abbababa2.py"
 
@@ -198,7 +197,7 @@ rule plot_abbababa2:
     output:
         pdf=f"{ABBABABA2_FIG_DIR}/abbababa2.pdf"
     conda:
-        "../envs/plot.yaml"
+        "../envs/r_plotting.yaml"
     script:
         "../scripts/plot_abbababa2.R"
 

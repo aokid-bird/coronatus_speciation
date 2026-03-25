@@ -69,9 +69,11 @@ rule intersect_sites_group:
         scafs = f"results/intersect_sites/{output_prefix}/intersect.chr"
     params:
         script="workflow/scripts/intersect_sites.py"
+    conda:
+        "../envs/python_utils.yaml"
     shell:
         """
-        conda run -n snakemake_intersect_sites python {params.script} \
+        python {params.script} \
             --genofiles {input.genos} \
             --out_sites {output.sites} \
             --out_scafs {output.scafs}

@@ -1,4 +1,4 @@
-name: pca_selection
+name: r-plotting
 channels:
   - conda-forge
   - bioconda
@@ -6,5 +6,13 @@ channels:
 dependencies:
   - r-base=4.3
   - r-tidyverse
+  - r-magrittr
+  - r-patchwork
+  - r-readr
+  - r-purrr
+  - r-stringr
+  - r-broom
+  - r-glue
+  - r-igraph
   - r-rcppnpy
   - r-r.utils

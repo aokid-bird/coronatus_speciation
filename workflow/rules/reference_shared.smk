@@ -7,7 +7,14 @@ These rules are environment-agnostic and may be used in either local or cluster
 runs once the reference FASTA path has been resolved.
 """
 
-REFERENCE_INDEX_THREADS = int((config.get("reference", {}) or {}).get("index_threads", 2))
+REFERENCE_INDEX_THREADS = _resolve_named_threads(
+    2,
+    "reference",
+    "index",
+    legacy_section=(config.get("reference", {}) or {}),
+    legacy_key="index_threads",
+    legacy_fallback_global=False,
+)
 REFERENCE_BWA_INDEX_MEM_MB = _resolve_mem_mb(64000, "reference", "bwa_index")
 REFERENCE_BWA_INDEX_RUNTIME = _resolve_runtime(480, "reference", "bwa_index")
 REFERENCE_BWAMEM2_INDEX_MEM_MB = _resolve_mem_mb(64000, "reference", "bwa_mem2_index")
@@ -39,7 +46,7 @@ rule export_contig_lengths:
     params:
         script="workflow/scripts/export_contig_lengths.py"
     conda:
-        "../envs/python_pandas.yaml"
+        "../envs/python_utils.yaml"
     shell:
         """
         python {params.script} --fai {input.fai} --output {output.csv}

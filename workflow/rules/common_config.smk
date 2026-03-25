@@ -123,6 +123,10 @@ def _resource_section(*keys):
     return _config_section("resources", *keys)
 
 
+def _thread_section(*keys):
+    return _config_section("threads", *keys)
+
+
 def _resource_config(*keys, legacy_section=None):
     legacy = {}
     if isinstance(legacy_section, dict):
@@ -188,6 +192,18 @@ def _resolve_mem_mb(default, *keys, legacy_section=None):
 def _resolve_runtime(default, *keys, legacy_section=None):
     cfg = _resource_config(*keys, legacy_section=legacy_section)
     return _parse_runtime_minutes(cfg.get("runtime"), default)
+
+
+def _resolve_named_threads(default, *keys, legacy_section=None, legacy_key="threads", legacy_fallback_global=True):
+    value = _config_value(config, "threads", *keys, default=_CFG_MISSING)
+    if value is _CFG_MISSING and isinstance(legacy_section, dict):
+        value = legacy_section.get(legacy_key)
+    if value is _CFG_MISSING or value is None:
+        if legacy_fallback_global:
+            value = config.get("threads", default)
+        else:
+            value = default
+    return int(value)
 
 
 def _resolve_threads(section, default, legacy_fallback=True):
