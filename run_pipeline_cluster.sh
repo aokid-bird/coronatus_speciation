@@ -5,15 +5,18 @@ set -euo pipefail
 
 # activate environment
 module load miniconda/25.9.1-3/python_3.13
+set +u
 if command -v conda >/dev/null 2>&1; then
     eval "$(conda shell.bash hook)"
 elif [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
     source "$HOME/miniconda3/etc/profile.d/conda.sh"
 else
+    set -u
     echo "Unable to initialize conda shell integration." >&2
     exit 1
 fi
 conda activate bioinfo_pipeline
+set -u
 
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
