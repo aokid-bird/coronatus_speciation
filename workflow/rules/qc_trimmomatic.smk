@@ -92,14 +92,16 @@ rule fastqc_outgroup_pre:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=lambda wc: _outgroup_pre_fastqc_html(wc.sample_id, wc.read),
-        zip=lambda wc: _outgroup_pre_fastqc_zip(wc.sample_id, wc.read)
+        html=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"),
+        zip=pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.zip")
     params:
         outdir=PRE_QC_DIR,
         contaminants=FASTQC_CONTAM,
         adapters=FASTQC_ADAPTERS,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
-        adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else "")
+        adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else ""),
+        actual_html=lambda wc: _outgroup_pre_fastqc_html(wc.sample_id, wc.read),
+        actual_zip=lambda wc: _outgroup_pre_fastqc_zip(wc.sample_id, wc.read)
     threads: OUTGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
@@ -112,6 +114,8 @@ rule fastqc_outgroup_pre:
             {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
+        mv -f {params.actual_html} {output.html}
+        mv -f {params.actual_zip} {output.zip}
         """
 
 rule multiqc_outgroup_pre:
@@ -184,14 +188,16 @@ rule fastqc_outgroup_post:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=lambda wc: _outgroup_post_fastqc_html(wc.sample_id, wc.read),
-        zip=lambda wc: _outgroup_post_fastqc_zip(wc.sample_id, wc.read)
+        html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
+        zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
     params:
         outdir=POST_QC_DIR,
         contaminants=FASTQC_CONTAM,
         adapters=FASTQC_ADAPTERS,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
-        adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else "")
+        adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else ""),
+        actual_html=lambda wc: _outgroup_post_fastqc_html(wc.sample_id, wc.read),
+        actual_zip=lambda wc: _outgroup_post_fastqc_zip(wc.sample_id, wc.read)
     threads: OUTGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
@@ -204,6 +210,8 @@ rule fastqc_outgroup_post:
             {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
+        mv -f {params.actual_html} {output.html}
+        mv -f {params.actual_zip} {output.zip}
         """
 
 rule multiqc_outgroup_post:
