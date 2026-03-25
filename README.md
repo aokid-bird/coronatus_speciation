@@ -50,8 +50,9 @@ git remote -v
 ## Step 3.5: Update your template
 When the template gbs_pipeline is updated by the creater, you may update your project by updating the template.
 ```bash
-git checkout main
 git fetch upstream
+git switch main
+git pull origin main
 git merge upstream/main
 git push origin main
 ```
