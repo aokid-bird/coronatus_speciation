@@ -4,6 +4,12 @@ Site-frequency spectrum, theta, Tajima's D, and pairwise Fst analyses.
 
 from pathlib import Path
 
+ANGSD_SFS_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_sfs", legacy_section=ANGSD_SFS_CFG)
+ANGSD_SFS_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_sfs", legacy_section=ANGSD_SFS_CFG)
+REALSFS_CFG = _config_section("sfs_analysis", "realSFS")
+REALSFS_MEM_MB = _resolve_mem_mb(16000, "analyses", "sfs_realsfs", legacy_section=REALSFS_CFG)
+REALSFS_RUNTIME = _resolve_runtime(480, "analyses", "sfs_realsfs", legacy_section=REALSFS_CFG)
+
 SFS_SITE_INPUTS = {
     "linked": {
         "sites": f"results/intersect_sites/{output_prefix}/intersect.txt",
@@ -135,8 +141,8 @@ rule angsd_sfs_group:
     threads:
         ANGSD_SFS_THREADS
     resources:
-        mem_mb=16000,
-        runtime=1440
+        mem_mb=ANGSD_SFS_MEM_MB,
+        runtime=ANGSD_SFS_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -179,8 +185,8 @@ rule realsfs_1d:
     threads:
         REALSFS_THREADS
     resources:
-        mem_mb=16000,
-        runtime=480
+        mem_mb=REALSFS_MEM_MB,
+        runtime=REALSFS_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -218,8 +224,8 @@ rule realsfs_2d:
     threads:
         REALSFS_THREADS
     resources:
-        mem_mb=16000,
-        runtime=480
+        mem_mb=REALSFS_MEM_MB,
+        runtime=REALSFS_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:

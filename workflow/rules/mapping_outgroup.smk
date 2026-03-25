@@ -17,6 +17,16 @@ MAP_CFG = MAPPING_OUTGROUP_CFG
 LR_CFG = (config.get("longread", {}) or {})
 MAP_UNPAIRED = bool(MAP_CFG.get("map_unpaired", True))
 MAP_EXTRA = str(MAP_CFG.get("extra", "") or "").strip()
+OUTGROUP_MAP_PAIRED_MEM_MB = _resolve_mem_mb(64000, "mapping", "outgroup_paired")
+OUTGROUP_MAP_PAIRED_RUNTIME = _resolve_runtime(1440, "mapping", "outgroup_paired")
+OUTGROUP_MAP_UNPAIRED_MEM_MB = _resolve_mem_mb(64000, "mapping", "outgroup_unpaired")
+OUTGROUP_MAP_UNPAIRED_RUNTIME = _resolve_runtime(1440, "mapping", "outgroup_unpaired")
+OUTGROUP_MAP_FINAL_MEM_MB = _resolve_mem_mb(200000, "mapping", "outgroup_merge")
+OUTGROUP_MAP_FINAL_RUNTIME = _resolve_runtime(1440, "mapping", "outgroup_merge")
+OUTGROUP_LONGREAD_MAP_MEM_MB = _resolve_mem_mb(200000, "mapping", "outgroup_longread")
+OUTGROUP_LONGREAD_MAP_RUNTIME = _resolve_runtime(1440, "mapping", "outgroup_longread")
+OUTGROUP_FILTLONG_CFG = (LR_CFG.get("filter", {}) or {})
+OUTGROUP_FILTLONG_THREADS = _resolve_threads(OUTGROUP_FILTLONG_CFG, 4, legacy_fallback=False)
 
 # choose mapper subcommand and reference argument (prefix or fasta)
 MAPPER_CMD = "bwa-mem2 mem" if MAPPER_OUTGROUP == "bwa-mem2" else "bwa mem"
@@ -47,6 +57,9 @@ if config.get("dryrun_mock_reference", False):
             """
 
 rule map_outgroup_paired:
+    """
+    Map paired trimmed outgroup short reads with the configured short-read mapper.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(SHORTREAD_SAMPLES)
     input:
@@ -58,8 +71,8 @@ rule map_outgroup_paired:
         bam=temp(pjoin(OUTGROUP_MAP_TMP, "{sample_id}.paired.bam"))
     threads: MAPPING_OUTGROUP_THREADS
     resources:
-        mem_mb=64000,
-        runtime=1440
+        mem_mb=OUTGROUP_MAP_PAIRED_MEM_MB,
+        runtime=OUTGROUP_MAP_PAIRED_RUNTIME
     conda:
         "../envs/mapper.yaml"
     message:
@@ -73,6 +86,9 @@ rule map_outgroup_paired:
         """
 
 rule map_outgroup_unpaired:
+    """
+    Map trimmed outgroup unpaired reads when unpaired mapping is enabled.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(SHORTREAD_SAMPLES)
     input:
@@ -83,8 +99,8 @@ rule map_outgroup_unpaired:
         bam=temp(pjoin(OUTGROUP_MAP_TMP, "{sample_id}.unpaired_R{read}.bam"))
     threads: MAPPING_OUTGROUP_THREADS
     resources:
-        mem_mb=64000,
-        runtime=1440
+        mem_mb=OUTGROUP_MAP_UNPAIRED_MEM_MB,
+        runtime=OUTGROUP_MAP_UNPAIRED_RUNTIME
     conda:
         "../envs/mapper.yaml"
     message:
@@ -107,6 +123,9 @@ def _merge_inputs(wc):
     return bams
 
 rule outgroup_final_bam:
+    """
+    Merge, sort, and index final outgroup BAMs from short-read alignments.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(SHORTREAD_SAMPLES)
     input:
@@ -116,8 +135,8 @@ rule outgroup_final_bam:
         bai=pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam.bai")
     threads: MAPPING_OUTGROUP_THREADS
     resources:
-        mem_mb=200000,
-        runtime=1440
+        mem_mb=OUTGROUP_MAP_FINAL_MEM_MB,
+        runtime=OUTGROUP_MAP_FINAL_RUNTIME
     conda:
         "../envs/samtools.yaml"
     message:
@@ -149,6 +168,9 @@ def _lr_input_fastq(wc):
         return f"{OUTGROUP_MERGED_DIR}/{wc.sample_id}.fastq.gz"
 
 rule filtlong_outgroup:
+    """
+    Filter long-read outgroup FASTQs with filtlong before mapping.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(LONGREAD_SAMPLES)
     input:
@@ -159,7 +181,7 @@ rule filtlong_outgroup:
         min_length=lambda wc: LR_CFG.get("filter", {}).get("min_length", 1000),
         keep_percent=lambda wc: LR_CFG.get("filter", {}).get("keep_percent", 90),
         extra=lambda wc: LR_CFG.get("filter", {}).get("extra", "")
-    threads: 4
+    threads: OUTGROUP_FILTLONG_THREADS
     conda:
         "../envs/mapper.yaml"
     message:
@@ -172,6 +194,9 @@ rule filtlong_outgroup:
         """
 
 rule map_outgroup_long_minimap2:
+    """
+    Map outgroup long reads with minimap2 using per-sample presets.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(LONGREAD_SAMPLES)
     input:
@@ -186,8 +211,8 @@ rule map_outgroup_long_minimap2:
         extra=lambda wc: LR_CFG.get("mapping", {}).get("extra", "")
     threads: MAPPING_OUTGROUP_THREADS
     resources:
-        mem_mb=200000,
-        runtime=1440
+        mem_mb=OUTGROUP_LONGREAD_MAP_MEM_MB,
+        runtime=OUTGROUP_LONGREAD_MAP_RUNTIME
     conda:
         "../envs/mapper.yaml"
     message:
@@ -213,6 +238,9 @@ rule outgroup_bams:
         expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam"), sample_id=[sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short","long")])
 
 rule manifest_outgroup_longread_filter_storage:
+    """
+    Document the managed storage location for filtered outgroup long reads.
+    """
     input:
         expand(pjoin(OUTGROUP_LR_FILTER_DIR, "{sample_id}.fastq.gz"), sample_id=LONGREAD_SAMPLES) if LR_CFG.get("filter", {}).get("enabled", True) else []
     output:
@@ -231,6 +259,9 @@ rule manifest_outgroup_longread_filter_storage:
         )
 
 rule manifest_outgroup_bam_storage:
+    """
+    Document the managed storage location for final outgroup BAM files.
+    """
     input:
         expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam"), sample_id=[sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short", "long")]),
         expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam.bai"), sample_id=[sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short", "long")])
@@ -250,3 +281,12 @@ rule manifest_outgroup_bam_storage:
                 "mapping_tmp_dir": OUTGROUP_MAP_TMP,
             },
         )
+
+
+OUTGROUP_ALL_MAPPED_SAMPLES = [sid for sid in OUTGROUP_READ_TYPE.keys() if OUTGROUP_READ_TYPE[sid] in ("short", "long")]
+OUTGROUP_MAPPING_TARGETS = [
+    *expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam"), sample_id=OUTGROUP_ALL_MAPPED_SAMPLES),
+    *expand(pjoin(OUTGROUP_FINAL_DIR, "{sample_id}.bam.bai"), sample_id=OUTGROUP_ALL_MAPPED_SAMPLES),
+    *rules.manifest_outgroup_bam_storage.output,
+    *rules.manifest_outgroup_longread_filter_storage.output,
+]

@@ -8,6 +8,7 @@ This file is responsible for:
 """
 
 import os
+import math
 import re
 from datetime import datetime, timezone
 from itertools import combinations
@@ -116,6 +117,77 @@ def _config_section(*keys):
             return {}
         value = value.get(key, {})
     return value if isinstance(value, dict) else {}
+
+
+def _resource_section(*keys):
+    return _config_section("resources", *keys)
+
+
+def _resource_config(*keys, legacy_section=None):
+    legacy = {}
+    if isinstance(legacy_section, dict):
+        legacy = legacy_section.get("resources", {}) or {}
+    current = _resource_section(*keys)
+    merged = dict(legacy)
+    if isinstance(current, dict):
+        merged.update(current)
+    return merged
+
+
+def _parse_mem_mb(value, default):
+    if value is None:
+        value = default
+    if isinstance(value, (int, float)):
+        return max(1, int(math.ceil(float(value))))
+
+    raw = str(value).strip()
+    if not raw:
+        return int(default)
+
+    match = re.fullmatch(r"(?i)\s*(\d+(?:\.\d+)?)\s*([kmgt]?i?b?)?\s*", raw)
+    if not match:
+        raise ValueError(f"Invalid mem_mb value: {value!r}")
+
+    magnitude = float(match.group(1))
+    unit = (match.group(2) or "").lower()
+    factors = {
+        "": 1,
+        "m": 1,
+        "mb": 1,
+        "g": 1000,
+        "gb": 1000,
+        "t": 1000 * 1000,
+        "tb": 1000 * 1000,
+        "k": 1 / 1000,
+        "kb": 1 / 1000,
+        "ki": 1 / 1024,
+        "kib": 1 / 1024,
+        "gi": 1024,
+        "gib": 1024,
+        "ti": 1024 * 1024,
+        "tib": 1024 * 1024,
+        "mi": 1.048576,
+        "mib": 1.048576,
+    }
+    if unit not in factors:
+        raise ValueError(f"Unsupported mem_mb unit: {value!r}")
+    return max(1, int(math.ceil(magnitude * factors[unit])))
+
+
+def _parse_runtime_minutes(value, default):
+    if value is None or value == "":
+        value = default
+    return int(value)
+
+
+def _resolve_mem_mb(default, *keys, legacy_section=None):
+    cfg = _resource_config(*keys, legacy_section=legacy_section)
+    return _parse_mem_mb(cfg.get("mem_mb"), default)
+
+
+def _resolve_runtime(default, *keys, legacy_section=None):
+    cfg = _resource_config(*keys, legacy_section=legacy_section)
+    return _parse_runtime_minutes(cfg.get("runtime"), default)
 
 
 def _resolve_threads(section, default, legacy_fallback=True):

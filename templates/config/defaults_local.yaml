@@ -9,6 +9,84 @@ project:
     #   hokkaido: "hokkaido"
     #   fujisan: "fujisan"
 
+resources:
+    reference:
+        bwa_index:
+            mem_mb: "64G"
+            runtime: 480
+        bwa_mem2_index:
+            mem_mb: "64G"
+            runtime: 480
+    qc:
+        ingroup_trimmomatic:
+            mem_mb: "200G"
+            runtime: 1440
+        outgroup_trimmomatic:
+            mem_mb: "200G"
+            runtime: 1440
+    mapping:
+        ingroup_paired:
+            mem_mb: "64G"
+            runtime: 1440
+        ingroup_unpaired:
+            mem_mb: "64G"
+            runtime: 1440
+        ingroup_merge:
+            mem_mb: "200G"
+            runtime: 1440
+        outgroup_paired:
+            mem_mb: "64G"
+            runtime: 1440
+        outgroup_unpaired:
+            mem_mb: "64G"
+            runtime: 1440
+        outgroup_merge:
+            mem_mb: "200G"
+            runtime: 1440
+        outgroup_longread:
+            mem_mb: "200G"
+            runtime: 1440
+        slice_outgroups:
+            mem_mb: "200G"
+            runtime: 1440
+    analyses:
+        angsd_intersect:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_global:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_global_unrelated_unlinked:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_raxml:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_sfs:
+            mem_mb: "16G"
+            runtime: 1440
+        sfs_realsfs:
+            mem_mb: "16G"
+            runtime: 480
+        ngsdist:
+            mem_mb: "16G"
+            runtime: 1440
+        raxml_catg:
+            mem_mb: "200G"
+            runtime: 2880
+        raxml_run:
+            mem_mb: "200G"
+            runtime: 4320
+        treemix:
+            mem_mb: "16G"
+            runtime: 1440
+        abbababa2:
+            mem_mb: "16G"
+            runtime: 1440
+        snapp:
+            mem_mb: "16G"
+            runtime: 1440
+
 paths:
     bam_dir: "results/bwa"
     singularity_dir: "${HOME}/envs/singularity"
@@ -49,6 +127,7 @@ reference:
     fai: null
     storage_dir: "data/reference"
     download_method: "datasets"
+    index_threads: 2
 
 reads:
     ingroup_dir: "data/raw/ingroup"
@@ -66,16 +145,19 @@ reads:
 mapping:
     ingroup:
         mapper: bwa-mem2
+        threads: 4
         map_unpaired: true
         extra: ""
     outgroup:
         mapper: bwa-mem2
+        threads: 4
         map_unpaired: true
         extra: ""
 
 longread:
     filter:
         enabled: true
+        threads: 4
         min_length: 1000
         keep_percent: 90
         extra: ""
@@ -85,8 +167,10 @@ longread:
 qc:
     ingroup:
         fastqc:
+            threads: 4
             contaminants: null
         trimmomatic:
+            threads: 4
             adapters_fa: null
             clip: "2:30:7"
             slidingwindow: "4:15"
@@ -96,8 +180,10 @@ qc:
             extra: ""
     outgroup:
         fastqc:
+            threads: 4
             contaminants: null
         trimmomatic:
+            threads: 4
             adapters_fa: null
             clip: "2:30:7"
             slidingwindow: "4:15"
@@ -161,11 +247,17 @@ angsd:
 analyses:
     angsd_intersect:
         enabled: true
+        threads: 4
     angsd_global:
         enabled: true
+        threads: 4
         include_outgroups: true
+    angsd_global_unrelated_unlinked:
+        enabled: true
+        threads: 4
     angsd_raxml:
         enabled: true
+        threads: 4
         include_outgroups: true
         downsampling:
             max_per_population:
@@ -175,25 +267,33 @@ analyses:
             seed: 20240526
     angsd_sfs:
         enabled: true
+        threads: 4
     sfs:
         enabled: true
         site_filters: [linked]
         fold_states: [fold]
         include_monomorphic: true
         realSFS:
+            threads: 6
             maxiter: 50000
             tole: 1e-6
     ngsrelate:
         enabled: true
         kinship_threshold: 0.0884
+        threads: 4
     ngsld:
         enabled: true
+        threads: 4
         minmaf: 0.05
         max_kb_dist: 50
         min_weight: 0.5
         weight_field: "column_7"
+    slice_outgroups:
+        enabled: true
+        threads: 8
     pcangsd:
         enabled: true
+        threads: 4
         iter: 1000
         minmaf: 0.05
         axes_plot: []
@@ -206,35 +306,45 @@ analyses:
         minmaf: 0.05
     ngsdist:
         enabled: true
+        threads: 4
         models: ["p", "jc69"]
         include_outgroups: true
     raxml:
         enabled: true
         na_fill: 0.01
-        threads_catg: 60
+        threads_catg: 8
+        catg_resources:
+            mem_mb: 200000
+            runtime: 2880
         var_option: "both"
         model: "GTGTR4+FO+G"
         bs: 100
-        threads_run: 70
+        threads_run: 8
+        run_resources:
+            mem_mb: 200000
+            runtime: 4320
         outgroup_species: []
     treemix:
         enabled: true
+        threads: 4
         include_outgroups: true
         mode: pop
         glactools_bin: workflow/bin/glactools
         root_label: null
         max_m: 6
         reps: 10
+        run_threads: 1
         timeout_seconds: 300
         max_attempts: 3
         use_optm: true
+        se: true
         merge_outgroups: false
         exclude_samples: []
         exclude_outgroups: []
         outgroup_species: []
     abbababa2:
         enabled: true
-        threads: 12
+        threads: 4
         angsd_args: >
             -doAbbababa2 1
             -doCounts 1
@@ -248,6 +358,7 @@ analyses:
         exclude_samples: []
     snapp:
         enabled: true
+        threads: 4
         max_per_population: 4
         min_samples_locus: 4
         missingness_threshold: 0.2
@@ -268,5 +379,3 @@ analyses:
                 run1:
                     distributions:
                         - null
-    slice_outgroups:
-        enabled: true

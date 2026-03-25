@@ -7,6 +7,13 @@ These rules are environment-agnostic and may be used in either local or cluster
 runs once the reference FASTA path has been resolved.
 """
 
+REFERENCE_INDEX_THREADS = int((config.get("reference", {}) or {}).get("index_threads", 2))
+REFERENCE_BWA_INDEX_MEM_MB = _resolve_mem_mb(64000, "reference", "bwa_index")
+REFERENCE_BWA_INDEX_RUNTIME = _resolve_runtime(480, "reference", "bwa_index")
+REFERENCE_BWAMEM2_INDEX_MEM_MB = _resolve_mem_mb(64000, "reference", "bwa_mem2_index")
+REFERENCE_BWAMEM2_INDEX_RUNTIME = _resolve_runtime(480, "reference", "bwa_mem2_index")
+
+
 rule derive_reference_chroms:
     """
     Generate a chromosome or contig list from the FASTA index for ANGSD site filters.
@@ -92,7 +99,7 @@ if _Path(REF).suffix == ".gz":
             gzi=GZI if GZI is not None else temp(".ref.gzi.notused")
         conda:
             "../envs/samtools.yaml"
-        threads: 2
+        threads: REFERENCE_INDEX_THREADS
         shell:
             r"""
             tmp=$(mktemp -t refbgzip).bgz
@@ -127,10 +134,10 @@ rule index_bwa:
         "logs/reference/index_bwa.log"
     conda:
         "../envs/mapper.yaml"
-    threads: 2
+    threads: REFERENCE_INDEX_THREADS
     resources:
-        mem_mb=64000,
-        runtime=480
+        mem_mb=REFERENCE_BWA_INDEX_MEM_MB,
+        runtime=REFERENCE_BWA_INDEX_RUNTIME
     shell:
         r"""
         mkdir -p logs/reference $(dirname {output})
@@ -151,10 +158,10 @@ rule index_bwa_mem2:
         "logs/reference/index_bwa_mem2.log"
     conda:
         "../envs/mapper.yaml"
-    threads: 2
+    threads: REFERENCE_INDEX_THREADS
     resources:
-        mem_mb=64000,
-        runtime=480
+        mem_mb=REFERENCE_BWAMEM2_INDEX_MEM_MB,
+        runtime=REFERENCE_BWAMEM2_INDEX_RUNTIME
     shell:
         r"""
         mkdir -p logs/reference $(dirname {output})

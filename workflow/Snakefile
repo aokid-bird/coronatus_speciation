@@ -63,6 +63,11 @@ ABBABABA2_TARGETS = globals().get("ABBABABA2_TARGETS", [])
 SNAPP_TARGETS = globals().get("SNAPP_TARGETS", [])
 ANGSD_INTERSECT_TARGETS = globals().get("ANGSD_INTERSECT_TARGETS", [])
 ANGSD_SFS_TARGETS = globals().get("ANGSD_SFS_TARGETS", [])
+OUTGROUP_QC_TARGETS = globals().get("OUTGROUP_QC_TARGETS", [])
+INGROUP_QC_TARGETS = globals().get("INGROUP_QC_TARGETS", [])
+OUTGROUP_MAPPING_TARGETS = globals().get("OUTGROUP_MAPPING_TARGETS", [])
+INGROUP_MAPPING_TARGETS = globals().get("INGROUP_MAPPING_TARGETS", [])
+OUTGROUP_SLICE_TARGETS = globals().get("OUTGROUP_SLICE_TARGETS", [])
 
 if IS_LOCAL:
     LOCAL_ALL_TARGETS = _targets(
@@ -87,21 +92,16 @@ else:
         expand(f"{OUTGROUP_MERGED_DIR}/{{sample_id}}.fastq.gz", sample_id=[sid for sid, typ in OUTGROUP_READ_TYPE.items() if typ == "long"]),
         rules.manifest_reference_storage.output,
         rules.manifest_outgroup_merged_storage.output,
-        rules.manifest_outgroup_trim_storage.output,
-        rules.manifest_outgroup_qc_storage.output,
-        rules.manifest_ingroup_trim_storage.output,
-        rules.manifest_ingroup_qc_storage.output,
-        rules.manifest_ingroup_bam_storage.output,
-        rules.manifest_outgroup_bam_storage.output,
-        rules.manifest_outgroup_longread_filter_storage.output,
+        OUTGROUP_QC_TARGETS,
+        INGROUP_QC_TARGETS,
+        INGROUP_MAPPING_TARGETS,
+        OUTGROUP_MAPPING_TARGETS,
         rules.generate_external_transfer_scripts.output,
     )
 
     CORE_ANALYSIS_TARGETS = _targets(
         ANGSD_INTERSECT_TARGETS,
-        f"results/union_sites/{output_prefix}/union.sites" if SLICE_OUTGROUPS_ACTIVE else [],
-        f"results/union_sites/{output_prefix}/union.chr" if SLICE_OUTGROUPS_ACTIVE else [],
-        expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS) if SLICE_OUTGROUPS_ACTIVE else [],
+        OUTGROUP_SLICE_TARGETS,
         ANGSD_GLOBAL_CORE_TARGETS,
     )
 

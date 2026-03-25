@@ -1,7 +1,13 @@
+"""
+ABBABABA2 workflow built on ANGSD genotype-likelihood inputs.
+"""
+
 ABBABABA2_DIR = f"results/angsd_abbababa2/{output_prefix}"
 ABBABABA2_SUMMARY_DIR = f"results/abbababa2/{output_prefix}"
 ABBABABA2_FIG_DIR = f"figures/abbababa2/{output_prefix}"
 ABBABABA2_THREADS = int(ABBABABA2_CFG.get("threads", LEGACY_GLOBAL_THREADS))
+ABBABABA2_MEM_MB = _resolve_mem_mb(16000, "analyses", "abbababa2", legacy_section=ABBABABA2_CFG)
+ABBABABA2_RUNTIME = _resolve_runtime(1440, "analyses", "abbababa2", legacy_section=ABBABABA2_CFG)
 ABBABABA2_ANGSD_ARGS = str(ABBABABA2_CFG.get("angsd_args", "")).strip()
 if not ABBABABA2_ANGSD_ARGS:
     ABBABABA2_ANGSD_ARGS = "-doAbbababa2 1 -doCounts 1 -minMapQ 30 -minQ 20 -baq 2 -useLast 1"
@@ -113,6 +119,9 @@ rule angsd_abbababa2:
         extra=ABBABABA2_ANGSD_ARGS,
         minInd_ratio=get_minInd_ratio("abbababa2", get_minInd_ratio("global", None))
     threads: ABBABABA2_THREADS
+    resources:
+        mem_mb=ABBABABA2_MEM_MB,
+        runtime=ABBABABA2_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:

@@ -6,6 +6,84 @@ project:
     group_col: null
     population_labels: null
 
+resources:
+    reference:
+        bwa_index:
+            mem_mb: "64G"
+            runtime: 480
+        bwa_mem2_index:
+            mem_mb: "64G"
+            runtime: 480
+    qc:
+        ingroup_trimmomatic:
+            mem_mb: "200G"
+            runtime: 1440
+        outgroup_trimmomatic:
+            mem_mb: "200G"
+            runtime: 1440
+    mapping:
+        ingroup_paired:
+            mem_mb: "64G"
+            runtime: 1440
+        ingroup_unpaired:
+            mem_mb: "64G"
+            runtime: 1440
+        ingroup_merge:
+            mem_mb: "200G"
+            runtime: 1440
+        outgroup_paired:
+            mem_mb: "64G"
+            runtime: 1440
+        outgroup_unpaired:
+            mem_mb: "64G"
+            runtime: 1440
+        outgroup_merge:
+            mem_mb: "200G"
+            runtime: 1440
+        outgroup_longread:
+            mem_mb: "200G"
+            runtime: 1440
+        slice_outgroups:
+            mem_mb: "200G"
+            runtime: 1440
+    analyses:
+        angsd_intersect:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_global:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_global_unrelated_unlinked:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_raxml:
+            mem_mb: "16G"
+            runtime: 1440
+        angsd_sfs:
+            mem_mb: "16G"
+            runtime: 1440
+        sfs_realsfs:
+            mem_mb: "16G"
+            runtime: 480
+        ngsdist:
+            mem_mb: "16G"
+            runtime: 1440
+        raxml_catg:
+            mem_mb: "200G"
+            runtime: 2880
+        raxml_run:
+            mem_mb: "200G"
+            runtime: 4320
+        treemix:
+            mem_mb: "16G"
+            runtime: 1440
+        abbababa2:
+            mem_mb: "16G"
+            runtime: 1440
+        snapp:
+            mem_mb: "16G"
+            runtime: 1440
+
 slurm:
     partition: "default"
     account: null
@@ -13,6 +91,10 @@ slurm:
     reservation: null
     mail_type: null
     mail_user: null
+    default_resources:
+        mem_mb: 20000
+        runtime: 420
+        nodes: 1
 
 paths:
     bam_dir: "results/bwa"
@@ -54,6 +136,7 @@ reference:
     fai: null
     storage_dir: "data/reference"
     download_method: "datasets"
+    index_threads: 2
 
 reads:
     ingroup_dir: "data/raw/ingroup"
@@ -83,6 +166,7 @@ mapping:
 longread:
     filter:
         enabled: true
+        threads: 4
         min_length: 1000
         keep_percent: 90
         extra: ""
@@ -92,6 +176,7 @@ longread:
 qc:
     ingroup:
         fastqc:
+            threads: 4
             contaminants: null
         trimmomatic:
             threads: 8
@@ -104,6 +189,7 @@ qc:
             extra: ""
     outgroup:
         fastqc:
+            threads: 4
             contaminants: null
         trimmomatic:
             threads: 30
@@ -176,6 +262,7 @@ analyses:
         threads: 8
         include_outgroups: true
     angsd_global_unrelated_unlinked:
+        enabled: true
         threads: 8
     angsd_raxml:
         enabled: true
@@ -249,9 +336,11 @@ analyses:
         root_label: null
         max_m: 6
         reps: 10
+        run_threads: 1
         timeout_seconds: 300
         max_attempts: 3
         use_optm: true
+        se: true
         merge_outgroups: false
         exclude_samples: []
         exclude_outgroups: []

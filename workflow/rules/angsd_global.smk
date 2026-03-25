@@ -4,6 +4,12 @@ Global ANGSD, relatedness, LD pruning, and unrelated-analysis inputs.
 
 kin_thr = config["ngsrelate"]["kinship_threshold"]
 NGSRELATE_FIG_DIR = f"figures/exploratory/ngsrelate/{output_prefix}"
+ANGSD_GLOBAL_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_global", legacy_section=ANGSD_GLOBAL_CFG)
+ANGSD_GLOBAL_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_global", legacy_section=ANGSD_GLOBAL_CFG)
+ANGSD_GLOBAL_UNRELATED_CFG = _config_section("angsd_global_unrelated_unlinked")
+ANGSD_GLOBAL_UNRELATED_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_global_unrelated_unlinked", legacy_section=ANGSD_GLOBAL_UNRELATED_CFG)
+ANGSD_GLOBAL_UNRELATED_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_global_unrelated_unlinked", legacy_section=ANGSD_GLOBAL_UNRELATED_CFG)
+NGSRELATE_THREADS = _resolve_threads(NGSRELATE_CFG, LEGACY_GLOBAL_THREADS)
 
 _INGROUP_BAMS = [
     f"{config_bam_dir}/{s}.bam"
@@ -60,8 +66,8 @@ rule angsd_global:
         minInd_ratio=get_minInd_ratio("global", None)
     threads: ANGSD_GLOBAL_THREADS
     resources:
-        mem_mb=16000,
-        runtime=1440
+        mem_mb=ANGSD_GLOBAL_MEM_MB,
+        runtime=ANGSD_GLOBAL_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -115,7 +121,7 @@ rule ngsrelate_global:
         result = f"results/ngsrelate_global/{output_prefix}/ngsrelate_res"
     log:
         f"logs/{output_prefix}/ngsrelate_global.log"
-    threads: config["ngsrelate"]["threads"]
+    threads: NGSRELATE_THREADS
     singularity:
         f"{config_singularity_dir}/ngsrelate_20220925.sif"
     shell:
@@ -156,6 +162,9 @@ rule plot_ngsrelate_kinship:
         """
 
 rule manual_remove_list:
+    """
+    Create the manual curation checkpoint for related-sample removal.
+    """
     input:
         related_pairs = rules.plot_ngsrelate_kinship.output.csv
     output:
@@ -354,6 +363,9 @@ rule angsd_global_unrelated_unlinked:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["global_unrelated_unlinked"].strip(),
         minInd_ratio=get_minInd_ratio("global", None)
     threads: ANGSD_GLOBAL_UNRELATED_THREADS
+    resources:
+        mem_mb=ANGSD_GLOBAL_UNRELATED_MEM_MB,
+        runtime=ANGSD_GLOBAL_UNRELATED_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:

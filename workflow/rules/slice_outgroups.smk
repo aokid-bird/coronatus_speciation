@@ -3,7 +3,14 @@ Build union sites across ingroup populations from ANGSD intersect outputs,
 then slice outgroup BAMs to those sites to reduce size for downstream ANGSD.
 """
 
+SLICE_OUTGROUPS_MEM_MB = _resolve_mem_mb(200000, "mapping", "slice_outgroups")
+SLICE_OUTGROUPS_RUNTIME = _resolve_runtime(1440, "mapping", "slice_outgroups")
+
+
 rule union_sites_groups:
+    """
+    Build the union of intersected ingroup sites and a BED for outgroup slicing.
+    """
     input:
         genos = expand(f"results/angsd_intersect/{output_prefix}/{{group}}/gl.geno.gz", group=groups)
     output:
@@ -34,8 +41,8 @@ rule slice_outgroup_bam:
         bai = f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam.bai"
     threads: SLICE_OUTGROUPS_THREADS
     resources:
-        mem_mb=200000,
-        runtime=1440
+        mem_mb=SLICE_OUTGROUPS_MEM_MB,
+        runtime=SLICE_OUTGROUPS_RUNTIME
     conda:
         "../envs/samtools.yaml"
     shell:
@@ -54,3 +61,10 @@ rule outgroup_bams_sliced:
     """
     input:
         expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS)
+
+
+OUTGROUP_SLICE_TARGETS = [
+    f"results/union_sites/{output_prefix}/union.sites",
+    f"results/union_sites/{output_prefix}/union.chr",
+    *expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ACTIVE_OUTGROUP_SAMPLE_IDS),
+] if SLICE_OUTGROUPS_ACTIVE else []

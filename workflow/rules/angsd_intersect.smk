@@ -2,6 +2,9 @@
 Shared intersect-site discovery across configured ingroup populations.
 """
 
+ANGSD_INTERSECT_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_intersect", legacy_section=ANGSD_INTERSECT_CFG)
+ANGSD_INTERSECT_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_intersect", legacy_section=ANGSD_INTERSECT_CFG)
+
 def _bams_for_group(group):
     return [
         f"{config_bam_dir}/{s}.bam"
@@ -42,8 +45,8 @@ rule angsd_intersect_group:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["intersect"].strip()
     threads: ANGSD_INTERSECT_THREADS
     resources:
-        mem_mb=16000,
-        runtime=1440
+        mem_mb=ANGSD_INTERSECT_MEM_MB,
+        runtime=ANGSD_INTERSECT_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:

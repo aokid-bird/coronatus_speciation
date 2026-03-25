@@ -1,4 +1,6 @@
-# SNAPP analysis workflow
+"""
+SNAPP preparation workflow, including a dedicated ANGSD call and XML setup.
+"""
 
 SNAPP_MAX_PER_POP = int(SNAPP_CFG.get("max_per_population", 4))
 SNAPP_MIN_SAMPLES_LOCUS = int(SNAPP_CFG.get("min_samples_locus", 4))
@@ -31,6 +33,8 @@ SNAPP_MCMC_LENGTH = int(SNAPP_PREP_CFG.get("mcmc_length", 500000))
 SNAPP_TOPOLOGY_WEIGHT = float(SNAPP_PREP_CFG.get("topology_weight", 1.0))
 SNAPP_PREP_EXTRA = SNAPP_PREP_CFG.get("extra_args", "").strip()
 SNAPP_LOG_PREFIX = SNAPP_CFG.get("log_prefix", "snapp")
+SNAPP_ANGSD_MEM_MB = _resolve_mem_mb(16000, "analyses", "snapp", legacy_section=SNAPP_CFG)
+SNAPP_ANGSD_RUNTIME = _resolve_runtime(1440, "analyses", "snapp", legacy_section=SNAPP_CFG)
 
 SNAPP_BASE = f"results/snapp/{output_prefix}"
 SNAPP_ALIGN_DIR = f"{SNAPP_BASE}/alignment"
@@ -116,6 +120,9 @@ rule angsd_snapp:
         extra=(config["angsd_common_args"].strip() + " " + (config.get("angsd_args", {}).get("snapp", "").strip())),
         minInd_ratio=get_minInd_ratio("snapp", get_minInd_ratio("global", None))
     threads: ANGSD_SNAPP_THREADS
+    resources:
+        mem_mb=SNAPP_ANGSD_MEM_MB,
+        runtime=SNAPP_ANGSD_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:

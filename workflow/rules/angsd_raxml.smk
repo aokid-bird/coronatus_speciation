@@ -6,6 +6,14 @@ RAXML_DIR = f"results/raxml/{output_prefix}"
 RAXML_FIG_DIR = f"figures/exploratory/raxml/{output_prefix}"
 RAXML_OUTGROUP_SPECIES = RAXML_CFG.get("outgroup_species")
 ANGSD_RAXML_DOWNSAMPLE_CFG = ANGSD_RAXML_CFG.get("downsampling", {}) or {}
+ANGSD_RAXML_MEM_MB = _resolve_mem_mb(16000, "analyses", "angsd_raxml", legacy_section=ANGSD_RAXML_CFG)
+ANGSD_RAXML_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_raxml", legacy_section=ANGSD_RAXML_CFG)
+CATG_THREADS = int(RAXML_CFG.get("threads_catg", 1))
+CATG_MEM_MB = _resolve_mem_mb(200000, "analyses", "raxml_catg", legacy_section={"resources": RAXML_CFG.get("catg_resources", {}) or {}})
+CATG_RUNTIME = _resolve_runtime(2880, "analyses", "raxml_catg", legacy_section={"resources": RAXML_CFG.get("catg_resources", {}) or {}})
+RAXML_RUN_THREADS = int(RAXML_CFG.get("threads_run", 1))
+RAXML_RUN_MEM_MB = _resolve_mem_mb(200000, "analyses", "raxml_run", legacy_section={"resources": RAXML_CFG.get("run_resources", {}) or {}})
+RAXML_RUN_RUNTIME = _resolve_runtime(4320, "analyses", "raxml_run", legacy_section={"resources": RAXML_CFG.get("run_resources", {}) or {}})
 
 
 def _parse_max_per_population(raw):
@@ -175,6 +183,9 @@ rule angsd_raxml:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["raxml"].strip(),
         minInd_ratio=get_minInd_ratio("raxml", get_minInd_ratio("global", None))
     threads: ANGSD_RAXML_THREADS
+    resources:
+        mem_mb=ANGSD_RAXML_MEM_MB,
+        runtime=ANGSD_RAXML_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -208,10 +219,10 @@ rule catg_format:
         raxmlcatg=f"{RAXML_DIR}/rxmlcatg.txt"
     params:
         maxSize = 4 * 1024**3 # max size for future.apply
-    threads:config['raxml']['threads_catg']
+    threads: CATG_THREADS
     resources:
-        mem_mb=200000,
-        runtime=2880
+        mem_mb=CATG_MEM_MB,
+        runtime=CATG_RUNTIME
     conda:
         "../envs/vcfR.yaml"
     script:
@@ -228,10 +239,10 @@ rule raxml_ng:
     output:
         raxout=f"{RAXML_DIR}/rxmlcatg.txt.raxml.bootstraps",
         raxsup=f"{RAXML_DIR}/rxmlcatg.txt.raxml.support"
-    threads:config['raxml']['threads_run']
+    threads: RAXML_RUN_THREADS
     resources:
-        mem_mb=200000,
-        runtime=4320
+        mem_mb=RAXML_RUN_MEM_MB,
+        runtime=RAXML_RUN_RUNTIME
     params:
         model=config['raxml']['model'],
         bs=config['raxml']['bs'],
@@ -257,7 +268,7 @@ rule raxml_ng:
 
 rule plot_raxml:
     """
-    Plot RAxML-ng bootstrap tree
+    Plot the bootstrap-supported RAxML-ng tree.
     """
     input:
         raxsup=f"results/raxml/{output_prefix}/rxmlcatg.txt.raxml.support",

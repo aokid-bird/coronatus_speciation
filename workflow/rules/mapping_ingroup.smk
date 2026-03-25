@@ -14,6 +14,12 @@ FINAL_DIR = config_bam_dir
 MAP_CFG = MAPPING_INGROUP_CFG
 MAP_UNPAIRED = bool(MAP_CFG.get("map_unpaired", True))
 MAP_EXTRA = str(MAP_CFG.get("extra", "") or "").strip()
+INGROUP_MAP_PAIRED_MEM_MB = _resolve_mem_mb(64000, "mapping", "ingroup_paired")
+INGROUP_MAP_PAIRED_RUNTIME = _resolve_runtime(1440, "mapping", "ingroup_paired")
+INGROUP_MAP_UNPAIRED_MEM_MB = _resolve_mem_mb(64000, "mapping", "ingroup_unpaired")
+INGROUP_MAP_UNPAIRED_RUNTIME = _resolve_runtime(1440, "mapping", "ingroup_unpaired")
+INGROUP_MAP_FINAL_MEM_MB = _resolve_mem_mb(200000, "mapping", "ingroup_merge")
+INGROUP_MAP_FINAL_RUNTIME = _resolve_runtime(1440, "mapping", "ingroup_merge")
 
 MAPPER_CMD = "bwa-mem2 mem" if MAPPER_INGROUP == "bwa-mem2" else "bwa mem"
 MAPPER_REF_ARG = REF_MAP_ARG_INGROUP
@@ -24,6 +30,9 @@ def _wc_regex(ids):
 
 
 rule map_ingroup_paired:
+    """
+    Map paired trimmed ingroup reads with the configured short-read mapper.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
     input:
@@ -34,6 +43,9 @@ rule map_ingroup_paired:
     output:
         bam=temp(pjoin(MAP_TMP, "{sample_id}.paired.bam"))
     threads: MAPPING_INGROUP_THREADS
+    resources:
+        mem_mb=INGROUP_MAP_PAIRED_MEM_MB,
+        runtime=INGROUP_MAP_PAIRED_RUNTIME
     conda:
         "../envs/mapper.yaml"
     message:
@@ -48,6 +60,9 @@ rule map_ingroup_paired:
 
 
 rule map_ingroup_unpaired:
+    """
+    Map trimmed ingroup unpaired reads when unpaired mapping is enabled.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
     input:
@@ -57,6 +72,9 @@ rule map_ingroup_unpaired:
     output:
         bam=temp(pjoin(MAP_TMP, "{sample_id}.unpaired_R{read}.bam"))
     threads: MAPPING_INGROUP_THREADS
+    resources:
+        mem_mb=INGROUP_MAP_UNPAIRED_MEM_MB,
+        runtime=INGROUP_MAP_UNPAIRED_RUNTIME
     conda:
         "../envs/mapper.yaml"
     message:
@@ -81,6 +99,9 @@ def _merge_inputs(wc):
 
 
 rule ingroup_final_bam:
+    """
+    Merge, sort, and index final ingroup BAMs from short-read alignments.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
     input:
@@ -89,6 +110,9 @@ rule ingroup_final_bam:
         bam=pjoin(FINAL_DIR, "{sample_id}.bam"),
         bai=pjoin(FINAL_DIR, "{sample_id}.bam.bai")
     threads: MAPPING_INGROUP_THREADS
+    resources:
+        mem_mb=INGROUP_MAP_FINAL_MEM_MB,
+        runtime=INGROUP_MAP_FINAL_RUNTIME
     conda:
         "../envs/samtools.yaml"
     message:
@@ -117,6 +141,9 @@ rule ingroup_bams:
         expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS)
 
 rule manifest_ingroup_bam_storage:
+    """
+    Document the managed storage location for final ingroup BAM files.
+    """
     input:
         expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS),
         expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_SAMPLE_IDS)
@@ -135,3 +162,10 @@ rule manifest_ingroup_bam_storage:
                 "mapping_tmp_dir": MAP_TMP,
             },
         )
+
+
+INGROUP_MAPPING_TARGETS = [
+    *expand(pjoin(FINAL_DIR, "{sample_id}.bam"), sample_id=INGROUP_SAMPLE_IDS),
+    *expand(pjoin(FINAL_DIR, "{sample_id}.bam.bai"), sample_id=INGROUP_SAMPLE_IDS),
+    *rules.manifest_ingroup_bam_storage.output,
+]

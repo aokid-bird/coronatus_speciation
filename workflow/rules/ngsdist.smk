@@ -1,13 +1,18 @@
-# rules/ngsdist.smk
+"""
+ngsDist workflow with its own ANGSD producer and distance-format exports.
+"""
 
 _MODELS = NGSDIST_CFG.get("models", ["p", "jc69"])  # allowed: p, jc69
 NGSDIST_SIF = f"{config_singularity_dir}/ngsdist.sif"
 NGSDIST_DIR = f"results/ngsdist_global/{output_prefix}"
+NGSDIST_MEM_MB = _resolve_mem_mb(16000, "analyses", "ngsdist", legacy_section=NGSDIST_CFG)
+NGSDIST_RUNTIME = _resolve_runtime(1440, "analyses", "ngsdist", legacy_section=NGSDIST_CFG)
+NGSDIST_THREADS = _resolve_threads(NGSDIST_CFG, 1)
 
 
 rule make_bamlist_ngsdist:
     """
-    Bamlist for ngsDist, with its own outgroup inclusion setting.
+    Write the ngsDist bamlist with its own outgroup inclusion setting.
     """
     input:
         ingroup=rules.make_bamlist_all.output.bamlist,
@@ -22,7 +27,7 @@ rule make_bamlist_ngsdist:
 
 rule angsd_global_ngsdist:
     """
-    ANGSD producer dedicated to ngsDist so its sample set can differ from angsd_global.
+    Run a dedicated ANGSD call for ngsDist so its sample set can differ from angsd_global.
     """
     input:
         bamlist=rules.make_bamlist_ngsdist.output.bamlist,
@@ -41,6 +46,9 @@ rule angsd_global_ngsdist:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["global"].strip(),
         minInd_ratio=get_minInd_ratio("global", None)
     threads: ANGSD_GLOBAL_THREADS
+    resources:
+        mem_mb=NGSDIST_MEM_MB,
+        runtime=NGSDIST_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -104,7 +112,7 @@ rule ngsdist_run:
         log     = f"logs/{output_prefix}/ngsdist_{{model}}.log"
     singularity:
         NGSDIST_SIF
-    threads: NGSDIST_CFG.get("threads", 1)
+    threads: NGSDIST_THREADS
     wildcard_constraints:
         model="|".join(_MODELS)
     shell:

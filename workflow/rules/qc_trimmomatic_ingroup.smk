@@ -42,7 +42,10 @@ POST_QC_DIR = pjoin(INGROUP_QC_BASE_DIR, "post")
 INGROUP_TRIM_DIR_RULE = INGROUP_TRIM_DIR
 
 FASTQC_CONTAM = (INGROUP_QC_CFG.get("fastqc", {}) or {}).get("contaminants", None)
+INGROUP_FASTQC_THREADS = _resolve_threads((INGROUP_QC_CFG.get("fastqc", {}) or {}), 4, legacy_fallback=False)
 TRIM_CFG = INGROUP_QC_CFG.get("trimmomatic", {}) or {}
+INGROUP_TRIM_MEM_MB = _resolve_mem_mb(200000, "qc", "ingroup_trimmomatic")
+INGROUP_TRIM_RUNTIME = _resolve_runtime(1440, "qc", "ingroup_trimmomatic")
 
 TRIM_ADAPTERS = TRIM_CFG.get("adapters_fa", None)
 TRIM_CLIP = TRIM_CFG.get("clip", "2:30:10")
@@ -54,6 +57,9 @@ TRIM_EXTRA = str(TRIM_CFG.get("extra", "") or "").strip()
 
 
 rule fastqc_ingroup_pre:
+    """
+    Run FastQC on ingroup reads before trimming.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS),
         read="1|2"
@@ -66,7 +72,7 @@ rule fastqc_ingroup_pre:
         outdir=PRE_QC_DIR,
         contaminants=FASTQC_CONTAM,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else "")
-    threads: 4
+    threads: INGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
     message:
@@ -81,6 +87,9 @@ rule fastqc_ingroup_pre:
 
 
 rule multiqc_ingroup_pre:
+    """
+    Aggregate pre-trim ingroup FastQC reports with MultiQC.
+    """
     input:
         expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1","2"])
     output:
@@ -94,6 +103,9 @@ rule multiqc_ingroup_pre:
 
 
 rule trimmomatic_ingroup_pe:
+    """
+    Trim paired-end ingroup reads with Trimmomatic.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS)
     input:
@@ -114,6 +126,9 @@ rule trimmomatic_ingroup_pe:
         extra=TRIM_EXTRA,
         outdir=INGROUP_TRIM_DIR_RULE
     threads: QC_INGROUP_THREADS
+    resources:
+        mem_mb=INGROUP_TRIM_MEM_MB,
+        runtime=INGROUP_TRIM_RUNTIME
     conda:
         "../envs/trimmomatic.yaml"
     message:
@@ -136,6 +151,9 @@ rule trimmomatic_ingroup_pe:
 
 
 rule fastqc_ingroup_post:
+    """
+    Run FastQC on paired trimmed ingroup reads.
+    """
     wildcard_constraints:
         sample_id=_wc_regex(INGROUP_SAMPLE_IDS),
         read="1|2"
@@ -148,7 +166,7 @@ rule fastqc_ingroup_post:
         outdir=POST_QC_DIR,
         contaminants=FASTQC_CONTAM,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else "")
-    threads: 4
+    threads: INGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
     message:
@@ -163,6 +181,9 @@ rule fastqc_ingroup_post:
 
 
 rule multiqc_ingroup_post:
+    """
+    Aggregate post-trim ingroup FastQC reports with MultiQC.
+    """
     input:
         expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1","2"])
     output:
@@ -189,6 +210,9 @@ rule ingroup_qc_trim_all:
         pjoin(POST_QC_DIR, "multiqc_report.html")
 
 rule manifest_ingroup_trim_storage:
+    """
+    Document the managed storage location for trimmed ingroup FASTQs.
+    """
     input:
         expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
         expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS)
@@ -209,6 +233,9 @@ rule manifest_ingroup_trim_storage:
         )
 
 rule manifest_ingroup_qc_storage:
+    """
+    Document the managed storage location for ingroup QC reports.
+    """
     input:
         pre_multiqc=pjoin(PRE_QC_DIR, "multiqc_report.html"),
         post_multiqc=pjoin(POST_QC_DIR, "multiqc_report.html")
@@ -227,3 +254,14 @@ rule manifest_ingroup_qc_storage:
                 "sample_count": len(INGROUP_SAMPLE_IDS),
             },
         )
+
+
+INGROUP_QC_TARGETS = [
+    *expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_SAMPLE_IDS, read=["1", "2"]),
+    *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R1.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+    *expand(pjoin(INGROUP_TRIM_DIR_RULE, "{sample_id}_pair_R2.fastq.gz"), sample_id=INGROUP_SAMPLE_IDS),
+    pjoin(PRE_QC_DIR, "multiqc_report.html"),
+    pjoin(POST_QC_DIR, "multiqc_report.html"),
+    *rules.manifest_ingroup_trim_storage.output,
+    *rules.manifest_ingroup_qc_storage.output,
+]

@@ -1,16 +1,19 @@
-###
-# Treemix flow: ANGSD -> VCF -> ACF -> rename/meld/root -> treemix matrix -> block size -> treemix runs -> eval
-###
+"""
+TreeMix workflow from ANGSD genotype likelihoods through evaluation plots.
+"""
 
 GLACTOOLS_BIN = TREEMIX_CFG.get("glactools_bin", "workflow/bin/glactools")
 TREEMIX_MODE = str(TREEMIX_CFG.get("mode", "merge"))
 TREEMIX_ROOT_LABEL = str(TREEMIX_CFG.get("root_label", "")).strip() or None
 TREEMIX_EXCLUDE_SAMPLES = _parse_list(TREEMIX_CFG.get("exclude_samples"))
 TREEMIX_THREADS = _resolve_threads(TREEMIX_CFG, LEGACY_GLOBAL_THREADS)
+TREEMIX_MEM_MB = _resolve_mem_mb(16000, "analyses", "treemix", legacy_section=TREEMIX_CFG)
+TREEMIX_RUNTIME = _resolve_runtime(1440, "analyses", "treemix", legacy_section=TREEMIX_CFG)
 TREEMIX_MAX_M = int(TREEMIX_CFG.get("max_m", 6))
 TREEMIX_REPS = int(TREEMIX_CFG.get("reps", 10))
 TREEMIX_TIMEOUT_SECONDS = int(TREEMIX_CFG.get("timeout_seconds", 300))
 TREEMIX_MAX_ATTEMPTS = int(TREEMIX_CFG.get("max_attempts", 3))
+TREEMIX_RUN_THREADS = int(TREEMIX_CFG.get("run_threads", 1))
 _PLOTFUNC_DEFAULT = Path("workflow/scripts/treemix_plotting_funcs.R")
 TREEMIX_PLOTTING_FUNCS = str(_PLOTFUNC_DEFAULT) if _PLOTFUNC_DEFAULT.exists() else None
 TREEMIX_DIR = f"results/treemix/{output_prefix}/{TREEMIX_MODE}"
@@ -36,7 +39,7 @@ rule make_bamlist_treemix:
 
 rule angsd_treemix:
     """
-    ANGSD on intersecting sites to produce BCF/geno for treemix.
+    Run ANGSD on the TreeMix analysis sample set.
     """
     input:
         bamlist=rules.make_bamlist_treemix.output.bamlist,
@@ -54,6 +57,9 @@ rule angsd_treemix:
         extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["treemix"].strip(),
         minInd_ratio=get_minInd_ratio("treemix", get_minInd_ratio("global", None))
     threads: TREEMIX_THREADS
+    resources:
+        mem_mb=TREEMIX_MEM_MB,
+        runtime=TREEMIX_RUNTIME
     conda:
         "../envs/angsd.yaml"
     shell:
@@ -192,7 +198,7 @@ rule treemix_run:
         timeout_seconds=TREEMIX_TIMEOUT_SECONDS,
         max_attempts=TREEMIX_MAX_ATTEMPTS,
         reps=TREEMIX_REPS
-    threads: 1
+    threads: TREEMIX_RUN_THREADS
     conda:
         "../envs/treemix.yaml"
     shell:
