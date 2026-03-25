@@ -1,12 +1,19 @@
 #!/bin/bash
 # run_pipeline.sh
 
+set -euo pipefail
+
 # activate environment
 module load miniconda/25.9.1-3/python_3.13
+if command -v conda >/dev/null 2>&1; then
+    eval "$(conda shell.bash hook)"
+elif [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+else
+    echo "Unable to initialize conda shell integration." >&2
+    exit 1
+fi
 conda activate bioinfo_pipeline
-
-# stop when error comes out
-set -euo pipefail
 
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
@@ -14,20 +21,22 @@ SINGULARITY_PREFIX_SNAKEMAKE="$HOME/envs/singularity"
 CONFIG=config/config.yaml
 PROFILE=profile/default
 CONDARC_SNAKEMAKE="$(pwd)/conda/condarc_snakemake.yaml"
-LOGDIR=$(python workflow/scripts/export_paths.py $CONFIG)
+LOGDIR=$(python workflow/scripts/export_paths.py "$CONFIG")
 echo "Your LOGDIR is \"$LOGDIR\""
-mkdir -p $LOGDIR
+mkdir -p "$LOGDIR"
 
 # export Slurm profile settings from config
 eval "$(
 python - "$CONFIG" "$LOGDIR" <<'PY'
 import shlex
 import sys
-import yaml
+
+sys.path.insert(0, "workflow/scripts")
+
+from config_compat import load_config_with_compat
 
 config_path, logdir = sys.argv[1], sys.argv[2]
-with open(config_path) as fh:
-    config = yaml.safe_load(fh) or {}
+config = load_config_with_compat(config_path)
 
 slurm = config.get("slurm", {}) or {}
 slurm_logdir = f"{logdir}/slurm"
@@ -99,7 +108,7 @@ TARGETS=("$@")
 
 # create DAG (for specified targets if provided)
 if [ ${#TARGETS[@]} -gt 0 ]; then
-  snakemake --dag --rerun-incomplete --unlock --snakefile workflow/Snakefile --configfile $CONFIG "${TARGETS[@]}" | dot -Tpdf > "${LOGDIR}/dag.pdf"
+  snakemake --dag --rerun-incomplete --unlock --snakefile workflow/Snakefile --configfile "$CONFIG" "${TARGETS[@]}" | dot -Tpdf > "${LOGDIR}/dag.pdf"
 else
   snakemake --dag --rerun-incomplete --unlock | dot -Tpdf > "${LOGDIR}/dag.pdf"
 fi
@@ -113,7 +122,7 @@ snakemake \
     --rerun-incomplete \
     --configfile "$CONFIG" \
     --unlock \
-    "${TARGETS[@]}" > ${LOGDIR}/dryrun.log 2>&1
+    "${TARGETS[@]}" > "${LOGDIR}/dryrun.log" 2>&1
 
 # Snakemake run
 snakemake \

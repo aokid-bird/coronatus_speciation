@@ -1,13 +1,12 @@
 import sys
-import yaml
+
+from config_compat import load_config_with_compat
 
 if len(sys.argv) < 2:
     print("Usage: python export_paths.py <config_file>")
     sys.exit(1)
 
 config_file = sys.argv[1]
-
-with open(config_file) as f:
-    config = yaml.safe_load(f)
+config = load_config_with_compat(config_file)
 
 print(f"logs/{config['output_prefix']}")

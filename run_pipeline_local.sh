@@ -1,19 +1,25 @@
 #!/bin/bash
 # run_pipeline.sh
 
-# activate environment
-
-conda activate bioinfo_pipeline
-source /Users/daisukeaoki/miniconda3/etc/profile.d/conda.sh
-# stop when error comes out
 set -euo pipefail
+
+# activate environment
+if command -v conda >/dev/null 2>&1; then
+    eval "$(conda shell.bash hook)"
+elif [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
+else
+    echo "Unable to initialize conda shell integration." >&2
+    exit 1
+fi
+conda activate bioinfo_pipeline
 
 # absolute paths and variables
 CONDA_PREFIX_SNAKEMAKE="$HOME/envs/conda"
 CONFIG=config/config.yaml
 CONDARC_SNAKEMAKE="$(pwd)/conda/condarc_snakemake.yaml"
-LOGDIR=$(python workflow/scripts/export_paths.py $CONFIG)
-mkdir -p $LOGDIR
+LOGDIR=$(python workflow/scripts/export_paths.py "$CONFIG")
+mkdir -p "$LOGDIR"
 echo "Your LOGDIR is \"$LOGDIR\""
 
 # Keep R package resolution inside each conda environment.
@@ -41,7 +47,7 @@ snakemake \
     --printshellcmds \
     --cores 6 \
     --snakefile workflow/Snakefile \
-    --configfile config/config.yaml > ${LOGDIR}/dryrun.log 2>&1
+    --configfile "$CONFIG" > "${LOGDIR}/dryrun.log" 2>&1
 
 # for SRA downlaod/reference download, do the following in the local MacStudio
 snakemake \
