@@ -298,4 +298,4 @@ OUTGROUP_QC_TARGETS = [
     pjoin(POST_QC_DIR, "multiqc_report.html"),
     *rules.manifest_outgroup_trim_storage.output,
     *rules.manifest_outgroup_qc_storage.output,
-]
+] if SHORTREAD_SAMPLES else []
