@@ -69,22 +69,34 @@ PY
 mkdir -p "$SNAKEMAKE_SLURM_LOGDIR"
 echo "Using Slurm partition \"$SNAKEMAKE_SLURM_PARTITION\""
 
+TARGETS=("$@")
+
 # Keep R package resolution inside each conda environment.
 unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
 
 # Force Snakemake-created conda envs to ignore cluster-wide default channels.
 export CONDARC="$CONDARC_SNAKEMAKE"
 
+# unlock once before the actual planning/run steps
+echo "Unlocking working directory..."
+snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile "$CONFIG" \
+  --unlock \
+  "${TARGETS[@]}"
+
 # create conda environment
 echo "Creating conda environments..."
 snakemake \
+  --snakefile workflow/Snakefile \
+  --configfile "$CONFIG" \
   --use-conda \
   --conda-create-envs-only \
   --conda-prefix "$CONDA_PREFIX_SNAKEMAKE" \
   --rerun-incomplete \
   --conda-frontend conda \
-  --unlock \
-  --cores 1
+  --cores 1 \
+  "${TARGETS[@]}"
 
 # build containers
 echo "Building containers..."
@@ -107,24 +119,21 @@ for script in workflow/containers/*/build.sh; do
     bash "$script"
 done
 
-TARGETS=("$@")
-
 # create DAG (for specified targets if provided)
 if [ ${#TARGETS[@]} -gt 0 ]; then
-  snakemake --dag --rerun-incomplete --unlock --snakefile workflow/Snakefile --configfile "$CONFIG" "${TARGETS[@]}" | dot -Tpdf > "${LOGDIR}/dag.pdf"
+  snakemake --dag --rerun-incomplete --snakefile workflow/Snakefile --configfile "$CONFIG" "${TARGETS[@]}" | dot -Tpdf > "${LOGDIR}/dag.pdf"
 else
-  snakemake --dag --rerun-incomplete --unlock | dot -Tpdf > "${LOGDIR}/dag.pdf"
+  snakemake --dag --rerun-incomplete --snakefile workflow/Snakefile --configfile "$CONFIG" | dot -Tpdf > "${LOGDIR}/dag.pdf"
 fi
 
 # Snakemake dryrun
 snakemake \
     --dryrun \
     --printshellcmds \
-    --cores 6 \
+    --cores 1 \
     --snakefile workflow/Snakefile \
     --rerun-incomplete \
     --configfile "$CONFIG" \
-    --unlock \
     "${TARGETS[@]}" > "${LOGDIR}/dryrun.log" 2>&1
 
 # Snakemake run
