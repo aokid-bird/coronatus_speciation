@@ -120,7 +120,6 @@ threads:
         snapp: 4
 
 paths:
-    bam_dir: "results/bwa"
     singularity_dir: "${HOME}/envs/singularity"
     transfer:
         cluster_storage_root: "/lfs/aokid"
@@ -153,6 +152,8 @@ storage:
     # These are treated as relative subdirectory structures, not absolute paths.
     # If storage.roots is null, these shared entries are ignored.
     # Explicit per-directory paths below still take precedence when set.
+    # Reusable BAMs are treated as derived preprocessing outputs here as well,
+    # rather than through a separate top-level bam_dir setting.
     shared:
         reference:
             dir: "reference"
@@ -190,7 +191,9 @@ storage:
             mapping_tmp_dir: null
             longread_filter_dir: null
     bam:
+        # Explicit absolute override for reusable ingroup BAM storage.
         ingroup_dir: null
+        # Explicit absolute override for reusable outgroup BAM storage.
         outgroup_dir: null
 
 reference:

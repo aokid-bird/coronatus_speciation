@@ -64,7 +64,6 @@ for target_keys, source_keys, default in [
     (("populations",), ("project", "populations"), []),
     (("group_col",), ("project", "group_col"), None),
     (("population_labels",), ("project", "population_labels"), None),
-    (("bam_dir",), ("paths", "bam_dir"), "results/bwa"),
     (("singularity_dir",), ("paths", "singularity_dir"), "${HOME}/envs/singularity"),
     (("transfer",), ("paths", "transfer"), {}),
     (("samples",), ("inputs", "samples_tsv"), "data/samples.tsv"),

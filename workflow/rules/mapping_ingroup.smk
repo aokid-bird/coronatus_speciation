@@ -10,13 +10,14 @@ Config keys used:
 - mapping.ingroup.mapper
 - mapping.ingroup.map_unpaired
 - mapping.ingroup.extra
-- bam_dir
+- storage.shared.bam.ingroup_dir
+- storage.bam.ingroup_dir
 - resources.mapping.ingroup_paired
 - resources.mapping.ingroup_unpaired
 - resources.mapping.ingroup_merge
 - threads.mapping.ingroup
 
-Outputs final coordinate-sorted BAM and index in config['bam_dir']/{sample}.bam.
+Outputs final coordinate-sorted BAM and index in the resolved ingroup BAM storage directory.
 """
 
 import re

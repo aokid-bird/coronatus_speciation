@@ -17,7 +17,8 @@ Config keys used:
 - longread.filter.keep_percent
 - longread.filter.target_bases
 - longread.filter.extra
-- bam_dir
+- storage.shared.bam.outgroup_dir
+- storage.bam.outgroup_dir
 - resources.mapping.outgroup_paired
 - resources.mapping.outgroup_unpaired
 - resources.mapping.outgroup_merge
@@ -25,7 +26,7 @@ Config keys used:
 - threads.mapping.outgroup
 - threads.mapping.longread_filter
 
-Outputs final coordinate-sorted BAM and index in config['bam_dir']/outgroups/.
+Outputs final coordinate-sorted BAM and index in the resolved outgroup BAM storage directory.
 """
 
 import os

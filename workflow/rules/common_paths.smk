@@ -55,7 +55,6 @@ def _translate_between_storage_roots(path, source_root, target_root):
     return str(Path(target_root) / relative)
 
 
-config_bam_base = config["bam_dir"]
 INGROUP_FASTQ_BASENAME_COL = str(
     _config_value(config, "reads", "ingroup_metadata", "basename_col", default="sample")
 )
@@ -63,24 +62,39 @@ INGROUP_BAM_ALIAS_ACTIVE = INGROUP_FASTQ_BASENAME_COL != "sample"
 LOCAL_STORAGE_ROOT = _storage_root_for("local")
 CLUSTER_STORAGE_ROOT = _storage_root_for("cluster")
 ACTIVE_STORAGE_ROOT = _storage_root_for(ENVIRONMENT)
+
+
+def _legacy_bam_base():
+    value = _config_value(config, "paths", "bam_dir", default=_CFG_MISSING)
+    if value is _CFG_MISSING or value in (None, ""):
+        return "results/bwa"
+    return str(value)
+
+
+LEGACY_BAM_BASE = _legacy_bam_base()
+LEGACY_INGROUP_BAM_DIR = (
+    f"{LEGACY_BAM_BASE}/{output_prefix}/preprocess"
+    if INGROUP_BAM_ALIAS_ACTIVE
+    else f"{LEGACY_BAM_BASE}/{output_prefix}"
+)
 INGROUP_BAM_STORAGE_DIR = _resolve_storage_path(
     ("bam", "ingroup_dir"),
     ("bam", "ingroup_dir"),
-    default=(
-        f"{config_bam_base}/{output_prefix}/preprocess"
-        if INGROUP_BAM_ALIAS_ACTIVE
-        else f"{config_bam_base}/{output_prefix}"
-    ),
+    default=LEGACY_INGROUP_BAM_DIR,
 )
 config_bam_dir = (
-    f"{config_bam_base}/{output_prefix}"
+    f"{LEGACY_BAM_BASE}/{output_prefix}"
     if INGROUP_BAM_ALIAS_ACTIVE
     else INGROUP_BAM_STORAGE_DIR
 )
 OUTGROUP_BAM_DIR = _resolve_storage_path(
     ("bam", "outgroup_dir"),
     ("bam", "outgroup_dir"),
-    default=f"{INGROUP_BAM_STORAGE_DIR}/outgroups",
+    default=(
+        f"{LEGACY_BAM_BASE}/{output_prefix}/outgroups"
+        if _config_value(config, "paths", "bam_dir", default=_CFG_MISSING) is not _CFG_MISSING
+        else f"{INGROUP_BAM_STORAGE_DIR}/outgroups"
+    ),
 )
 OUTGROUP_SLICED_DIR = f"results/outgroups_sliced/{output_prefix}"
 
