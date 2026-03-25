@@ -16,16 +16,20 @@ palette_n <- function(n) {
 }
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 4) {
-  stop("Usage: plot_kinship.R <kinfile> <datafile> <threshold> <popcol>")
+if (length(args) != 7) {
+  stop("Usage: plot_kinship.R <kinfile> <datafile> <threshold> <popcol> <kinplot_pdf> <netplot_pdf> <csv_out>")
 }
 kinfile <- args[1]
 datafile <- args[2]
 threshold <- as.numeric(args[3])
 popcol <- args[4]
+kinplot_out <- args[5]
+netplot_out <- args[6]
+csv_out <- args[7]
 
-# extract output directory
-resdir <- dirname(kinfile)
+dir.create(dirname(kinplot_out), recursive = TRUE, showWarnings = FALSE)
+dir.create(dirname(netplot_out), recursive = TRUE, showWarnings = FALSE)
+dir.create(dirname(csv_out), recursive = TRUE, showWarnings = FALSE)
 
 # read kinship matrix
 kinmat <- 
@@ -37,7 +41,7 @@ p <- ggplot(data = kinmat) +
   geom_point(aes(x = "a", y = KING, color = kinship)) + 
   geom_hline(yintercept = threshold) +
   theme_bw()
-ggsave(glue("{resdir}/kin_KING_thr{threshold}.pdf"), plot = p)
+ggsave(kinplot_out, plot = p)
 
 # extract related pairs
 kin.df <- kinmat %>% 
@@ -47,8 +51,8 @@ kin.df <- kinmat %>%
 
 if (nrow(kin.df) == 0) {
   # create a csv
-  write_csv(tibble(), glue("{resdir}/related_KING_thr{threshold}.csv"))
-  pdf(file = glue("{resdir}/kinnet_KING_thr{threshold}.pdf"),
+  write_csv(tibble(), csv_out)
+  pdf(file = netplot_out,
       width = 15, height = 15)
   plot.new()
   title(glue("No related pairs (KING >= {threshold})"))
@@ -79,11 +83,11 @@ grps <-
 
 # join the kin results to base.df
 tab.kin <- grps %>% rename(name = sample) %>% left_join(kin.base.df, by = "name")
-write_csv(tab.kin, glue("{resdir}/related_KING_thr{threshold}.csv"))
+write_csv(tab.kin, csv_out)
 
 # draw network
-pdf(file = glue("{resdir}/kinnet_KING_thr{threshold}.pdf"),
-    width = 15, height = 15, units = "cm", res = 300)
+pdf(file = netplot_out,
+    width = 15, height = 15)
 
 group_list <- sort(unique(V(g))$group)
 group_colors <- setNames(palette_n(length(group_list)), group_list)

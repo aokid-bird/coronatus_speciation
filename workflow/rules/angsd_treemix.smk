@@ -193,14 +193,16 @@ rule lddecay_blocksize:
         treemix=rules.glactools_prepare_treemix.output.treemix
     output:
         block=f"{TREEMIX_DIR}/lddecay/block_size.txt",
-        ldplot=f"{TREEMIX_DIR}/lddecay/ld_plot.png"
+        ldplot=f"{TREEMIX_PLOT_DIR}/lddecay/ld_plot.png"
     conda:
         "../envs/treemix_eval.yaml"
     shell:
         r"""
         export PATH=$(pwd)/workflow/bin:$PATH
+        mkdir -p $(dirname {output.ldplot})
         Rscript workflow/scripts/lddecay_blocksizefinder.R \
             --ld {input.ld} --acf {input.acf} --treemix {input.treemix} --outdir $(dirname {output.block})
+        mv -f $(dirname {output.block})/ld_plot.png {output.ldplot}
         """
 
 

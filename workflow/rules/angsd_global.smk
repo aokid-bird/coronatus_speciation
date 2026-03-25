@@ -182,7 +182,9 @@ rule plot_ngsrelate_kinship:
         echo "LD_LIBRARY_PATH=${{LD_LIBRARY_PATH:-}}"
         unset R_LIBS_USER R_PROFILE_USER R_ENVIRON_USER
         export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-        Rscript workflow/scripts/plot_kinship.R {input.kin} {input.meta} {params.kin_thr} {params.pop_col}
+        Rscript workflow/scripts/plot_kinship.R \
+            {input.kin} {input.meta} {params.kin_thr} {params.pop_col} \
+            {output.kinplot} {output.netplot} {output.csv}
         """
 
 rule manual_remove_list:

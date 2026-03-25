@@ -30,6 +30,7 @@ ANGSD_SFS_RUNTIME = _resolve_runtime(1440, "analyses", "angsd_sfs", legacy_secti
 REALSFS_CFG = _config_section("sfs_analysis", "realSFS")
 REALSFS_MEM_MB = _resolve_mem_mb(16000, "analyses", "sfs_realsfs", legacy_section=REALSFS_CFG)
 REALSFS_RUNTIME = _resolve_runtime(480, "analyses", "sfs_realsfs", legacy_section=REALSFS_CFG)
+SFS_FIG_DIR = f"figures/exploratory/sfs/{output_prefix}"
 
 SFS_SITE_INPUTS = {
     "linked": {
@@ -289,7 +290,7 @@ rule summarize_sfs_stats:
         sfs_summary=f"results/sfs/{output_prefix}/sfs_1d_summary.csv",
         theta_summary=f"results/sfs/{output_prefix}/theta_window_summary.csv",
         lm_summary=f"results/sfs/{output_prefix}/lm_theta_tajima_summary.csv",
-        plot=f"results/sfs/{output_prefix}/tajima_vs_theta.pdf"
+        plot=f"{SFS_FIG_DIR}/tajima_vs_theta.pdf"
     params:
         include_monomorphic=SFS_INCLUDE_MONOMORPHIC,
         site_filters=SFS_SITE_FILTERS_ACTIVE,
@@ -333,5 +334,5 @@ ANGSD_SFS_TARGETS = [
     f"results/sfs/{output_prefix}/sfs_1d_summary.csv",
     f"results/sfs/{output_prefix}/theta_window_summary.csv",
     f"results/sfs/{output_prefix}/lm_theta_tajima_summary.csv",
-    f"results/sfs/{output_prefix}/tajima_vs_theta.pdf",
+    f"{SFS_FIG_DIR}/tajima_vs_theta.pdf",
 ] if SFS_ENABLED else []
