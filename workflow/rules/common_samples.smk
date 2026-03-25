@@ -61,7 +61,9 @@ for _, row in _SAMPLES_DF.iterrows():
             f"Preprocessing basename '{storage_id}' is reused by both "
             f"'{_INGROUP_STORAGE_TO_ANALYSIS[storage_id]}' and '{sample_id}'."
         )
-    sample_dir = _sample_value(row, INGROUP_FASTQ_DIR_COL, INGROUP_READS_DIR).strip()
+    sample_dir = rebase_path_to_active_storage_root(
+        _sample_value(row, INGROUP_FASTQ_DIR_COL, INGROUP_READS_DIR).strip()
+    )
     if not sample_dir:
         raise ValueError(
             f"Sample '{sample_id}' has an empty FASTQ directory after config/metadata resolution."

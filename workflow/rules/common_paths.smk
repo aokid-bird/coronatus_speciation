@@ -55,6 +55,16 @@ def _translate_between_storage_roots(path, source_root, target_root):
     return str(Path(target_root) / relative)
 
 
+def rebase_path_to_active_storage_root(path):
+    if not path:
+        return path
+    candidate = Path(str(path)).expanduser()
+    if not candidate.is_absolute():
+        return str(path)
+    translated = _translate_between_storage_roots(candidate, LOCAL_STORAGE_ROOT, ACTIVE_STORAGE_ROOT)
+    return translated or str(candidate)
+
+
 INGROUP_FASTQ_BASENAME_COL = str(
     _config_value(config, "reads", "ingroup_metadata", "basename_col", default="sample")
 )
