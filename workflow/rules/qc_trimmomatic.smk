@@ -130,7 +130,8 @@ rule multiqc_outgroup_pre:
         "../envs/multiqc.yaml"
     shell:
         r"""
-        multiqc {PRE_QC_DIR} --outdir {PRE_QC_DIR}
+        mkdir -p {PRE_QC_DIR}
+        multiqc {PRE_QC_DIR} --outdir {PRE_QC_DIR} --filename multiqc_report.html
         """
 
 rule trimmomatic_outgroup_pe:
@@ -226,7 +227,8 @@ rule multiqc_outgroup_post:
         "../envs/multiqc.yaml"
     shell:
         r"""
-        multiqc {POST_QC_DIR} --outdir {POST_QC_DIR}
+        mkdir -p {POST_QC_DIR}
+        multiqc {POST_QC_DIR} --outdir {POST_QC_DIR} --filename multiqc_report.html
         """
 
 rule outgroup_qc_trim_all:
