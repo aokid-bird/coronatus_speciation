@@ -4,6 +4,6 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.11
-  - setuptools
+  - python=3.10
+  - setuptools<81
   - multiqc=1.15
