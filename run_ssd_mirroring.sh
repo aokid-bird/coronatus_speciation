@@ -45,9 +45,14 @@ mkdir -p "${SSD_ROOT}"
 
 RSYNC_ARGS=(
     -avh
-    --info=progress2
     --human-readable
 )
+
+if rsync --version 2>/dev/null | head -n 1 | grep -Eq 'version 3\.'; then
+    RSYNC_ARGS+=(--info=progress2)
+else
+    RSYNC_ARGS+=(--progress)
+fi
 
 if [[ "${APPLY}" == false ]]; then
     RSYNC_ARGS+=(--dry-run)
