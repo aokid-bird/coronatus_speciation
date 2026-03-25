@@ -216,7 +216,24 @@ Why:
 - Generic helper and plotting scripts now share standardized environments.
 - Specialized tools still keep dedicated envs where dependency surfaces are materially different.
 
-## 12. Standardize rule file headers and improve rule docstrings
+## 12. Support environment-specific storage roots with shared relative layouts
+
+The storage layer originally assumed the same absolute path layout in local and cluster environments.
+
+What changed:
+- The workflow now supports:
+  - `storage.roots.local`
+  - `storage.roots.cluster`
+  - `storage.shared.*` relative path definitions beneath those roots
+- Existing explicit paths such as `storage.reference.dir` and `storage.bam.ingroup_dir` still override the shared root-based layout.
+- Ingroup FASTQ resolution can also use the shared root layout through `storage.shared.reads.ingroup_dir`.
+- Transfer-path generation now maps local-root-relative paths onto the configured cluster root rather than always mirroring the full absolute local path.
+
+Why:
+- Local and cluster often store reusable data under different root prefixes such as `/Volumes/...` and `/lfs/aokid/...`.
+- A shared relative layout reduces duplication and makes it easier to keep the two environments aligned.
+
+## 13. Standardize rule file headers and improve rule docstrings
 
 Rule files now include clearer file-level headers, especially for the main analysis and preprocessing modules.
 
@@ -230,7 +247,7 @@ What changed:
 Why:
 - This makes the workflow much easier to navigate for future edits and debugging.
 
-## 13. Validation practice used during this refactor
+## 14. Validation practice used during this refactor
 
 After each substantial refactoring step, the workflow was revalidated by activating the Snakemake conda environment and running dry-runs with validation configs.
 

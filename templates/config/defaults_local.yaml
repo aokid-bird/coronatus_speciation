@@ -135,21 +135,56 @@ metadata:
     longread_keywords: ["PacBio", "ONT", "Nanopore"]
 
 storage:
+    # Resolution order:
+    # 1. explicit storage.* / reads.ingroup_dir values below
+    # 2. storage.roots.<environment> + storage.shared.* relative subdirectories
+    # 3. built-in workflow defaults inside the repository
+    # Optional environment-specific roots for reusable data outside the repo.
+    # When set, the relative paths under storage.shared are resolved beneath
+    # storage.roots.local for local runs and storage.roots.cluster for cluster runs.
+    roots:
+        local: null   # e.g. "/Volumes/WGS/project_a"
+        cluster: null # e.g. "/lfs/aokid/project_a"
+    # Shared relative directory layout under the environment-specific roots above.
+    # These are treated as relative subdirectory structures, not absolute paths.
+    # If storage.roots is null, these shared entries are ignored.
+    # Explicit per-directory paths below still take precedence when set.
+    shared:
+        reference:
+            dir: "reference"
+        reads:
+            ingroup_dir: "reads/ingroup"
+        outgroup:
+            raw_dir: "outgroup/raw"
+            merged_dir: "outgroup/merged"
+        derived:
+            ingroup:
+                trim_dir: "derived/ingroup/trim"
+                qc_dir: "derived/ingroup/qc"
+                mapping_tmp_dir: "derived/ingroup/mapping_tmp"
+            outgroup:
+                trim_dir: "derived/outgroup/trim"
+                qc_dir: "derived/outgroup/qc"
+                mapping_tmp_dir: "derived/outgroup/mapping_tmp"
+                longread_filter_dir: "derived/outgroup/longread_filter"
+        bam:
+            ingroup_dir: "bam/ingroup"
+            outgroup_dir: "bam/outgroup"
     reference:
-        dir: "data/reference"
+        dir: null
     outgroup:
-        raw_dir: "data/raw/outgroup"
-        merged_dir: "data/merged/outgroup"
+        raw_dir: null
+        merged_dir: null
     derived:
         ingroup:
-            trim_dir: "results/trimmomatic/ingroup"
-            qc_dir: "results/qc/ingroup"
+            trim_dir: null
+            qc_dir: null
             mapping_tmp_dir: null
         outgroup:
-            trim_dir: "results/trimmomatic/outgroup"
-            qc_dir: "results/qc/outgroup"
+            trim_dir: null
+            qc_dir: null
             mapping_tmp_dir: null
-            longread_filter_dir: "results/longread/filter"
+            longread_filter_dir: null
     bam:
         ingroup_dir: null
         outgroup_dir: null
@@ -161,7 +196,10 @@ reference:
     download_method: "datasets"
 
 reads:
-    ingroup_dir: "data/raw/ingroup"
+    # Explicit override for ingroup FASTQ location. If null and storage.roots is set,
+    # the workflow uses storage.shared.reads.ingroup_dir under the active root.
+    # If both are null, the workflow falls back to its in-repo default.
+    ingroup_dir: null
     ingroup_metadata:
         dir_col: "fastq_dir"
         prefix_col: "fastq_prefix"

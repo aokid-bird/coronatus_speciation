@@ -19,28 +19,129 @@ def _storage_path(*keys, default=None):
     return default if value in (None, "") else value
 
 
+def _storage_root_for(environment):
+    value = _config_value(STORAGE_CFG, "roots", environment, default=_CFG_MISSING)
+    if value is _CFG_MISSING or value in (None, ""):
+        return None
+    return str(Path(os.path.expandvars(str(value))).expanduser())
+
+
+def _storage_shared_path(*keys):
+    value = _config_value(STORAGE_CFG, "shared", *keys, default=_CFG_MISSING)
+    if value is _CFG_MISSING or value in (None, ""):
+        return None
+    return str(value)
+
+
+def _resolve_storage_path(explicit_keys, shared_keys=None, default=None):
+    explicit = _storage_path(*explicit_keys, default=None)
+    if explicit not in (None, ""):
+        return explicit
+    if ACTIVE_STORAGE_ROOT and shared_keys:
+        shared = _storage_shared_path(*shared_keys)
+        if shared:
+            return str(Path(ACTIVE_STORAGE_ROOT) / shared)
+    return default
+
+
+def _translate_between_storage_roots(path, source_root, target_root):
+    if not source_root or not target_root:
+        return None
+    candidate = Path(str(path)).expanduser()
+    try:
+        relative = candidate.relative_to(Path(source_root))
+    except ValueError:
+        return None
+    return str(Path(target_root) / relative)
+
+
 config_bam_base = config["bam_dir"]
-config_bam_dir = _storage_path("bam", "ingroup_dir", default=f"{config_bam_base}/{output_prefix}")
-OUTGROUP_BAM_DIR = _storage_path("bam", "outgroup_dir", default=f"{config_bam_dir}/outgroups")
+LOCAL_STORAGE_ROOT = _storage_root_for("local")
+CLUSTER_STORAGE_ROOT = _storage_root_for("cluster")
+ACTIVE_STORAGE_ROOT = _storage_root_for(ENVIRONMENT)
+config_bam_dir = _resolve_storage_path(
+    ("bam", "ingroup_dir"),
+    ("bam", "ingroup_dir"),
+    default=f"{config_bam_base}/{output_prefix}",
+)
+OUTGROUP_BAM_DIR = _resolve_storage_path(
+    ("bam", "outgroup_dir"),
+    ("bam", "outgroup_dir"),
+    default=f"{config_bam_dir}/outgroups",
+)
 OUTGROUP_SLICED_DIR = f"results/outgroups_sliced/{output_prefix}"
 
-CLUSTER_STORAGE_ROOT_DEFAULT = str(TRANSFER_CFG.get("cluster_storage_root", "/lfs/aokid"))
+CLUSTER_STORAGE_ROOT_DEFAULT = str(
+    TRANSFER_CFG.get("cluster_storage_root")
+    or CLUSTER_STORAGE_ROOT
+    or "/lfs/aokid"
+)
 PROJECT_ROOT = Path.cwd().resolve()
 config_singularity_dir = os.path.expandvars(config["singularity_dir"])
 
 REF_CONFIG_PATH = config.get("reference", {}).get("fasta", config.get("ref"))
 REFERENCES_TSV = config.get("references_tsv", "data/references.tsv")
-REFERENCE_DIR = _storage_path("reference", "dir", default=config.get("reference_dir", "data/reference"))
+REFERENCE_DIR = _resolve_storage_path(
+    ("reference", "dir"),
+    ("reference", "dir"),
+    default=config.get("reference_dir", "data/reference"),
+)
 REFERENCE_METHOD = config.get("reference_download_method", "datasets")
-OUTGROUP_RAW_DIR = _storage_path("outgroup", "raw_dir", default="data/raw/outgroup")
-OUTGROUP_MERGED_DIR = _storage_path("outgroup", "merged_dir", default="data/merged/outgroup")
-INGROUP_TRIM_DIR = _storage_path("derived", "ingroup", "trim_dir", default="results/trimmomatic/ingroup")
-OUTGROUP_TRIM_DIR = _storage_path("derived", "outgroup", "trim_dir", default="results/trimmomatic/outgroup")
-INGROUP_QC_BASE_DIR = _storage_path("derived", "ingroup", "qc_dir", default="results/qc/ingroup")
-OUTGROUP_QC_BASE_DIR = _storage_path("derived", "outgroup", "qc_dir", default="results/qc/outgroup")
-INGROUP_MAP_TMP_DIR = _storage_path("derived", "ingroup", "mapping_tmp_dir", default=f"results/mapping/{output_prefix}/ingroup")
-OUTGROUP_MAP_TMP_DIR = _storage_path("derived", "outgroup", "mapping_tmp_dir", default=f"results/mapping/{output_prefix}/outgroup")
-OUTGROUP_LR_FILTER_DIR = _storage_path("derived", "outgroup", "longread_filter_dir", default="results/longread/filter")
+OUTGROUP_RAW_DIR = _resolve_storage_path(
+    ("outgroup", "raw_dir"),
+    ("outgroup", "raw_dir"),
+    default="data/raw/outgroup",
+)
+OUTGROUP_MERGED_DIR = _resolve_storage_path(
+    ("outgroup", "merged_dir"),
+    ("outgroup", "merged_dir"),
+    default="data/merged/outgroup",
+)
+INGROUP_TRIM_DIR = _resolve_storage_path(
+    ("derived", "ingroup", "trim_dir"),
+    ("derived", "ingroup", "trim_dir"),
+    default="results/trimmomatic/ingroup",
+)
+OUTGROUP_TRIM_DIR = _resolve_storage_path(
+    ("derived", "outgroup", "trim_dir"),
+    ("derived", "outgroup", "trim_dir"),
+    default="results/trimmomatic/outgroup",
+)
+INGROUP_QC_BASE_DIR = _resolve_storage_path(
+    ("derived", "ingroup", "qc_dir"),
+    ("derived", "ingroup", "qc_dir"),
+    default="results/qc/ingroup",
+)
+OUTGROUP_QC_BASE_DIR = _resolve_storage_path(
+    ("derived", "outgroup", "qc_dir"),
+    ("derived", "outgroup", "qc_dir"),
+    default="results/qc/outgroup",
+)
+INGROUP_MAP_TMP_DIR = _resolve_storage_path(
+    ("derived", "ingroup", "mapping_tmp_dir"),
+    ("derived", "ingroup", "mapping_tmp_dir"),
+    default=f"results/mapping/{output_prefix}/ingroup",
+)
+OUTGROUP_MAP_TMP_DIR = _resolve_storage_path(
+    ("derived", "outgroup", "mapping_tmp_dir"),
+    ("derived", "outgroup", "mapping_tmp_dir"),
+    default=f"results/mapping/{output_prefix}/outgroup",
+)
+OUTGROUP_LR_FILTER_DIR = _resolve_storage_path(
+    ("derived", "outgroup", "longread_filter_dir"),
+    ("derived", "outgroup", "longread_filter_dir"),
+    default="results/longread/filter",
+)
+
+
+def resolve_ingroup_reads_dir():
+    explicit = _config_value(config, "reads", "ingroup_dir", default=_CFG_MISSING)
+    if explicit is not _CFG_MISSING and explicit not in (None, ""):
+        return explicit
+    shared = _storage_shared_path("reads", "ingroup_dir")
+    if ACTIVE_STORAGE_ROOT and shared:
+        return str(Path(ACTIVE_STORAGE_ROOT) / shared)
+    return "data/raw/ingroup"
 
 
 # Standard storage-manifest filenames for managed directories.
@@ -181,7 +282,14 @@ def is_external_storage_path(path):
 
 
 def remote_mirror_path(path, cluster_root=None):
-    root = Path(cluster_root or CLUSTER_STORAGE_ROOT_DEFAULT)
+    target_root = cluster_root or CLUSTER_STORAGE_ROOT_DEFAULT
+    translated = (
+        _translate_between_storage_roots(path, LOCAL_STORAGE_ROOT, target_root)
+        or _translate_between_storage_roots(path, ACTIVE_STORAGE_ROOT, target_root)
+    )
+    if translated:
+        return translated
+    root = Path(target_root)
     candidate = Path(str(path)).expanduser()
     return str(root / str(candidate).lstrip("/"))
 

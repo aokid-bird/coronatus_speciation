@@ -11,7 +11,7 @@ _SAMPLES_DF = pd.read_csv(config["samples"], sep="\t")
 INGROUP_SAMPLE_IDS = _SAMPLES_DF["sample"].astype(str).tolist()
 
 READS_CFG = config.get("reads", {}) or {}
-INGROUP_READS_DIR = READS_CFG.get("ingroup_dir", "data/raw/ingroup")
+INGROUP_READS_DIR = resolve_ingroup_reads_dir()
 INGROUP_READS_META_CFG = READS_CFG.get("ingroup_metadata", {}) or {}
 
 INGROUP_FASTQ_DIR_COL = str(INGROUP_READS_META_CFG.get("dir_col", "fastq_dir"))
