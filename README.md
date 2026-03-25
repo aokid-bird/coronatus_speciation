@@ -79,6 +79,7 @@ For each project repository, create and edit your working files under:
 - `config/*.yaml`
 - `run_pipeline_local.sh`
 - `run_pipeline_cluster.sh`
+- `run_ssd_mirroring.sh` if you use a local HDD-to-SSD staging step
 
 This keeps upstream template updates separate from project-specific metadata and config changes.
 
@@ -114,6 +115,16 @@ The config file is the most important part of the analysis where you define spec
 ## Step 6: Adjust run_pipeline_cluster.sh/run_pipeline_local.sh
 These two bash scripts are prepared to run Snakemake entirely either in a cluster or a local environment. While they make it easy to run from the beginning to the end of this pipeline, you may want to change some details sometimes. Please adjust the contents, especially options of `snakemake` to your own purposes.
 For cluster execution, the current Slurm setup uses `profile/default/config.yaml` together with rule-level `threads` and `resources`. `templates/config/cluster.json` is kept only as a legacy PBS reference and is not used by `run_pipeline_cluster.sh`.
+
+If you keep cold storage on HDD but want better local read/write performance on SSD, you may stage those files with `run_ssd_mirroring.sh` before running the local workflow. The script mirrors the contents of one directory into another with `rsync`, defaults to dry-run preview mode, and performs the actual copy only when called with `--apply`.
+
+Example:
+```bash
+bash run_ssd_mirroring.sh /Volumes/cold_storage/project_a /Volumes/ssd_storage/project_a
+bash run_ssd_mirroring.sh --apply /Volumes/cold_storage/project_a /Volumes/ssd_storage/project_a
+```
+
+When using this staging pattern, point your local config paths such as `storage.roots.local` or `reads.ingroup_dir` to the SSD-side paths that the pipeline should actually read and write.
 
 ## Step 7: Analysis environment
 Once creating your snakemake environment `bioinfo_pipeline`, other analyses environment will be created inside the pipeline (for cases of conda) or before the pipeline initiates (for cases of singularity using the run_pipeline.sh). Therefore, you do not have to create your own analysis environment. 
