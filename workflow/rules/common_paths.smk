@@ -335,14 +335,6 @@ def remote_mirror_subpath(path):
     return str(candidate).lstrip("/")
 
 
-def local_mirror_path(path, local_root=None):
-    target_root = local_root or LOCAL_STORAGE_ROOT
-    subpath = remote_mirror_subpath(path)
-    if target_root:
-        return str(Path(target_root) / subpath)
-    return str(Path(str(path)).expanduser())
-
-
 def external_transfer_directories():
     candidates = [
         REFERENCE_DIR,

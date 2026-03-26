@@ -32,8 +32,7 @@ def _transfer_items():
         items.append({
             "kind": "dir",
             "category": "external_storage_dir",
-            "active_path": str(Path(path)),
-            "local_path": local_mirror_path(path),
+            "local_path": str(Path(path)),
             "remote_subpath": remote_mirror_subpath(path),
             "remote_path": remote_mirror_path(path),
         })
@@ -41,8 +40,7 @@ def _transfer_items():
         items.append({
             "kind": "file",
             "category": "ingroup_fastq",
-            "active_path": str(Path(path)),
-            "local_path": local_mirror_path(path),
+            "local_path": str(Path(path)),
             "remote_subpath": remote_mirror_subpath(path),
             "remote_path": remote_mirror_path(path),
         })
@@ -65,10 +63,10 @@ rule generate_external_transfer_scripts:
         outdir.mkdir(parents=True, exist_ok=True)
 
         with open(output.manifest, "w", encoding="ascii") as handle:
-            handle.write("kind\tcategory\tactive_path\tlocal_path\tremote_subpath\tremote_path\n")
+            handle.write("kind\tcategory\tlocal_path\tremote_subpath\tremote_path\n")
             for item in items:
                 handle.write(
-                    f"{item['kind']}\t{item['category']}\t{item['active_path']}\t{item['local_path']}\t{item['remote_subpath']}\t{item['remote_path']}\n"
+                    f"{item['kind']}\t{item['category']}\t{item['local_path']}\t{item['remote_subpath']}\t{item['remote_path']}\n"
                 )
 
         header = [
@@ -102,28 +100,28 @@ rule generate_external_transfer_scripts:
         if not items:
             upload_lines.append('echo "No external storage paths configured; nothing to transfer."')
         for item in items:
-            active_q = _shell_quote(item["active_path"])
+            local_q = _shell_quote(item["local_path"])
             upload_remote_expr = '${CLUSTER_STORAGE_ROOT}/' + item["remote_subpath"].lstrip("/")
             if item["kind"] == "dir":
                 upload_lines.extend([
-                    f'if [ -d {active_q} ]; then',
+                    f'if [ -d {local_q} ]; then',
                     f'  remote_path="{upload_remote_expr}"',
                     '  "${SSH_CMD[@]}" "$REMOTE" "mkdir -p \\"$remote_path\\""',
-                    f'  "${{RSYNC_CMD[@]}}" -avh {active_q}/ "$REMOTE":"$remote_path"/',
+                    f'  "${{RSYNC_CMD[@]}}" -avh {local_q}/ "$REMOTE":"$remote_path"/',
                     "else",
-                    f'  echo "Skipping missing directory: {item["active_path"]}" >&2',
+                    f'  echo "Skipping missing directory: {item["local_path"]}" >&2',
                     "fi",
                     "",
                 ])
             else:
                 upload_lines.extend([
-                    f'if [ -f {active_q} ]; then',
+                    f'if [ -f {local_q} ]; then',
                     f'  remote_path="{upload_remote_expr}"',
                     '  remote_parent="$(dirname "$remote_path")"',
                     '  "${SSH_CMD[@]}" "$REMOTE" "mkdir -p \\"$remote_parent\\""',
-                    f'  "${{RSYNC_CMD[@]}}" -avh {active_q} "$REMOTE":"$remote_path"',
+                    f'  "${{RSYNC_CMD[@]}}" -avh {local_q} "$REMOTE":"$remote_path"',
                     "else",
-                    f'  echo "Skipping missing file: {item["active_path"]}" >&2',
+                    f'  echo "Skipping missing file: {item["local_path"]}" >&2',
                     "fi",
                     "",
                 ])
