@@ -16,7 +16,7 @@ Config keys used:
 
 from pathlib import Path
 
-TRANSFER_DIR = f"results/transfer/{output_prefix}"
+TRANSFER_DIR = f"transfer/{output_prefix}"
 TRANSFER_MANIFEST = f"{TRANSFER_DIR}/external_paths.tsv"
 TRANSFER_UPLOAD_SCRIPT = f"{TRANSFER_DIR}/sync_local_external_to_cluster.sh"
 TRANSFER_DOWNLOAD_SCRIPT = f"{TRANSFER_DIR}/sync_cluster_external_to_local.sh"

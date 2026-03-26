@@ -274,7 +274,7 @@ snakemake --profile profile/default --snakefile workflow/Snakefile --configfile 
 ```
 
 ## Transfer helper scripts
-The workflow generates transfer helpers under `results/transfer/<output_prefix>/`.
+The workflow generates transfer helpers under `transfer/<output_prefix>/`.
 
 ### Generated files
 
@@ -286,8 +286,8 @@ The workflow generates transfer helpers under `results/transfer/<output_prefix>/
 
 Typical use:
 ```bash
-bash results/transfer/defaults/sync_local_external_to_cluster.sh username@cluster.example.org
-bash results/transfer/defaults/sync_cluster_external_to_local.sh username@cluster.example.org
+bash transfer/defaults/sync_local_external_to_cluster.sh username@cluster.example.org
+bash transfer/defaults/sync_cluster_external_to_local.sh username@cluster.example.org
 ```
 
 ### Which machine should run each script?
