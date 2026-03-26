@@ -13,6 +13,27 @@ def ensure_parent(path_str: str) -> None:
     Path(path_str).parent.mkdir(parents=True, exist_ok=True)
 
 
+def load_selection_array(path_str: str) -> np.ndarray:
+    raw = np.load(path_str, allow_pickle=True)
+
+    if isinstance(raw, np.lib.npyio.NpzFile):
+        if len(raw.files) == 0:
+            raise ValueError(f"No arrays found in selection archive: {path_str}")
+        raw = raw[raw.files[0]]
+
+    if isinstance(raw, np.ndarray) and raw.dtype == object:
+        if raw.size == 1:
+            raw = raw.item()
+        else:
+            raw = np.array([np.asarray(x).reshape(-1)[0] for x in raw], dtype=float)
+
+    raw = np.asarray(raw)
+    if raw.dtype == object:
+        raw = np.array(raw.tolist(), dtype=float)
+
+    return raw.reshape(-1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("selection_file")
@@ -24,8 +45,7 @@ def main() -> None:
     ensure_parent(args.out_csv)
     ensure_parent(args.out_pdf)
 
-    selection = np.load(args.selection_file)
-    selection = np.asarray(selection).reshape(-1)
+    selection = load_selection_array(args.selection_file)
     pvals = chi2.sf(selection, df=1)
 
     sites = [line.strip() for line in Path(args.sites_file).read_text().splitlines() if line.strip()]

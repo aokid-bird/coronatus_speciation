@@ -41,12 +41,23 @@ rule run_pcangsd:
         f"{config_singularity_dir}/pcangsd_1.35.sif"
     shell:
         """
+        mkdir -p $(dirname {params.outprefix})
+        mkdir -p $(dirname {log})
+        TMP_LOG="{log}.tmp"
         pcangsd --beagle {input.beagle} \
                 -o {params.outprefix} \
                 --iter {params.iter} \
                 --threads {threads} \
                 --maf {params.minmaf} \
-                --admix --tree --selection --snp_weights --sites_save 2> {log}
+                --admix --tree --selection --snp_weights --sites_save > "$TMP_LOG" 2>&1
+        if [ -s {params.outprefix}.log ]; then
+            cat "$TMP_LOG" > {log}
+            cat {params.outprefix}.log >> {log}
+            rm -f {params.outprefix}.log "$TMP_LOG"
+        else
+            mv -f "$TMP_LOG" {log}
+            rm -f {params.outprefix}.log 2>/dev/null || true
+        fi
         """
 
 rule pca_selection:
