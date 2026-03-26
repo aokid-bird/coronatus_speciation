@@ -232,12 +232,27 @@ When no outgroups are used:
 These two bash scripts are prepared to run Snakemake entirely either in a cluster or a local environment. While they make it easy to run from the beginning to the end of this pipeline, you may want to change some details sometimes. Please adjust the contents, especially options of `snakemake` to your own purposes.
 For cluster execution, the current Slurm setup uses `profile/default/config.yaml` together with rule-level `threads` and `resources`. `templates/config/cluster.json` is kept only as a legacy PBS reference and is not used by `run_pipeline_cluster.sh`.
 
-If you keep cold storage on HDD but want better local read/write performance on SSD, you may stage those files with `run_ssd_mirroring.sh` before running the local workflow. The script mirrors the contents of one directory into another with `rsync`, defaults to dry-run preview mode, and performs the actual copy only when called with `--apply`.
+If you keep cold storage on HDD but want better local read/write performance on SSD, you may stage those files with `run_ssd_mirroring.sh` before running the local workflow. The script now reads a TSV manifest, defaults to dry-run preview mode, performs the actual copy only when called with `--apply`, and writes timestamped rsync logs next to the manifest by default.
+
+Recommended locations:
+
+| File | Purpose |
+| --- | --- |
+| `data/ssd_mirroring.tsv` | Project-specific working manifest that you edit |
+| `templates/data/ssd_mirroring.tsv` | Example template showing the expected columns |
+
+The TSV should contain:
+
+| Column | Meaning |
+| --- | --- |
+| `cold_path` | Source path on cold storage |
+| `ssd_path` | Destination path on SSD |
 
 Example:
 ```bash
-bash run_ssd_mirroring.sh /Volumes/cold_storage/project_a /Volumes/ssd_storage/project_a
-bash run_ssd_mirroring.sh --apply /Volumes/cold_storage/project_a /Volumes/ssd_storage/project_a
+bash run_ssd_mirroring.sh data/ssd_mirroring.tsv
+bash run_ssd_mirroring.sh --apply data/ssd_mirroring.tsv
+bash run_transfer_verification.sh data/ssd_mirroring.tsv
 ```
 
 When using this staging pattern, point your local config paths such as `storage.roots.local` or `reads.ingroup_dir` to the SSD-side paths that the pipeline should actually read and write.
@@ -287,12 +302,18 @@ The workflow generates transfer helpers under `transfer/<output_prefix>/`.
 | `sync_cluster_project_outputs_to_local.sh` | Pull `results/`, `figures/`, and `logs/` from the cluster project into the local project |
 | `cold_storage_paths.tsv` | Manifest of external SSD paths that can be back-mirrored into cold storage |
 
-Typical use:
+Typical use is as follows.
 ```bash
+# SSD -> Cluster (raw shared files)
 bash transfer/defaults/sync_local_external_to_cluster.sh username@cluster.example.org
+# Cluster -> SSD (derived shared files)
 bash transfer/defaults/sync_cluster_external_to_local.sh username@cluster.example.org
+# Cluster -> SSD (results, figures, logs)
 bash transfer/defaults/sync_cluster_project_outputs_to_local.sh username@cluster.example.org /lfs/aokid/project_a
+# SSD -> HDD
 bash run_cold_storage_mirroring.sh transfer/defaults/cold_storage_paths.tsv /Volumes/cold_storage/project_a
+# Verify SSD -> HDD state
+bash run_transfer_verification.sh transfer/defaults/cold_storage_paths.tsv /Volumes/cold_storage/project_a
 ```
 
 Recommended config:
@@ -312,6 +333,7 @@ paths:
 | `sync_cluster_external_to_local.sh` | Local machine | The script pulls from the cluster back to the original local storage paths |
 | `sync_cluster_project_outputs_to_local.sh` | Local machine | The script pulls `results/`, `figures/`, and `logs/` from the cluster project into the local project |
 | `run_cold_storage_mirroring.sh` | Local machine | The standalone utility reads `cold_storage_paths.tsv` and back-mirrors SSD-resident external files into cold storage |
+| `run_transfer_verification.sh` | Local machine | The standalone verifier compares manifest source and destination paths and writes a TSV status report |
 
 > [!IMPORTANT]
 > `sync_cluster_external_to_local.sh` should normally be generated and run from the local analysis if you want the embedded destination paths to point to your SSD, such as `/Volumes/OWCEnvoyProFX/...`. If you generate it on the cluster, its baked-in “local” paths will instead reflect cluster-resolved paths such as `/lfs/aokid/...`.

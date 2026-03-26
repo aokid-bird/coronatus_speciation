@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  bash run_cold_storage_mirroring.sh [--apply] <manifest_tsv> <cold_root>
+  bash run_cold_storage_mirroring.sh [--apply] [--log-dir <dir>] <manifest_tsv> <cold_root>
 
 Behavior:
   - By default this runs in rsync dry-run mode.
@@ -20,15 +20,27 @@ EOF
 }
 
 APPLY=false
-if [[ "${1:-}" == "--apply" ]]; then
-    APPLY=true
-    shift
-fi
+LOG_DIR=""
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-    usage
-    exit 0
-fi
+while [[ $# -gt 0 ]]; do
+    case "${1}" in
+        --apply)
+            APPLY=true
+            shift
+            ;;
+        --log-dir)
+            LOG_DIR="${2:-}"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 if [[ $# -ne 2 ]]; then
     usage >&2
@@ -37,17 +49,24 @@ fi
 
 MANIFEST_TSV="${1}"
 COLD_ROOT="${2}"
+if [[ -z "${LOG_DIR}" ]]; then
+    LOG_DIR="$(dirname "${MANIFEST_TSV}")/logs"
+fi
 
 if [[ ! -f "${MANIFEST_TSV}" ]]; then
     echo "Error: manifest does not exist: ${MANIFEST_TSV}" >&2
     exit 1
 fi
 
-mkdir -p "${COLD_ROOT}"
+mkdir -p "${LOG_DIR}"
+TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
+LOG_FILE="${LOG_DIR}/cold_storage_mirroring_${TIMESTAMP}.log"
 
 RSYNC_ARGS=(
     -avh
     --human-readable
+    --itemize-changes
+    --stats
 )
 
 if rsync --version 2>/dev/null | head -n 1 | grep -Eq 'version 3\.'; then
@@ -59,10 +78,18 @@ fi
 if [[ "${APPLY}" == false ]]; then
     RSYNC_ARGS+=(--dry-run)
     echo "Preview mode only. Re-run with --apply to perform the mirroring."
+else
+    mkdir -p "${COLD_ROOT}"
 fi
 
-echo "Manifest:      ${MANIFEST_TSV}"
-echo "Cold storage:  ${COLD_ROOT}"
+log() {
+    echo "$*" | tee -a "${LOG_FILE}"
+}
+
+log "Manifest: ${MANIFEST_TSV}"
+log "Cold storage: ${COLD_ROOT}"
+log "Log file: ${LOG_FILE}"
+log "Mode: $([[ "${APPLY}" == true ]] && echo apply || echo preview)"
 
 {
     read -r _
@@ -71,19 +98,29 @@ echo "Cold storage:  ${COLD_ROOT}"
         target_path="${COLD_ROOT}/${relative_subpath}"
         if [[ "${kind}" == "dir" ]]; then
             if [[ -d "${local_path}" ]]; then
-                mkdir -p "${target_path}"
-                echo "Mirroring directory: ${local_path} -> ${target_path}"
-                rsync "${RSYNC_ARGS[@]}" "${local_path}/" "${target_path}/"
+                log "Mirroring directory: ${local_path} -> ${target_path}"
+                if [[ "${APPLY}" == true ]]; then
+                    mkdir -p "${target_path}"
+                    rsync "${RSYNC_ARGS[@]}" "${local_path}/" "${target_path}/" >> "${LOG_FILE}" 2>&1
+                else
+                    log "Preview: rsync ${RSYNC_ARGS[*]} ${local_path}/ ${target_path}/"
+                    rsync "${RSYNC_ARGS[@]}" "${local_path}/" "${target_path}/" >> "${LOG_FILE}" 2>&1
+                fi
             else
-                echo "Skipping missing directory: ${local_path}" >&2
+                log "Skipping missing directory: ${local_path}"
             fi
         else
             if [[ -f "${local_path}" ]]; then
-                mkdir -p "$(dirname "${target_path}")"
-                echo "Mirroring file: ${local_path} -> ${target_path}"
-                rsync "${RSYNC_ARGS[@]}" "${local_path}" "${target_path}"
+                log "Mirroring file: ${local_path} -> ${target_path}"
+                if [[ "${APPLY}" == true ]]; then
+                    mkdir -p "$(dirname "${target_path}")"
+                    rsync "${RSYNC_ARGS[@]}" "${local_path}" "${target_path}" >> "${LOG_FILE}" 2>&1
+                else
+                    log "Preview: rsync ${RSYNC_ARGS[*]} ${local_path} ${target_path}"
+                    rsync "${RSYNC_ARGS[@]}" "${local_path}" "${target_path}" >> "${LOG_FILE}" 2>&1
+                fi
             else
-                echo "Skipping missing file: ${local_path}" >&2
+                log "Skipping missing file: ${local_path}"
             fi
         fi
     done

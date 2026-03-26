@@ -1,0 +1,3 @@
+cold_path	ssd_path
+/Volumes/cold_storage/project_a/data/reference	/Volumes/ssd_storage/project_a/data/reference
+/Volumes/cold_storage/project_a/data/raw/ingroup	/Volumes/ssd_storage/project_a/data/raw/ingroup
