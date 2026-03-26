@@ -14,7 +14,10 @@ def ensure_parent(path_str: str) -> None:
 
 
 def load_selection_array(path_str: str) -> np.ndarray:
-    raw = np.load(path_str, allow_pickle=True)
+    try:
+        raw = np.load(path_str, allow_pickle=True)
+    except Exception:
+        raw = np.loadtxt(path_str)
 
     if isinstance(raw, np.lib.npyio.NpzFile):
         if len(raw.files) == 0:
@@ -31,7 +34,9 @@ def load_selection_array(path_str: str) -> np.ndarray:
     if raw.dtype == object:
         raw = np.array(raw.tolist(), dtype=float)
 
-    return raw.reshape(-1)
+    if raw.ndim == 1:
+        return raw
+    return raw[:, 0]
 
 
 def main() -> None:
