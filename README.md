@@ -251,8 +251,10 @@ The TSV should contain:
 Example:
 ```bash
 bash run_ssd_mirroring.sh data/ssd_mirroring.tsv
-bash run_ssd_mirroring.sh --apply data/ssd_mirroring.tsv
-bash run_transfer_verification.sh data/ssd_mirroring.tsv
+bash run_ssd_mirroring.sh --apply --log-dir transfer/logs data/ssd_mirroring.tsv
+bash run_transfer_verification.sh --log-dir transfer/logs data/ssd_mirroring.tsv
+# Backward-compatible SSD form: second positional argument is treated as the report directory
+bash run_transfer_verification.sh data/ssd_mirroring.tsv transfer/logs
 ```
 
 When using this staging pattern, point your local config paths such as `storage.roots.local` or `reads.ingroup_dir` to the SSD-side paths that the pipeline should actually read and write.

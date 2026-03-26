@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  bash run_transfer_verification.sh [--report <tsv>] <manifest_tsv> [destination_root]
+  bash run_transfer_verification.sh [--report <tsv>] [--log-dir <dir>] <manifest_tsv> [destination_root]
 
 Behavior:
   - Verifies transfer state using rsync dry-run comparisons.
@@ -18,15 +18,21 @@ Behavior:
 
 Examples:
   bash run_transfer_verification.sh data/ssd_mirroring.tsv
+  bash run_transfer_verification.sh --log-dir transfer/logs data/ssd_mirroring.tsv
   bash run_transfer_verification.sh transfer/defaults/cold_storage_paths.tsv /Volumes/cold_storage/project_a
 EOF
 }
 
 REPORT_TSV=""
+LOG_DIR=""
 while [[ $# -gt 0 ]]; do
     case "${1}" in
         --report)
             REPORT_TSV="${2:-}"
+            shift 2
+            ;;
+        --log-dir)
+            LOG_DIR="${2:-}"
             shift 2
             ;;
         -h|--help)
@@ -46,14 +52,11 @@ fi
 
 MANIFEST_TSV="${1}"
 DEST_ROOT="${2:-}"
+TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
 
 if [[ ! -f "${MANIFEST_TSV}" ]]; then
     echo "Error: manifest does not exist: ${MANIFEST_TSV}" >&2
     exit 1
-fi
-
-if [[ -z "${REPORT_TSV}" ]]; then
-    REPORT_TSV="$(dirname "${MANIFEST_TSV}")/verification_$(date '+%Y%m%d_%H%M%S').tsv"
 fi
 
 header="$(head -n 1 "${MANIFEST_TSV}")"
@@ -70,6 +73,26 @@ else
     echo "Error: unsupported manifest format: ${MANIFEST_TSV}" >&2
     exit 1
 fi
+
+if [[ "${mode}" == "ssd" && -n "${DEST_ROOT}" && -z "${REPORT_TSV}" && -z "${LOG_DIR}" ]]; then
+    # For SSD manifests, a second positional argument is treated as the report directory.
+    LOG_DIR="${DEST_ROOT}"
+    DEST_ROOT=""
+fi
+
+if [[ -n "${LOG_DIR}" ]]; then
+    mkdir -p "${LOG_DIR}"
+fi
+
+if [[ -z "${REPORT_TSV}" ]]; then
+    if [[ -n "${LOG_DIR}" ]]; then
+        REPORT_TSV="${LOG_DIR}/transfer_verification_${TIMESTAMP}.tsv"
+    else
+        REPORT_TSV="$(dirname "${MANIFEST_TSV}")/verification_${TIMESTAMP}.tsv"
+    fi
+fi
+
+mkdir -p "$(dirname "${REPORT_TSV}")"
 
 echo -e "source_path\tdestination_path\tstatus\tdetails" > "${REPORT_TSV}"
 
