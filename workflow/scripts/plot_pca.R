@@ -89,6 +89,14 @@ df <- bamlist %>%
   left_join(samples, by = 'sample') %>%
   mutate(group_plot = factor(.data[[group_col]], levels = populations))
 
+if (length(axes) == 0) {
+  axes <- paste0("pc", seq_len(min(4, ncol(pc))))
+}
+axes <- axes[axes %in% names(pc)]
+if (length(axes) < 2) {
+  stop("pcangsd.axes_plot must resolve to at least two principal components")
+}
+
 # Color palette
 colpal <- as.character(palette_n(length(populations)))
 

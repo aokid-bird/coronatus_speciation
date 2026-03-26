@@ -58,14 +58,14 @@ rule pca_selection:
         pca_sites=rules.run_pcangsd.output.sites
     output:
         selection_csv = f"{PCA_DIR}/selection.csv",
-        qqplot = f"{PCA_SELECTION_FIG_DIR}/pca_{output_prefix}_qq.png"
+        qqplot = f"{PCA_SELECTION_FIG_DIR}/pca_{output_prefix}_qq.pdf"
     log:
         f"logs/{output_prefix}/pca_selection.log"
     conda:
-        "../envs/r_plotting.yaml"
+        "../envs/python_plotting.yaml"
     shell:
         """
-        Rscript workflow/scripts/run_selection.R \
+        python workflow/scripts/run_selection.py \
             {input.selection} {input.pca_sites}\
             {output.selection_csv} {output.qqplot}
         """
