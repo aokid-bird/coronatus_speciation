@@ -80,6 +80,7 @@ if IS_LOCAL:
         rules.manifest_outgroup_raw_storage.output,
         rules.manifest_outgroup_merged_storage.output,
         rules.generate_external_transfer_scripts.output,
+        rules.generate_local_sync_scripts.output,
     )
 
     rule all:

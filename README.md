@@ -283,11 +283,25 @@ The workflow generates transfer helpers under `transfer/<output_prefix>/`.
 | `external_paths.tsv` | Manifest of external files/directories and their mirrored cluster paths |
 | `sync_local_external_to_cluster.sh` | Upload local external files to the cluster mirror root |
 | `sync_cluster_external_to_local.sh` | Copy mirrored cluster files back to the original local external paths |
+| `project_output_paths.tsv` | Manifest of project-level output directories mirrored from the cluster repo |
+| `sync_cluster_project_outputs_to_local.sh` | Pull `results/`, `figures/`, and `logs/` from the cluster project into the local project |
+| `cold_storage_paths.tsv` | Manifest of external SSD paths that can be back-mirrored into cold storage |
 
 Typical use:
 ```bash
 bash transfer/defaults/sync_local_external_to_cluster.sh username@cluster.example.org
 bash transfer/defaults/sync_cluster_external_to_local.sh username@cluster.example.org
+bash transfer/defaults/sync_cluster_project_outputs_to_local.sh username@cluster.example.org /lfs/aokid/project_a
+bash run_cold_storage_mirroring.sh transfer/defaults/cold_storage_paths.tsv /Volumes/cold_storage/project_a
+```
+
+Recommended config:
+
+```yaml
+paths:
+  transfer:
+    cluster_storage_root: /lfs/aokid/data
+    cluster_project_dir: /lfs/aokid/project_a
 ```
 
 ### Which machine should run each script?
@@ -296,6 +310,8 @@ bash transfer/defaults/sync_cluster_external_to_local.sh username@cluster.exampl
 | --- | --- | --- |
 | `sync_local_external_to_cluster.sh` | Local machine | The script reads local files and pushes them to the cluster |
 | `sync_cluster_external_to_local.sh` | Local machine | The script pulls from the cluster back to the original local storage paths |
+| `sync_cluster_project_outputs_to_local.sh` | Local machine | The script pulls `results/`, `figures/`, and `logs/` from the cluster project into the local project |
+| `run_cold_storage_mirroring.sh` | Local machine | The standalone utility reads `cold_storage_paths.tsv` and back-mirrors SSD-resident external files into cold storage |
 
 > [!IMPORTANT]
 > `sync_cluster_external_to_local.sh` should normally be generated and run from the local analysis if you want the embedded destination paths to point to your SSD, such as `/Volumes/OWCEnvoyProFX/...`. If you generate it on the cluster, its baked-in “local” paths will instead reflect cluster-resolved paths such as `/lfs/aokid/...`.
@@ -306,6 +322,7 @@ bash transfer/defaults/sync_cluster_external_to_local.sh username@cluster.exampl
 | --- | --- |
 | `CLUSTER_PORT` | SSH port for `rsync` / `ssh` |
 | `CLUSTER_STORAGE_ROOT` | Override the mirror root without editing config |
+| `CLUSTER_PROJECT_ROOT` | Override the cluster-side project directory for project output download |
 
 # Tips
 ## Dag and dryrun with "mock" option

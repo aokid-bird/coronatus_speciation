@@ -123,6 +123,7 @@ paths:
     singularity_dir: "${HOME}/envs/singularity"
     transfer:
         cluster_storage_root: "/lfs/aokid"
+        cluster_project_dir: null # e.g. "/lfs/aokid/project_a"
 
 inputs:
     samples_tsv: "data/samples.tsv"
