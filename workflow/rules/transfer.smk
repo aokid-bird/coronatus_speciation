@@ -77,14 +77,15 @@ def _cold_storage_relative_subpath(path):
 
 def _cold_storage_items():
     items = []
-    for item in _transfer_items():
-        relative_subpath = _cold_storage_relative_subpath(item["local_path"])
+    for path in external_transfer_directories():
+        local_path = str(Path(path))
+        relative_subpath = _cold_storage_relative_subpath(local_path)
         if not relative_subpath:
             continue
         items.append({
-            "kind": item["kind"],
-            "category": item["category"],
-            "local_path": item["local_path"],
+            "kind": "dir",
+            "category": "external_storage_dir",
+            "local_path": local_path,
             "relative_subpath": relative_subpath,
         })
     items.sort(key=lambda x: (x["kind"], x["local_path"]))
