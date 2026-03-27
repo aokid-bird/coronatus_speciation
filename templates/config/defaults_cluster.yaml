@@ -190,6 +190,11 @@ storage:
     outgroup:
         raw_dir: null
         merged_dir: null
+        # fasterq-dump staging and disk guards for SRA downloads.
+        fasterq_tmp_dir: null # defaults to "<resolved raw_dir>/tmp" when null
+        fasterq_disk_limit: "500G"
+        fasterq_disk_limit_tmp: "500G"
+        fasterq_size_check: "on" # set to "off" only as a last resort
     derived:
         ingroup:
             trim_dir: null

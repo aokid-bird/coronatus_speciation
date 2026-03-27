@@ -184,6 +184,20 @@ With this layout, the same relative subpath is resolved beneath different roots 
 - If `storage.roots` is null, `storage.shared.*` is ignored.
 - In that case, the workflow falls back to explicit `storage.*` keys or built-in defaults.
 
+### SRA download temp and disk-limit controls
+`fetch_sra_*` rules now run `fasterq-dump` with explicit temp and disk guard options. Configure them under `storage.outgroup`:
+
+```yaml
+storage:
+  outgroup:
+    raw_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/raw
+    merged_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/merged
+    fasterq_tmp_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/raw/tmp
+    fasterq_disk_limit: "500G"
+    fasterq_disk_limit_tmp: "500G"
+    fasterq_size_check: "on" # set to "off" only when you intentionally bypass size check
+```
+
 ### Ingroup FASTQ metadata
 The `reads.ingroup_metadata` section controls how per-sample FASTQ paths are resolved from `samples.tsv`.
 

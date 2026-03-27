@@ -9,6 +9,10 @@ Config keys used:
 - outgroups
 - storage.outgroup.raw_dir
 - storage.outgroup.merged_dir
+- storage.outgroup.fasterq_tmp_dir
+- storage.outgroup.fasterq_disk_limit
+- storage.outgroup.fasterq_disk_limit_tmp
+- storage.outgroup.fasterq_size_check
 """
 
 import re as _re
@@ -31,6 +35,18 @@ LONGREAD_SRR_IDS = [
     for srr in OUTGROUP_SAMPLES[sid]
 ]
 
+_OUTGROUP_STORAGE_CFG = (config.get("storage", {}) or {}).get("outgroup", {}) or {}
+_FASTERQ_TMP_DIR = _OUTGROUP_STORAGE_CFG.get("fasterq_tmp_dir") or f"{OUTGROUP_RAW_DIR}/tmp"
+_FASTERQ_DISK_LIMIT = str(_OUTGROUP_STORAGE_CFG.get("fasterq_disk_limit", "500G"))
+_FASTERQ_DISK_LIMIT_TMP = str(_OUTGROUP_STORAGE_CFG.get("fasterq_disk_limit_tmp", "500G"))
+_FASTERQ_SIZE_CHECK = str(_OUTGROUP_STORAGE_CFG.get("fasterq_size_check", "on")).strip().lower()
+
+if _FASTERQ_SIZE_CHECK not in {"on", "off"}:
+    raise ValueError(
+        "storage.outgroup.fasterq_size_check must be 'on' or 'off', "
+        f"got: {_FASTERQ_SIZE_CHECK!r}"
+    )
+
 
 rule fetch_sra_paired:
     """
@@ -46,6 +62,11 @@ rule fetch_sra_paired:
     conda:
         "../envs/sra_tools.yaml"
     threads: 4
+    params:
+        tmp_dir=_FASTERQ_TMP_DIR,
+        disk_limit=_FASTERQ_DISK_LIMIT,
+        disk_limit_tmp=_FASTERQ_DISK_LIMIT_TMP,
+        size_check=_FASTERQ_SIZE_CHECK
     message:
         "Downloading SRA paired-end {wildcards.srr}"
     shell:
@@ -60,12 +81,19 @@ rule fetch_sra_paired:
             fi
 
             mkdir -p {OUTGROUP_RAW_DIR}
+            mkdir -p {params.tmp_dir}
             if [ -s "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" ] && [ -s "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" ]; then
                 echo "[{wildcards.srr}] Found existing FASTQ; skipping download and gzipping." >> {log} 2>&1
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" >> {log} 2>&1
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" >> {log} 2>&1
             else
-                fasterq-dump {wildcards.srr} --split-files -e {threads} -O {OUTGROUP_RAW_DIR} &> {log}
+                fasterq-dump {wildcards.srr} --split-files -e {threads} \
+                    -O {OUTGROUP_RAW_DIR} \
+                    -t {params.tmp_dir} \
+                    --disk-limit {params.disk_limit} \
+                    --disk-limit-tmp {params.disk_limit_tmp} \
+                    --size-check {params.size_check} \
+                    -p &> {log}
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" >> {log} 2>&1
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" >> {log} 2>&1
             fi
@@ -91,6 +119,11 @@ rule fetch_sra_single:
     conda:
         "../envs/sra_tools.yaml"
     threads: 4
+    params:
+        tmp_dir=_FASTERQ_TMP_DIR,
+        disk_limit=_FASTERQ_DISK_LIMIT,
+        disk_limit_tmp=_FASTERQ_DISK_LIMIT_TMP,
+        size_check=_FASTERQ_SIZE_CHECK
     message:
         "Downloading SRA single-end {wildcards.srr}"
     shell:
@@ -105,11 +138,18 @@ rule fetch_sra_single:
             fi
 
             mkdir -p {OUTGROUP_RAW_DIR}
+            mkdir -p {params.tmp_dir}
             if [ -s "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" ]; then
                 echo "[{wildcards.srr}] Found existing FASTQ; skipping download and gzipping." >> {log} 2>&1
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" >> {log} 2>&1
             else
-                fasterq-dump {wildcards.srr} -e {threads} -O {OUTGROUP_RAW_DIR} &> {log}
+                fasterq-dump {wildcards.srr} -e {threads} \
+                    -O {OUTGROUP_RAW_DIR} \
+                    -t {params.tmp_dir} \
+                    --disk-limit {params.disk_limit} \
+                    --disk-limit-tmp {params.disk_limit_tmp} \
+                    --size-check {params.size_check} \
+                    -p &> {log}
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" >> {log} 2>&1
             fi
 
