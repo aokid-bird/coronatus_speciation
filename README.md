@@ -192,6 +192,8 @@ storage:
   outgroup:
     raw_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/raw
     merged_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/merged
+    sra_cache_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/cache
+    prefetch_max_size: "200G"
     fasterq_tmp_dir: /Volumes/OWCEnvoyProFX/mirror_data/source/sra/raw/raw/tmp
     fasterq_disk_limit: "500G"
     fasterq_disk_limit_tmp: "500G"

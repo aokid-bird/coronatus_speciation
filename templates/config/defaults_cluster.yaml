@@ -190,6 +190,8 @@ storage:
     outgroup:
         raw_dir: null
         merged_dir: null
+        sra_cache_dir: null # defaults to "<resolved raw_dir>/cache" when null
+        prefetch_max_size: "200G"
         # fasterq-dump staging and disk guards for SRA downloads.
         fasterq_tmp_dir: null # defaults to "<resolved raw_dir>/tmp" when null
         fasterq_disk_limit: "500G"

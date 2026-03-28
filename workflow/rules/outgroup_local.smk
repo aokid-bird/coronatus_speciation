@@ -10,6 +10,7 @@ Config keys used:
 - storage.outgroup.raw_dir
 - storage.outgroup.merged_dir
 - storage.outgroup.sra_cache_dir
+- storage.outgroup.prefetch_max_size
 - storage.outgroup.fasterq_tmp_dir
 - storage.outgroup.fasterq_disk_limit
 - storage.outgroup.fasterq_disk_limit_tmp
@@ -39,6 +40,7 @@ LONGREAD_SRR_IDS = [
 _OUTGROUP_STORAGE_CFG = (config.get("storage", {}) or {}).get("outgroup", {}) or {}
 _FASTERQ_TMP_DIR = _OUTGROUP_STORAGE_CFG.get("fasterq_tmp_dir") or f"{OUTGROUP_RAW_DIR}/tmp"
 _SRA_CACHE_DIR = _OUTGROUP_STORAGE_CFG.get("sra_cache_dir") or f"{OUTGROUP_RAW_DIR}/cache"
+_PREFETCH_MAX_SIZE = str(_OUTGROUP_STORAGE_CFG.get("prefetch_max_size", "200G"))
 _FASTERQ_DISK_LIMIT = str(_OUTGROUP_STORAGE_CFG.get("fasterq_disk_limit", "500G"))
 _FASTERQ_DISK_LIMIT_TMP = str(_OUTGROUP_STORAGE_CFG.get("fasterq_disk_limit_tmp", "500G"))
 _FASTERQ_SIZE_CHECK = str(_OUTGROUP_STORAGE_CFG.get("fasterq_size_check", "on")).strip().lower()
@@ -64,6 +66,8 @@ rule prefetch_sra:
     conda:
         "../envs/sra_tools.yaml"
     threads: 2
+    params:
+        max_size=_PREFETCH_MAX_SIZE
     message:
         "Prefetching SRA accession {wildcards.srr}"
     shell:
@@ -72,7 +76,7 @@ rule prefetch_sra:
         if [ -s {output.sra} ]; then
             echo "[{wildcards.srr}] Cached SRA exists." > {log}
         else
-            prefetch {wildcards.srr} --output-directory {_SRA_CACHE_DIR} &> {log}
+            prefetch {wildcards.srr} --output-directory {_SRA_CACHE_DIR} --max-size {params.max_size} &> {log}
         fi
         """
 
