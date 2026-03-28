@@ -9,6 +9,7 @@ Config keys used:
 - outgroups
 - storage.outgroup.raw_dir
 - storage.outgroup.merged_dir
+- storage.outgroup.sra_cache_dir
 - storage.outgroup.fasterq_tmp_dir
 - storage.outgroup.fasterq_disk_limit
 - storage.outgroup.fasterq_disk_limit_tmp
@@ -37,9 +38,11 @@ LONGREAD_SRR_IDS = [
 
 _OUTGROUP_STORAGE_CFG = (config.get("storage", {}) or {}).get("outgroup", {}) or {}
 _FASTERQ_TMP_DIR = _OUTGROUP_STORAGE_CFG.get("fasterq_tmp_dir") or f"{OUTGROUP_RAW_DIR}/tmp"
+_SRA_CACHE_DIR = _OUTGROUP_STORAGE_CFG.get("sra_cache_dir") or f"{OUTGROUP_RAW_DIR}/cache"
 _FASTERQ_DISK_LIMIT = str(_OUTGROUP_STORAGE_CFG.get("fasterq_disk_limit", "500G"))
 _FASTERQ_DISK_LIMIT_TMP = str(_OUTGROUP_STORAGE_CFG.get("fasterq_disk_limit_tmp", "500G"))
 _FASTERQ_SIZE_CHECK = str(_OUTGROUP_STORAGE_CFG.get("fasterq_size_check", "on")).strip().lower()
+_ALL_SRR_IDS = sorted(set(SHORTREAD_SRR_IDS + LONGREAD_SRR_IDS))
 
 if _FASTERQ_SIZE_CHECK not in {"on", "off"}:
     raise ValueError(
@@ -48,12 +51,40 @@ if _FASTERQ_SIZE_CHECK not in {"on", "off"}:
     )
 
 
+rule prefetch_sra:
+    """
+    Download SRA accessions into a local cache before FASTQ conversion.
+    """
+    wildcard_constraints:
+        srr=_wc_rgx(_ALL_SRR_IDS)
+    output:
+        sra=f"{_SRA_CACHE_DIR}/{{srr}}/{{srr}}.sra"
+    log:
+        "logs/fetch_sra/{srr}.prefetch.log"
+    conda:
+        "../envs/sra_tools.yaml"
+    threads: 2
+    message:
+        "Prefetching SRA accession {wildcards.srr}"
+    shell:
+        """
+        mkdir -p {_SRA_CACHE_DIR}
+        if [ -s {output.sra} ]; then
+            echo "[{wildcards.srr}] Cached SRA exists." > {log}
+        else
+            prefetch {wildcards.srr} --output-directory {_SRA_CACHE_DIR} &> {log}
+        fi
+        """
+
+
 rule fetch_sra_paired:
     """
     Download paired-end outgroup reads from SRA into the local raw outgroup directory.
     """
     wildcard_constraints:
         srr=_wc_rgx(SHORTREAD_SRR_IDS)
+    input:
+        sra=rules.prefetch_sra.output.sra
     output:
         fq1=f"{OUTGROUP_RAW_DIR}/{{srr}}_1.fastq.gz",
         fq2=f"{OUTGROUP_RAW_DIR}/{{srr}}_2.fastq.gz"
@@ -87,7 +118,7 @@ rule fetch_sra_paired:
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" >> {log} 2>&1
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" >> {log} 2>&1
             else
-                fasterq-dump {wildcards.srr} --split-files -e {threads} \
+                fasterq-dump {input.sra} --split-files -e {threads} \
                     -O {OUTGROUP_RAW_DIR} \
                     -t {params.tmp_dir} \
                     --disk-limit {params.disk_limit} \
@@ -112,6 +143,8 @@ rule fetch_sra_single:
     """
     wildcard_constraints:
         srr=_wc_rgx(LONGREAD_SRR_IDS)
+    input:
+        sra=rules.prefetch_sra.output.sra
     output:
         fq=f"{OUTGROUP_RAW_DIR}/{{srr}}.fastq.gz"
     log:
@@ -143,7 +176,7 @@ rule fetch_sra_single:
                 echo "[{wildcards.srr}] Found existing FASTQ; skipping download and gzipping." >> {log} 2>&1
                 $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" >> {log} 2>&1
             else
-                fasterq-dump {wildcards.srr} -e {threads} \
+                fasterq-dump {input.sra} -e {threads} \
                     -O {OUTGROUP_RAW_DIR} \
                     -t {params.tmp_dir} \
                     --disk-limit {params.disk_limit} \
