@@ -83,15 +83,15 @@ rule prefetch_sra:
 
 rule fetch_sra_paired:
     """
-    Download paired-end outgroup reads from SRA into the local raw outgroup directory.
+    Convert cached SRA to paired-end FASTQ in the local raw outgroup directory.
     """
     wildcard_constraints:
         srr=_wc_rgx(SHORTREAD_SRR_IDS)
     input:
         sra=rules.prefetch_sra.output.sra
     output:
-        fq1=f"{OUTGROUP_RAW_DIR}/{{srr}}_1.fastq.gz",
-        fq2=f"{OUTGROUP_RAW_DIR}/{{srr}}_2.fastq.gz"
+        fq1=f"{OUTGROUP_RAW_DIR}/{{srr}}_1.fastq",
+        fq2=f"{OUTGROUP_RAW_DIR}/{{srr}}_2.fastq"
     log:
         "logs/fetch_sra/{srr}.log"
     conda:
@@ -103,38 +103,24 @@ rule fetch_sra_paired:
         disk_limit_tmp=_FASTERQ_DISK_LIMIT_TMP,
         size_check=_FASTERQ_SIZE_CHECK
     message:
-        "Downloading SRA paired-end {wildcards.srr}"
+        "Converting SRA to paired FASTQ {wildcards.srr}"
     shell:
         """
         if [ -s {output.fq1} ] && [ -s {output.fq2} ]; then
             echo "[{wildcards.srr}] Already exists." > {log}
         else
-            if command -v pigz >/dev/null 2>&1; then
-                COMPRESSOR="pigz -p {threads} -f"
-            else
-                COMPRESSOR="gzip -f"
-            fi
-
             mkdir -p {OUTGROUP_RAW_DIR}
             mkdir -p {params.tmp_dir}
-            if [ -s "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" ] && [ -s "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" ]; then
-                echo "[{wildcards.srr}] Found existing FASTQ; skipping download and gzipping." >> {log} 2>&1
-                $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" >> {log} 2>&1
-                $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" >> {log} 2>&1
-            else
-                fasterq-dump {input.sra} --split-files -e {threads} \
-                    -O {OUTGROUP_RAW_DIR} \
-                    -t {params.tmp_dir} \
-                    --disk-limit {params.disk_limit} \
-                    --disk-limit-tmp {params.disk_limit_tmp} \
-                    --size-check {params.size_check} \
-                    -p &> {log}
-                $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_1.fastq" >> {log} 2>&1
-                $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}_2.fastq" >> {log} 2>&1
-            fi
+            fasterq-dump {input.sra} --split-files -e {threads} \
+                -O {OUTGROUP_RAW_DIR} \
+                -t {params.tmp_dir} \
+                --disk-limit {params.disk_limit} \
+                --disk-limit-tmp {params.disk_limit_tmp} \
+                --size-check {params.size_check} \
+                -p &> {log}
 
             if [ ! -s {output.fq1} ] || [ ! -s {output.fq2} ]; then
-                echo "[{wildcards.srr}] ERROR: Expected paired .fastq.gz not found after compression." >> {log} 2>&1
+                echo "[{wildcards.srr}] ERROR: Expected paired .fastq not found after fasterq-dump." >> {log} 2>&1
                 exit 1
             fi
         fi
@@ -143,14 +129,14 @@ rule fetch_sra_paired:
 
 rule fetch_sra_single:
     """
-    Download single-end outgroup reads from SRA into the local raw outgroup directory.
+    Convert cached SRA to single-end FASTQ in the local raw outgroup directory.
     """
     wildcard_constraints:
         srr=_wc_rgx(LONGREAD_SRR_IDS)
     input:
         sra=rules.prefetch_sra.output.sra
     output:
-        fq=f"{OUTGROUP_RAW_DIR}/{{srr}}.fastq.gz"
+        fq=f"{OUTGROUP_RAW_DIR}/{{srr}}.fastq"
     log:
         "logs/fetch_sra/{srr}.log"
     conda:
@@ -162,38 +148,93 @@ rule fetch_sra_single:
         disk_limit_tmp=_FASTERQ_DISK_LIMIT_TMP,
         size_check=_FASTERQ_SIZE_CHECK
     message:
-        "Downloading SRA single-end {wildcards.srr}"
+        "Converting SRA to single FASTQ {wildcards.srr}"
     shell:
         """
         if [ -s {output.fq} ]; then
             echo "[{wildcards.srr}] Already exists." > {log}
         else
-            if command -v pigz >/dev/null 2>&1; then
-                COMPRESSOR="pigz -p {threads} -f"
-            else
-                COMPRESSOR="gzip -f"
-            fi
-
             mkdir -p {OUTGROUP_RAW_DIR}
             mkdir -p {params.tmp_dir}
-            if [ -s "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" ]; then
-                echo "[{wildcards.srr}] Found existing FASTQ; skipping download and gzipping." >> {log} 2>&1
-                $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" >> {log} 2>&1
-            else
-                fasterq-dump {input.sra} -e {threads} \
-                    -O {OUTGROUP_RAW_DIR} \
-                    -t {params.tmp_dir} \
-                    --disk-limit {params.disk_limit} \
-                    --disk-limit-tmp {params.disk_limit_tmp} \
-                    --size-check {params.size_check} \
-                    -p &> {log}
-                $COMPRESSOR "{OUTGROUP_RAW_DIR}/{wildcards.srr}.fastq" >> {log} 2>&1
-            fi
+            fasterq-dump {input.sra} -e {threads} \
+                -O {OUTGROUP_RAW_DIR} \
+                -t {params.tmp_dir} \
+                --disk-limit {params.disk_limit} \
+                --disk-limit-tmp {params.disk_limit_tmp} \
+                --size-check {params.size_check} \
+                -p &> {log}
 
             if [ ! -s {output.fq} ]; then
-                echo "[{wildcards.srr}] ERROR: Expected single .fastq.gz not found after compression." >> {log} 2>&1
+                echo "[{wildcards.srr}] ERROR: Expected single .fastq not found after fasterq-dump." >> {log} 2>&1
                 exit 1
             fi
+        fi
+        """
+
+
+rule gzip_sra_paired:
+    """
+    Compress paired-end outgroup FASTQ files generated from SRA.
+    """
+    wildcard_constraints:
+        srr=_wc_rgx(SHORTREAD_SRR_IDS)
+    input:
+        fq1=f"{OUTGROUP_RAW_DIR}/{{srr}}_1.fastq",
+        fq2=f"{OUTGROUP_RAW_DIR}/{{srr}}_2.fastq"
+    output:
+        fq1=f"{OUTGROUP_RAW_DIR}/{{srr}}_1.fastq.gz",
+        fq2=f"{OUTGROUP_RAW_DIR}/{{srr}}_2.fastq.gz"
+    log:
+        "logs/fetch_sra/{srr}.gzip.log"
+    threads: 4
+    message:
+        "Compressing paired FASTQ {wildcards.srr}"
+    shell:
+        """
+        if command -v pigz >/dev/null 2>&1; then
+            COMPRESSOR="pigz -p {threads} -f"
+        else
+            COMPRESSOR="gzip -f"
+        fi
+
+        $COMPRESSOR {input.fq1} >> {log} 2>&1
+        $COMPRESSOR {input.fq2} >> {log} 2>&1
+
+        if [ ! -s {output.fq1} ] || [ ! -s {output.fq2} ]; then
+            echo "[{wildcards.srr}] ERROR: Expected paired .fastq.gz not found after compression." >> {log} 2>&1
+            exit 1
+        fi
+        """
+
+
+rule gzip_sra_single:
+    """
+    Compress single-end outgroup FASTQ file generated from SRA.
+    """
+    wildcard_constraints:
+        srr=_wc_rgx(LONGREAD_SRR_IDS)
+    input:
+        fq=f"{OUTGROUP_RAW_DIR}/{{srr}}.fastq"
+    output:
+        fq=f"{OUTGROUP_RAW_DIR}/{{srr}}.fastq.gz"
+    log:
+        "logs/fetch_sra/{srr}.gzip.log"
+    threads: 4
+    message:
+        "Compressing single FASTQ {wildcards.srr}"
+    shell:
+        """
+        if command -v pigz >/dev/null 2>&1; then
+            COMPRESSOR="pigz -p {threads} -f"
+        else
+            COMPRESSOR="gzip -f"
+        fi
+
+        $COMPRESSOR {input.fq} >> {log} 2>&1
+
+        if [ ! -s {output.fq} ]; then
+            echo "[{wildcards.srr}] ERROR: Expected single .fastq.gz not found after compression." >> {log} 2>&1
+            exit 1
         fi
         """
 
