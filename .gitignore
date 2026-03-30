@@ -15,7 +15,6 @@ workflow/bin/
 .fna.gz
 .zip
 data/raw/
-data/adapters/
 
 # Python cache/artifacts
 __pycache__/
