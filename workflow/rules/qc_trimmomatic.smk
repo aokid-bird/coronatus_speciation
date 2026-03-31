@@ -46,6 +46,29 @@ def _fastqc_report_paths(path, outdir):
     )
 
 
+def _fastqc_candidate_paths(sample_id, read, outdir, input_path=None):
+    stems = []
+    if input_path:
+        stems.append(_fastqc_output_stem(input_path))
+    stems.extend([
+        f"{sample_id}_{read}",
+        f"{sample_id}_R{read}",
+        f"{sample_id}_pair_R{read}",
+    ])
+
+    seen = set()
+    htmls = []
+    zips = []
+    for stem in stems:
+        if stem in seen:
+            continue
+        seen.add(stem)
+        html, zip_file = _fastqc_report_paths(stem, outdir)
+        htmls.append(html)
+        zips.append(zip_file)
+    return htmls, zips
+
+
 def _outgroup_pre_fastqc_html(path):
     return _fastqc_report_paths(path, PRE_QC_DIR)[0]
 
@@ -108,6 +131,12 @@ rule fastqc_outgroup_pre:
         adapters=FASTQC_ADAPTERS,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
         adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else ""),
+        html_candidates=lambda wc, input: _fastqc_candidate_paths(
+            wc.sample_id, wc.read, PRE_QC_DIR, input.fq
+        )[0],
+        zip_candidates=lambda wc, input: _fastqc_candidate_paths(
+            wc.sample_id, wc.read, PRE_QC_DIR, input.fq
+        )[1],
         actual_html=lambda wc, input: _outgroup_pre_fastqc_html(input.fq),
         actual_zip=lambda wc, input: _outgroup_pre_fastqc_zip(input.fq)
     threads: OUTGROUP_FASTQC_THREADS
@@ -122,12 +151,24 @@ rule fastqc_outgroup_pre:
             {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
-        if [ "{params.actual_html}" != "{output.html}" ]; then
-            mv -f {params.actual_html} {output.html}
-        fi
-        if [ "{params.actual_zip}" != "{output.zip}" ]; then
-            mv -f {params.actual_zip} {output.zip}
-        fi
+        for candidate in {params.html_candidates}; do
+            if [ -f "$candidate" ]; then
+                if [ "$candidate" != "{output.html}" ]; then
+                    mv -f "$candidate" {output.html}
+                fi
+                break
+            fi
+        done
+        for candidate in {params.zip_candidates}; do
+            if [ -f "$candidate" ]; then
+                if [ "$candidate" != "{output.zip}" ]; then
+                    mv -f "$candidate" {output.zip}
+                fi
+                break
+            fi
+        done
+        test -s {output.html}
+        test -s {output.zip}
         """
 
 rule multiqc_outgroup_pre:
@@ -209,6 +250,12 @@ rule fastqc_outgroup_post:
         adapters=FASTQC_ADAPTERS,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
         adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else ""),
+        html_candidates=lambda wc, input: _fastqc_candidate_paths(
+            wc.sample_id, wc.read, POST_QC_DIR, input.fq
+        )[0],
+        zip_candidates=lambda wc, input: _fastqc_candidate_paths(
+            wc.sample_id, wc.read, POST_QC_DIR, input.fq
+        )[1],
         actual_html=lambda wc, input: _outgroup_post_fastqc_html(input.fq),
         actual_zip=lambda wc, input: _outgroup_post_fastqc_zip(input.fq)
     threads: OUTGROUP_FASTQC_THREADS
@@ -223,12 +270,24 @@ rule fastqc_outgroup_post:
             {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
-        if [ "{params.actual_html}" != "{output.html}" ]; then
-            mv -f {params.actual_html} {output.html}
-        fi
-        if [ "{params.actual_zip}" != "{output.zip}" ]; then
-            mv -f {params.actual_zip} {output.zip}
-        fi
+        for candidate in {params.html_candidates}; do
+            if [ -f "$candidate" ]; then
+                if [ "$candidate" != "{output.html}" ]; then
+                    mv -f "$candidate" {output.html}
+                fi
+                break
+            fi
+        done
+        for candidate in {params.zip_candidates}; do
+            if [ -f "$candidate" ]; then
+                if [ "$candidate" != "{output.zip}" ]; then
+                    mv -f "$candidate" {output.zip}
+                fi
+                break
+            fi
+        done
+        test -s {output.html}
+        test -s {output.zip}
         """
 
 rule multiqc_outgroup_post:
