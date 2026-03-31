@@ -45,20 +45,28 @@ def _fastqc_output_stem(path):
     return Path(name).stem
 
 
-def _ingroup_pre_fastqc_html(sample_id, read):
-    return pjoin(PRE_QC_DIR, f"{_fastqc_output_stem(ingroup_fastq_path(sample_id, read))}_fastqc.html")
+def _fastqc_report_paths(path, outdir):
+    stem = _fastqc_output_stem(path)
+    return (
+        pjoin(outdir, f"{stem}_fastqc.html"),
+        pjoin(outdir, f"{stem}_fastqc.zip"),
+    )
 
 
-def _ingroup_pre_fastqc_zip(sample_id, read):
-    return pjoin(PRE_QC_DIR, f"{_fastqc_output_stem(ingroup_fastq_path(sample_id, read))}_fastqc.zip")
+def _ingroup_pre_fastqc_html(path):
+    return _fastqc_report_paths(path, PRE_QC_DIR)[0]
 
 
-def _ingroup_post_fastqc_html(sample_id, read):
-    return pjoin(POST_QC_DIR, f"{sample_id}_pair_R{read}_fastqc.html")
+def _ingroup_pre_fastqc_zip(path):
+    return _fastqc_report_paths(path, PRE_QC_DIR)[1]
 
 
-def _ingroup_post_fastqc_zip(sample_id, read):
-    return pjoin(POST_QC_DIR, f"{sample_id}_pair_R{read}_fastqc.zip")
+def _ingroup_post_fastqc_html(path):
+    return _fastqc_report_paths(path, POST_QC_DIR)[0]
+
+
+def _ingroup_post_fastqc_zip(path):
+    return _fastqc_report_paths(path, POST_QC_DIR)[1]
 
 
 INGROUP_QC_CFG = _qc_scope("ingroup")
@@ -109,8 +117,8 @@ rule fastqc_ingroup_pre:
         adapters=FASTQC_ADAPTERS,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
         adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else ""),
-        actual_html=lambda wc: _ingroup_pre_fastqc_html(wc.sample_id, wc.read),
-        actual_zip=lambda wc: _ingroup_pre_fastqc_zip(wc.sample_id, wc.read)
+        actual_html=lambda wc, input: _ingroup_pre_fastqc_html(input.fq),
+        actual_zip=lambda wc, input: _ingroup_pre_fastqc_zip(input.fq)
     threads: INGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
@@ -123,8 +131,12 @@ rule fastqc_ingroup_pre:
             {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
-        mv -f {params.actual_html} {output.html}
-        mv -f {params.actual_zip} {output.zip}
+        if [ "{params.actual_html}" != "{output.html}" ]; then
+            mv -f {params.actual_html} {output.html}
+        fi
+        if [ "{params.actual_zip}" != "{output.zip}" ]; then
+            mv -f {params.actual_zip} {output.zip}
+        fi
         """
 
 
@@ -214,8 +226,8 @@ rule fastqc_ingroup_post:
         adapters=FASTQC_ADAPTERS,
         contam_opt=lambda wc: (f"--contaminants {FASTQC_CONTAM}" if FASTQC_CONTAM else ""),
         adapter_opt=lambda wc: (f"--adapters {FASTQC_ADAPTERS}" if FASTQC_ADAPTERS else ""),
-        actual_html=lambda wc: _ingroup_post_fastqc_html(wc.sample_id, wc.read),
-        actual_zip=lambda wc: _ingroup_post_fastqc_zip(wc.sample_id, wc.read)
+        actual_html=lambda wc, input: _ingroup_post_fastqc_html(input.fq),
+        actual_zip=lambda wc, input: _ingroup_post_fastqc_zip(input.fq)
     threads: INGROUP_FASTQC_THREADS
     conda:
         "../envs/fastqc.yaml"
@@ -228,8 +240,12 @@ rule fastqc_ingroup_post:
             {params.adapter_opt} \
             {params.contam_opt} \
             {input.fq}
-        mv -f {params.actual_html} {output.html}
-        mv -f {params.actual_zip} {output.zip}
+        if [ "{params.actual_html}" != "{output.html}" ]; then
+            mv -f {params.actual_html} {output.html}
+        fi
+        if [ "{params.actual_zip}" != "{output.zip}" ]; then
+            mv -f {params.actual_zip} {output.zip}
+        fi
         """
 
 
