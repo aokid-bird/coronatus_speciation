@@ -184,7 +184,7 @@ rule multiqc_outgroup_pre:
     shell:
         r"""
         mkdir -p {PRE_QC_DIR}
-        multiqc {PRE_QC_DIR} --outdir {PRE_QC_DIR} --filename multiqc_report.html
+        multiqc {PRE_QC_DIR} --force --outdir {PRE_QC_DIR} --filename multiqc_report.html
         """
 
 rule trimmomatic_outgroup_pe:
@@ -242,8 +242,8 @@ rule fastqc_outgroup_post:
         contaminants=lambda wc: FASTQC_CONTAM if FASTQC_CONTAM else [],
         adapters=lambda wc: FASTQC_ADAPTERS if FASTQC_ADAPTERS else []
     output:
-        html=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"),
-        zip=pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.zip")
+        html=pjoin(POST_QC_DIR, "{sample_id}_pair_R{read}_fastqc.html"),
+        zip=pjoin(POST_QC_DIR, "{sample_id}_pair_R{read}_fastqc.zip")
     params:
         outdir=POST_QC_DIR,
         contaminants=FASTQC_CONTAM,
@@ -295,7 +295,7 @@ rule multiqc_outgroup_post:
     Aggregate post-trim FastQC reports for short-read outgroups with MultiQC.
     """
     input:
-        expand(pjoin(POST_QC_DIR, "{sample_id}_R{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
+        expand(pjoin(POST_QC_DIR, "{sample_id}_pair_R{read}_fastqc.html"), sample_id=SHORTREAD_SAMPLES, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
     conda:
@@ -303,7 +303,7 @@ rule multiqc_outgroup_post:
     shell:
         r"""
         mkdir -p {POST_QC_DIR}
-        multiqc {POST_QC_DIR} --outdir {POST_QC_DIR} --filename multiqc_report.html
+        multiqc {POST_QC_DIR} --force --outdir {POST_QC_DIR} --filename multiqc_report.html
         """
 
 rule outgroup_qc_trim_all:
