@@ -227,7 +227,7 @@ rule make_bamlist_unrelated:
 
 rule make_ngsld_inputs:
     input:
-        beagle = f"results/angsd_global/{output_prefix}/gl.beagle.gz"
+        beagle = rules.angsd_global_unrelated.output.beagle
     output:
         snppos = f"results/ngsld_global/{output_prefix}/snp.pos"
     conda:
@@ -241,8 +241,8 @@ rule make_ngsld_inputs:
 
 rule ngsld_global:
     input:
-        bamlist = rules.make_bamlist_global_analysis.output.bamlist,
-        beagle  = f"results/angsd_global/{output_prefix}/gl.beagle.gz",
+        bamlist = rules.make_bamlist_unrelated_analysis.output.bamlist,
+        beagle  = rules.angsd_global_unrelated.output.beagle,
         snppos  = rules.make_ngsld_inputs.output.snppos
     output:
         ldout = f"results/ngsld_global/{output_prefix}/LD.ld",
@@ -306,7 +306,7 @@ rule ld_pruning:
 
 rule filter_unlinked_and_summary:
     input:
-        beagle    = f"results/angsd_global/{output_prefix}/gl.beagle.gz",
+        beagle    = rules.angsd_global_unrelated.output.beagle,
         unlinkedid= rules.ld_pruning.output.unlinkedid,
         snppos    = rules.make_ngsld_inputs.output.snppos
     output:
@@ -366,6 +366,52 @@ rule make_bamlist_unrelated_analysis:
         import pandas as pd
         ing = pd.read_csv(input.ingroup_unrel, header=None)[0].tolist()
         write_bamlist(output.bamlist, list(ing) + outgroup_bam_paths(ANGSD_GLOBAL_OUTGROUP_IDS))
+
+
+rule angsd_global_unrelated:
+    """
+    Run ANGSD on unrelated individuals at the intersected site set.
+    """
+    input:
+        bamlist=rules.make_bamlist_unrelated_analysis.output.bamlist,
+        sites=f"results/intersect_sites/{output_prefix}/intersect.txt",
+        scafs=f"results/intersect_sites/{output_prefix}/intersect.chr",
+        sites_idx=f"results/intersect_sites/{output_prefix}/intersect.txt.bin"
+    output:
+        geno=f"results/angsd_global_unrelated/{output_prefix}/gl.geno.gz",
+        mafs=f"results/angsd_global_unrelated/{output_prefix}/gl.mafs.gz",
+        beagle=f"results/angsd_global_unrelated/{output_prefix}/gl.beagle.gz"
+    log:
+        f"logs/{output_prefix}/angsd_global_unrelated.log"
+    params:
+        ref=REF,
+        outprefix=f"results/angsd_global_unrelated/{output_prefix}/gl",
+        extra=config["angsd_common_args"].strip() + " " + config["angsd_args"]["global"].strip(),
+        minInd_ratio=get_minInd_ratio("global", None)
+    threads: ANGSD_GLOBAL_THREADS
+    resources:
+        mem_mb=ANGSD_GLOBAL_MEM_MB,
+        runtime=ANGSD_GLOBAL_RUNTIME
+    conda:
+        "../envs/angsd.yaml"
+    shell:
+        """
+        MININD_OPT=""
+        if [ -n "{params.minInd_ratio}" ] && [ "{params.minInd_ratio}" != "None" ]; then
+          N=$(wc -l < {input.bamlist})
+          r="{params.minInd_ratio}"
+          MININD=$(awk -v n="$N" -v r="$r" 'BEGIN{{mi=int(n*r+0.5); if(mi<1) mi=1; print mi}}')
+          MININD_OPT="-minInd $MININD"
+        fi
+
+        angsd -out {params.outprefix} -b {input.bamlist} \
+              -ref {params.ref} -anc {params.ref} \
+              -sites {input.sites} \
+              -rf {input.scafs} \
+              {params.extra} $MININD_OPT \
+              -nThreads {threads} \
+              2> {log}
+        """
 
 
 rule angsd_global_unrelated_unlinked:

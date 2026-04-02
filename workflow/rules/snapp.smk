@@ -77,8 +77,8 @@ rule snapp_select_samples:
     population for the SNAPP panel.
     """
     input:
-        geno=f"results/angsd_global/{output_prefix}/gl.geno.gz",
-        bamlist=f"results/bamlists/{output_prefix}/global_analysis/bamlist.txt",
+        geno=rules.angsd_global_unrelated.output.geno,
+        bamlist=rules.make_bamlist_unrelated_analysis.output.bamlist,
         samples=config["samples"]
     output:
         summary=f"{SNAPP_BASE}/selected_samples.tsv",

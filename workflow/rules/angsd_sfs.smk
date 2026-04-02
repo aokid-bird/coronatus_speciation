@@ -99,7 +99,7 @@ def _realsfs2d_prefix(site_filter: str, fold_state: str, pair: str) -> str:
 
 
 def _angsd_sfs_group_input_bamlist(wildcards):
-    return f"results/bamlists/{output_prefix}/{wildcards.group}/bamlist.txt"
+    return f"results/bamlists/{output_prefix}/sfs_unrelated/{wildcards.group}/bamlist.txt"
 
 
 def _angsd_sfs_group_input_sites(wildcards):
@@ -138,6 +138,33 @@ def _realsfs2d_input_saf2(wildcards):
 
 def _realsfs2d_param_outprefix(wildcards):
     return _realsfs2d_prefix(wildcards.site_filter, wildcards.fold, wildcards.pair)
+
+
+rule make_bamlist_sfs_group:
+    """
+    Write one unrelated ingroup bamlist per configured population for SFS analyses.
+    """
+    input:
+        bamlist_unrel=rules.make_bamlist_unrelated.output.bamlist,
+        samples=config["samples"]
+    output:
+        bamlist=f"results/bamlists/{output_prefix}/sfs_unrelated/{{group}}/bamlist.txt"
+    run:
+        import os
+        import pandas as pd
+
+        meta = pd.read_csv(input.samples, sep="\t")
+        unrelated_paths = pd.read_csv(input.bamlist_unrel, header=None)[0].tolist()
+        allowed = {
+            os.path.splitext(os.path.basename(path))[0]
+            for path in unrelated_paths
+        }
+        selected = meta[
+            (meta[group_col] == wildcards.group)
+            & (meta["sample"].astype(str).isin(allowed))
+        ]
+        bam_paths = selected["sample"].astype(str).apply(lambda s: f"{config_bam_dir}/{s}.bam").tolist()
+        write_bamlist(output.bamlist, bam_paths)
 
 
 rule angsd_sfs_group:

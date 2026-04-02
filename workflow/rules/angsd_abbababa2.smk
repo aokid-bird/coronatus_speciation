@@ -62,6 +62,7 @@ rule prepare_abbababa2_inputs:
     """
     input:
         samples=config["samples"],
+        ingroup_unrel=rules.make_bamlist_unrelated.output.bamlist,
         sliced=(lambda wc: [] if not ABBABABA2_OUTGROUP_IDS else expand(f"{OUTGROUP_SLICED_DIR}/{{sample_id}}.bam", sample_id=ABBABABA2_OUTGROUP_IDS))
     output:
         bamlist=f"results/bamlists/{output_prefix}/abbababa2/bamlist.txt",
@@ -77,6 +78,11 @@ rule prepare_abbababa2_inputs:
             raise ValueError("abbababa2.outgroup_samples is empty; at least one outgroup sample_id is required")
 
         df = pd.read_csv(input.samples, sep="\t")
+        unrelated_paths = pd.read_csv(input.ingroup_unrel, header=None)[0].tolist()
+        allowed = {
+            os.path.splitext(os.path.basename(path))[0]
+            for path in unrelated_paths
+        }
         missing = [pop for pop in groups if df[df[group_col] == pop].empty]
         if missing:
             raise ValueError(f"No samples found for populations {missing} in {input.samples} for ABBABABA2")
@@ -86,6 +92,8 @@ rule prepare_abbababa2_inputs:
             label = get_population_label(pop)
             subset = df[df[group_col] == pop]
             for sample in subset["sample"].astype(str):
+                if sample not in allowed:
+                    continue
                 if sample in ABBABABA2_EXCLUDE_SAMPLES:
                     continue
                 records.append((label, f"{params.bam_dir}/{sample}.bam"))
