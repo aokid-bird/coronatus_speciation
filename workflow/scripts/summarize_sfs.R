@@ -145,20 +145,45 @@ model_summary <- model_tbl %>%
 # 4) Plot ------------------------------------------------------------------
 plot_data <- theta_filtered
 
-plot_obj <- ggplot(plot_data, aes(x = tW_per_site, y = Tajima, color = pop)) +
-  geom_point(alpha = 0.7, size = 2) +
-  facet_grid(rows = vars(site_filter), cols = vars(fold), scales = "free") +
+plot_long <- plot_data %>%
+  select(site_filter, fold, pop, tW_per_site, Tajima) %>%
+  pivot_longer(
+    cols = c(tW_per_site, Tajima),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  mutate(
+    metric = recode(
+      metric,
+      tW_per_site = "Theta W per site",
+      Tajima = "Tajima's D"
+    ),
+    metric = factor(metric, levels = c("Theta W per site", "Tajima's D")),
+    pop = factor(pop, levels = populations)
+  ) %>%
+  filter(!is.na(value), is.finite(value))
+
+plot_obj <- ggplot(plot_long, aes(x = pop, y = value, fill = pop)) +
+  geom_boxplot(width = 0.72, alpha = 0.85, outlier.shape = NA) +
+  geom_jitter(width = 0.14, alpha = 0.45, size = 1.2, color = "black") +
+  facet_grid(rows = vars(metric), cols = vars(site_filter, fold), scales = "free_y") +
   labs(
-    x = expression(theta[W]~"per site"),
-    y = "Tajima's D",
-    color = "Population"
+    x = "Population",
+    y = "Window statistic",
+    fill = "Population"
   ) +
-  theme_minimal()
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+    legend.position = "none",
+    panel.grid.major.x = element_blank()
+  )
 
 n_site <- max(1, n_distinct(plot_data$site_filter))
 n_fold <- max(1, n_distinct(plot_data$fold))
-plot_width <- max(6, 4 * n_fold)
-plot_height <- max(4, 3.5 * n_site)
+n_pop <- max(1, n_distinct(plot_long$pop))
+plot_width <- max(8, 1.2 * n_pop * n_fold)
+plot_height <- max(6, 3.2 * n_site * 2)
 
 # 5) Write outputs ---------------------------------------------------------
 ensure_parent(snakemake@output[["sfs_summary"]])

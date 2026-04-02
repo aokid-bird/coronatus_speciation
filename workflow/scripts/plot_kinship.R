@@ -85,9 +85,28 @@ grps <-
 tab.kin <- grps %>% rename(name = sample) %>% left_join(kin.base.df, by = "name")
 write_csv(tab.kin, csv_out)
 
+# Scale network aesthetics to the number of included samples so dense graphs
+# remain legible in a single figure.
+n_vertices <- igraph::vcount(g)
+n_groups <- dplyr::n_distinct(V(g)$group)
+plot_width <- max(10, min(24, 8 + 0.22 * n_vertices))
+plot_height <- max(10, min(24, 8 + 0.18 * n_vertices))
+vertex_size <- max(6, min(24, 48 / sqrt(max(1, n_vertices) / 4)))
+vertex_label_cex <- max(0.35, min(1.1, 1.7 / sqrt(max(1, n_vertices) / 6)))
+edge_label_cex <- if (n_vertices <= 25) {
+  1.1
+} else if (n_vertices <= 60) {
+  0.7
+} else {
+  0.0
+}
+edge_width_scale <- max(2, min(12, 36 / sqrt(max(1, n_vertices) / 4)))
+legend_cex <- max(0.55, min(0.95, 1.2 - 0.02 * n_groups))
+legend_pt_cex <- max(0.8, min(1.8, 2.4 - 0.05 * n_groups))
+
 # draw network
 pdf(file = netplot_out,
-    width = 15, height = 15)
+    width = plot_width, height = plot_height)
 
 group_list <- sort(unique(V(g))$group)
 group_colors <- setNames(palette_n(length(group_list)), group_list)
@@ -95,22 +114,23 @@ vertex_colors <- group_colors[V(g)$group]
 
 plot(g,
      vertex.color = vertex_colors,
-     edge.width = E(g)$KING * 20,
+     edge.width = pmax(1.5, E(g)$KING * edge_width_scale),
      edge.label = round(E(g)$KING, digits = 4),
      edge.label.color = "black",
-     edge.label.cex = 2,
-     vertex.size = 50,
+     edge.label.cex = edge_label_cex,
+     vertex.size = vertex_size,
      vertex.frame.width = 2,
      vertex.label.color = "black",
-     vertex.label.cex = 1)
+     vertex.label.cex = vertex_label_cex,
+     margin = 0.15)
 title(glue("Relatedness based on KING (threshold = {threshold})"))
 
 legend("bottomright",
        legend = names(group_colors),
        col = group_colors,
        pch = 19,
-       pt.cex = 2,
-       cex = 0.9,
+       pt.cex = legend_pt_cex,
+       cex = legend_cex,
        bty = "n")
 
 dev.off()
