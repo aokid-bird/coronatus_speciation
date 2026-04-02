@@ -241,7 +241,7 @@ rule make_ngsld_inputs:
 
 rule ngsld_global:
     input:
-        bamlist = rules.make_bamlist_unrelated_analysis.output.bamlist,
+        bamlist = f"results/bamlists/{output_prefix}/global_unrelated_analysis/bamlist.txt",
         beagle  = f"results/angsd_global_unrelated/{output_prefix}/gl.beagle.gz",
         snppos  = rules.make_ngsld_inputs.output.snppos
     output:
