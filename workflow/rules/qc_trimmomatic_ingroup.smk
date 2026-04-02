@@ -148,12 +148,16 @@ rule multiqc_ingroup_pre:
         expand(pjoin(PRE_QC_DIR, "{sample_id}_{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(PRE_QC_DIR, "multiqc_report.html")
+    params:
+        outdir=lambda wc, output: str(Path(output.html).parent),
+        filename=lambda wc, output: Path(output.html).name
     conda:
         "../envs/multiqc.yaml"
     shell:
         r"""
-        mkdir -p {PRE_QC_DIR}
-        multiqc {PRE_QC_DIR} --force --outdir {PRE_QC_DIR} --filename multiqc_report.html
+        mkdir -p {params.outdir}
+        multiqc {params.outdir} --force --outdir {params.outdir} --filename {params.filename}
+        test -s {output.html}
         """
 
 
@@ -257,12 +261,16 @@ rule multiqc_ingroup_post:
         expand(pjoin(POST_QC_DIR, "{sample_id}_pair_R{read}_fastqc.html"), sample_id=INGROUP_STORAGE_SAMPLE_IDS, read=["1","2"])
     output:
         html=pjoin(POST_QC_DIR, "multiqc_report.html")
+    params:
+        outdir=lambda wc, output: str(Path(output.html).parent),
+        filename=lambda wc, output: Path(output.html).name
     conda:
         "../envs/multiqc.yaml"
     shell:
         r"""
-        mkdir -p {POST_QC_DIR}
-        multiqc {POST_QC_DIR} --force --outdir {POST_QC_DIR} --filename multiqc_report.html
+        mkdir -p {params.outdir}
+        multiqc {params.outdir} --force --outdir {params.outdir} --filename {params.filename}
+        test -s {output.html}
         """
 
 
