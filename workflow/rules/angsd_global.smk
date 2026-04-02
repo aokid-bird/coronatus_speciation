@@ -227,7 +227,7 @@ rule make_bamlist_unrelated:
 
 rule make_ngsld_inputs:
     input:
-        beagle = rules.angsd_global_unrelated.output.beagle
+        beagle = f"results/angsd_global_unrelated/{output_prefix}/gl.beagle.gz"
     output:
         snppos = f"results/ngsld_global/{output_prefix}/snp.pos"
     conda:
@@ -242,7 +242,7 @@ rule make_ngsld_inputs:
 rule ngsld_global:
     input:
         bamlist = rules.make_bamlist_unrelated_analysis.output.bamlist,
-        beagle  = rules.angsd_global_unrelated.output.beagle,
+        beagle  = f"results/angsd_global_unrelated/{output_prefix}/gl.beagle.gz",
         snppos  = rules.make_ngsld_inputs.output.snppos
     output:
         ldout = f"results/ngsld_global/{output_prefix}/LD.ld",
@@ -306,7 +306,7 @@ rule ld_pruning:
 
 rule filter_unlinked_and_summary:
     input:
-        beagle    = rules.angsd_global_unrelated.output.beagle,
+        beagle    = f"results/angsd_global_unrelated/{output_prefix}/gl.beagle.gz",
         unlinkedid= rules.ld_pruning.output.unlinkedid,
         snppos    = rules.make_ngsld_inputs.output.snppos
     output:
