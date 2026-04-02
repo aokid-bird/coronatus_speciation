@@ -99,7 +99,7 @@ def _realsfs2d_prefix(site_filter: str, fold_state: str, pair: str) -> str:
 
 
 def _angsd_sfs_group_input_bamlist(wildcards):
-    return f"results/bamlists/{output_prefix}/sfs_unrelated/{wildcards.group}/bamlist.txt"
+    return f"results/bamlists/{output_prefix}/sfs_unrelated/{wildcards.group}.bamlist.txt"
 
 
 def _angsd_sfs_group_input_sites(wildcards):
@@ -148,7 +148,7 @@ rule make_bamlist_sfs_group:
         bamlist_unrel=rules.make_bamlist_unrelated.output.bamlist,
         samples=config["samples"]
     output:
-        bamlist=f"results/bamlists/{output_prefix}/sfs_unrelated/{{group}}/bamlist.txt"
+        bamlist=f"results/bamlists/{output_prefix}/sfs_unrelated/{{group}}.bamlist.txt"
     run:
         import os
         import pandas as pd
