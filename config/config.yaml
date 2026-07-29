@@ -261,10 +261,10 @@ longread:
 qc:
     ingroup:
         fastqc:
-            adapters: data/adapters/adapter-primer.tsv
+            adapters: data/adapters/adapter_primer_dnb.tsv
             contaminants: null
         trimmomatic:
-            adapters_fa: data/adapters/adapter-primer.fa
+            adapters_fa: data/adapters/adapter_primer_dnb.fa
             clip: "2:30:7"
             slidingwindow: "4:15"
             leading: 30
@@ -273,10 +273,10 @@ qc:
             extra: ""
     outgroup:
         fastqc:
-            adapters: data/adapters/adapter-primer_illumina.tsv
+            adapters: data/adapters/adapter_primer_illumina.tsv
             contaminants: null
         trimmomatic:
-            adapters_fa: data/adapters/adapter-primer_illumina.fa
+            adapters_fa: data/adapters/adapter_primer_illumina.fa
             clip: "2:30:7"
             slidingwindow: "4:15"
             leading: 30
