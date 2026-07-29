@@ -1,0 +1,32 @@
+{
+    "deprecated_notice": "Legacy PBS reference only. Active cluster execution uses Slurm profile/default/config.yaml and rule-level threads/resources.",
+    "legacy_examples": {
+        "__default__": {
+            "jobname": "smk_{rule}",
+            "queue": "default",
+            "ppn": "1",
+            "mem": "8GB",
+            "logdir": "logs"
+        },
+        "angsd_global": {
+            "ppn": "8",
+            "mem": "16GB"
+        },
+        "angsd_intersect_group": {
+            "ppn": "8",
+            "mem": "16GB"
+        },
+        "angsd_sfs_group": {
+            "ppn": "8",
+            "mem": "16GB"
+        },
+        "raxml_ng": {
+            "mem": "200GB",
+            "ppn": "70"
+        },
+        "map_outgroup_paired": {
+            "ppn": "30",
+            "mem": "64GB"
+        }
+    }
+}

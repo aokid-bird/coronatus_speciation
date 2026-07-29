@@ -1,1 +1,25 @@
 sample	basename	pop1	fastq_dir	fastq_prefix	fastq_r1_suffix	fastq_r2_suffix	fastq_extension
+DA0286	DA0286_S1	hokkaido	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0288	DA0288_S2	hokkaido	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0290	DA0290_S3	hokkaido	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0293	DA0293_S4	hokkaido	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0500	DA0500_S5	fujisan	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0503	DA0503_S6	fujisan	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0518	DA0518_S7	fujisan	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA0520	DA0520_S8	fujisan	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2025_SeibutsuGiken_lp01/run_20251104_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1109	DA1109_S1004	fujisan	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1112	DA1112_S1005	fujisan	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1131	DA1131_S1006	iwate	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1133	DA1133_S1007	iwate	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1134	DA1134_S1008	iwate	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1135	DA1135_S1009	iwate	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1136	DA1136_S1010	iwate	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1137	DA1137_S1011	iwate	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1138	DA1138_S1012	miyagi	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1140	DA1140_S1013	miyagi	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1141	DA1141_S1014	miyagi	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1142	DA1142_S1015	miyagi	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1145	DA1145_S1016	miyagi	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1146	DA1146_S1017	miyagi	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1147	DA1147_S1018	hokkaido	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
+DA1152	DA1152_S1019	hokkaido	/Volumes/OWCEnvoyProFX/mirror_data/ngs/raw/src_ext_2026_SeibutsuGiken_lp01/run_20260716_DNBSEQ/FASTQ		_R1_001	_R2_001	.fastq.gz
