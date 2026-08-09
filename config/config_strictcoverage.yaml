@@ -329,11 +329,11 @@ angsd:
             -doGeno 4
             -dosaf 1
     min_ind_ratio:
-        intersect: 0.5
-        sfs: 0.5
-        global: 0.5
-        raxml: 0.5
-        treemix: 0.5
+        intersect: 0.83
+        sfs: 0.83
+        global: 0.83
+        raxml: 0.83
+        treemix: 0.83
         snapp: 1.0
 
 analyses:
@@ -377,14 +377,14 @@ analyses:
     pcangsd:
         enabled: true
         iter: 1000
-        minmaf: 0.05
+        minmaf: 0.15
         axes_plot: []
     ngsadmix:
         enabled: true
         maxK: 6
         n_replicates: 10
         maxiter: 5000
-        minmaf: 0.05
+        minmaf: 0.15
     ngsdist:
         enabled: true
         models: [p, jc69]
