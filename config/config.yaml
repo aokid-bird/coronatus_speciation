@@ -217,8 +217,8 @@ storage:
         outgroup_dir: null
 
 reference:
-    fasta: /lfs/aokid/data/source/reference/GCA_016584745.2/GCA_016584745.2_ASM1658474v2_genomic.fna.gz
-    fai: /lfs/aokid/data/source/reference/GCA_016584745.2/GCA_016584745.2_ASM1658474v2_genomic.fna.gz.fai
+    fasta: /lfs/aokid/data/source/reference/GCA_016584745.2/GCA_016584745.2_ASM1658474v2_genomic.fna
+    fai: /lfs/aokid/data/source/reference/GCA_016584745.2/GCA_016584745.2_ASM1658474v2_genomic.fna.fai
     storage_dir: "data/reference"
     download_method: "datasets"
 
