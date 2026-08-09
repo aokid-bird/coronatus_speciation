@@ -1,7 +1,7 @@
 project:
     environment: "local"
     threads: 20
-    output_prefix: "defaults"
+    output_prefix: "strict_coverage"
     populations: [hokkaido, iwate, miyagi, fujisan] # e.g., [hokkaido, fujisan]
     group_col: pop1 # e.g. "pop1"
     population_labels: null
